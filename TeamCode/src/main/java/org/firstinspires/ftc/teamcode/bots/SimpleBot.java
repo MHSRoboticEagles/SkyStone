@@ -1,6 +1,8 @@
 package org.firstinspires.ftc.teamcode.bots;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -18,6 +20,16 @@ public class SimpleBot {
 
     public DcMotor leftDriveFront = null;
     public DcMotor rightDriveFront = null;
+
+    public DcMotor towerDrive = null;
+
+    public DcMotor platformDrive = null;
+
+    public DcMotor intake = null;
+
+    public Servo intakePivot = null;
+
+    private DistanceSensor sensorRange;
 
 
 
@@ -52,130 +64,233 @@ public class SimpleBot {
     }
 
     /* Initialize standard Hardware interfaces */
-    public void init(HardwareMap ahwMap) {
+    public void init(HardwareMap ahwMap, Telemetry telemetry) throws Exception{
         // Save reference to Hardware map
         hwMap = ahwMap;
 
-        // Define and Initialize Motors
-        leftDriveBack  = hwMap.get(DcMotor.class, "left_drive_back");
-        rightDriveBack = hwMap.get(DcMotor.class, "right_drive_back");
-        leftDriveFront  = hwMap.get(DcMotor.class, "left_drive_front");
-        rightDriveFront = hwMap.get(DcMotor.class, "right_drive_front");
+        try {
 
-        leftDriveBack.setDirection(DcMotor.Direction.REVERSE);
-        rightDriveBack.setDirection(DcMotor.Direction.FORWARD);
-        leftDriveFront.setDirection(DcMotor.Direction.REVERSE);
-        rightDriveFront.setDirection(DcMotor.Direction.FORWARD);
+            // Define and Initialize Motors
+            leftDriveBack = hwMap.get(DcMotor.class, "left_drive_back");
+            rightDriveBack = hwMap.get(DcMotor.class, "right_drive_back");
+            leftDriveFront = hwMap.get(DcMotor.class, "left_drive_front");
+            rightDriveFront = hwMap.get(DcMotor.class, "right_drive_front");
+        }
+        catch (Exception ex){
+            //issues accessing drive resources
+            throw new Exception("Issues accessing drive resources. Check the controller config", ex);
+        }
+
+        try{
+            towerDrive = hwMap.get(DcMotor.class, "tower");
+        }
+        catch (Exception ex){
+            throw new Exception("Issues accessing tower. Check the controller config", ex);
+        }
+        telemetry.addData("Init", "towerDrive");
+
+        try{
+            platformDrive = hwMap.get(DcMotor.class, "platform");
+        }
+        catch (Exception ex){
+            throw new Exception("Issues accessing platform. Check the controller config", ex);
+        }
+        telemetry.addData("Init", "platformDrive");
+
+        try{
+            intake = hwMap.get(DcMotor.class, "intake");
+        }
+        catch (Exception ex){
+            throw new Exception("Issues accessing intake. Check the controller config", ex);
+        }
+        telemetry.addData("Init", "intake");
+
+
+        if (leftDriveBack != null) {
+            leftDriveBack.setDirection(DcMotor.Direction.REVERSE);
+        }
+
+        if (rightDriveBack != null) {
+            rightDriveBack.setDirection(DcMotor.Direction.FORWARD);
+        }
+
+        if (leftDriveFront != null) {
+            leftDriveFront.setDirection(DcMotor.Direction.REVERSE);
+        }
+
+        if (rightDriveFront != null) {
+            rightDriveFront.setDirection(DcMotor.Direction.FORWARD);
+        }
 
         resetEncoders();
 
-        leftDriveBack.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rightDriveBack.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        leftDriveFront.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rightDriveFront.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        if (leftDriveBack != null && rightDriveBack!= null && leftDriveFront != null && rightDriveFront != null) {
 
-        // Set all motors to zero power
-        leftDriveBack.setPower(0);
-        rightDriveBack.setPower(0);
-        leftDriveFront.setPower(0);
-        rightDriveFront.setPower(0);
+            leftDriveBack.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            rightDriveBack.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            leftDriveFront.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            rightDriveFront.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+            // Set all motors to zero power
+            leftDriveBack.setPower(0);
+            rightDriveBack.setPower(0);
+            leftDriveFront.setPower(0);
+            rightDriveFront.setPower(0);
+        }
+
+        if (towerDrive != null){
+            towerDrive.setDirection(DcMotor.Direction.FORWARD);
+            towerDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            towerDrive.setPower(0);
+        }
+
+        if (platformDrive != null){
+            platformDrive.setDirection(DcMotor.Direction.REVERSE);
+            platformDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            platformDrive.setPower(0);
+        }
+
+        if (intake != null){
+            intake.setDirection(DcMotor.Direction.REVERSE);
+            intake.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            intake.setPower(0);
+        }
+
+        try{
+            intakePivot = hwMap.get(Servo.class, "pivot");
+            if (intakePivot != null){
+                intakePivot.setPosition(0);
+            }
+        }
+        catch (Exception ex){
+            throw new Exception("Issues accessing intakePivot servo. Check the controller config", ex);
+        }
+
+
+        try{
+            sensorRange = hwMap.get(DistanceSensor.class, "range");
+        }
+        catch (Exception ex){
+            throw new Exception("Issues accessing range sensor. Check the controller config", ex);
+        }
 
     }
 
     protected void resetEncoders(){
-        leftDriveBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rightDriveBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        leftDriveFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rightDriveFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        if (leftDriveBack != null && rightDriveBack!= null && leftDriveFront != null && rightDriveFront != null)
+        {
+            leftDriveBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            rightDriveBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            leftDriveFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            rightDriveFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        }
     }
 
     public void initMode(DcMotor.RunMode mode){
-        leftDriveBack.setMode(mode);
-        rightDriveBack.setMode(mode);
-        leftDriveFront.setMode(mode);
-        rightDriveFront.setMode(mode);
+        if (leftDriveBack != null && rightDriveBack!= null && leftDriveFront != null && rightDriveFront != null) {
+            leftDriveBack.setMode(mode);
+            rightDriveBack.setMode(mode);
+            leftDriveFront.setMode(mode);
+            rightDriveFront.setMode(mode);
+        }
     }
 
     public void stop (){
-        this.leftDriveBack.setPower(0);
-        this.rightDriveBack.setPower(0);
-        this.leftDriveFront.setPower(0);
-        this.rightDriveFront.setPower(0);
+        if (leftDriveBack != null && rightDriveBack!= null && leftDriveFront != null && rightDriveFront != null) {
+            this.leftDriveBack.setPower(0);
+            this.rightDriveBack.setPower(0);
+            this.leftDriveFront.setPower(0);
+            this.rightDriveFront.setPower(0);
+        }
     }
 
     public void move(double drive, double turn, Telemetry telemetry){
-        double rightPower    = Range.clip(drive + turn, -1.0, 1.0) ;
-        double leftPower   = Range.clip(drive - turn, -1.0, 1.0) ;
-        //use cubic modifier
+        if (leftDriveBack != null && rightDriveBack!= null && leftDriveFront != null && rightDriveFront != null) {
+            double rightPower = Range.clip(drive + turn, -1.0, 1.0);
+            double leftPower = Range.clip(drive - turn, -1.0, 1.0);
+            //use cubic modifier
 //        rightPower = rightPower*rightPower*rightPower;
 //        leftPower = leftPower*leftPower*leftPower;
 
-        this.leftDriveBack.setPower(leftPower);
-        this.rightDriveBack.setPower(rightPower);
-        this.leftDriveFront.setPower(leftPower);
-        this.rightDriveFront.setPower(rightPower);
-        telemetry.addData("Motors", "Left: %.0f", leftPower);
-        telemetry.addData("Motors", "Right: %.0f", rightPower);
-        telemetry.addData("Motors", "Turn: %.0f", turn);
-        telemetry.addData("Motors", "LeftFront from %7d", leftDriveFront.getCurrentPosition());
-        telemetry.addData("Motors", "LeftBack from %7d", leftDriveBack.getCurrentPosition());
-        telemetry.addData("Motors", "RightFront from %7d", rightDriveFront.getCurrentPosition());
-        telemetry.addData("Motors", "RightBack from %7d", rightDriveBack.getCurrentPosition());
+            this.leftDriveBack.setPower(leftPower);
+            this.rightDriveBack.setPower(rightPower);
+            this.leftDriveFront.setPower(leftPower);
+            this.rightDriveFront.setPower(rightPower);
+            telemetry.addData("Motors", "Left: %.0f", leftPower);
+            telemetry.addData("Motors", "Right: %.0f", rightPower);
+            telemetry.addData("Motors", "Turn: %.0f", turn);
+            telemetry.addData("Motors", "LeftFront from %7d", leftDriveFront.getCurrentPosition());
+            telemetry.addData("Motors", "LeftBack from %7d", leftDriveBack.getCurrentPosition());
+            telemetry.addData("Motors", "RightFront from %7d", rightDriveFront.getCurrentPosition());
+            telemetry.addData("Motors", "RightBack from %7d", rightDriveBack.getCurrentPosition());
+        }
     }
 
 
     public void strafeLeft(double speed, Telemetry telemetry){
-        double power    = Range.clip(speed, -1.0, 1.0) ;
-        this.leftDriveBack.setPower(power);
-        this.rightDriveBack.setPower(-power);
-        this.leftDriveFront.setPower(-power);
-        this.rightDriveFront.setPower(power);
-        telemetry.addData("Motors", "Front: %.0f", power);
-        telemetry.addData("Motors", "Back: %.0f", power);
+        if (leftDriveBack != null && rightDriveBack!= null && leftDriveFront != null && rightDriveFront != null) {
+            double power = Range.clip(speed, -1.0, 1.0);
+            this.leftDriveBack.setPower(power);
+            this.rightDriveBack.setPower(-power);
+            this.leftDriveFront.setPower(-power);
+            this.rightDriveFront.setPower(power);
+            telemetry.addData("Motors", "Front: %.0f", power);
+            telemetry.addData("Motors", "Back: %.0f", power);
+        }
     }
 
     public void strafeRight(double speed, Telemetry telemetry){
-        double power    = Range.clip(speed, -1.0, 1.0) ;
-        this.leftDriveBack.setPower(-power);
-        this.rightDriveBack.setPower(power);
-        this.leftDriveFront.setPower(power);
-        this.rightDriveFront.setPower(-power);
-        telemetry.addData("Motors", "Front: %.0f", power);
-        telemetry.addData("Motors", "Back: %.0f", power);
+        if (leftDriveBack != null && rightDriveBack!= null && leftDriveFront != null && rightDriveFront != null) {
+            double power = Range.clip(speed, -1.0, 1.0);
+            this.leftDriveBack.setPower(-power);
+            this.rightDriveBack.setPower(power);
+            this.leftDriveFront.setPower(power);
+            this.rightDriveFront.setPower(-power);
+            telemetry.addData("Motors", "Front: %.0f", power);
+            telemetry.addData("Motors", "Back: %.0f", power);
+        }
     }
 
     public void pivotLeft(double speed, Telemetry telemetry){
-        double power    = Range.clip(speed, -1.0, 1.0) ;
-        this.leftDriveBack.setPower(-power);
-        this.rightDriveBack.setPower(power);
-        this.leftDriveFront.setPower(-power);
-        this.rightDriveFront.setPower(power);
-        telemetry.addData("Motors", "Left: %7d Right: %7d", leftDriveFront.getCurrentPosition(), rightDriveFront.getCurrentPosition());
-        telemetry.update();
+        if (leftDriveBack != null && rightDriveBack!= null && leftDriveFront != null && rightDriveFront != null) {
+            double power = Range.clip(speed, -1.0, 1.0);
+            this.leftDriveBack.setPower(-power);
+            this.rightDriveBack.setPower(power);
+            this.leftDriveFront.setPower(-power);
+            this.rightDriveFront.setPower(power);
+            telemetry.addData("Motors", "Left: %7d Right: %7d", leftDriveFront.getCurrentPosition(), rightDriveFront.getCurrentPosition());
+            telemetry.update();
+        }
     }
 
     public void pivotRight(double speed, Telemetry telemetry){
-        double power    = Range.clip(speed, -1.0, 1.0) ;
-        this.leftDriveBack.setPower(power);
-        this.rightDriveBack.setPower(-power);
-        this.leftDriveFront.setPower(power);
-        this.rightDriveFront.setPower(-power);
-        telemetry.addData("Motors", "Lef: %7d Right: %7d", leftDriveFront.getCurrentPosition(), rightDriveFront.getCurrentPosition());
-        telemetry.update();
+        if (leftDriveBack != null && rightDriveBack!= null && leftDriveFront != null && rightDriveFront != null) {
+            double power = Range.clip(speed, -1.0, 1.0);
+            this.leftDriveBack.setPower(power);
+            this.rightDriveBack.setPower(-power);
+            this.leftDriveFront.setPower(power);
+            this.rightDriveFront.setPower(-power);
+            telemetry.addData("Motors", "Lef: %7d Right: %7d", leftDriveFront.getCurrentPosition(), rightDriveFront.getCurrentPosition());
+            telemetry.update();
+        }
     }
 
     public void turnLeft(double speed){
-        this.leftDriveBack.setPower(0);
-        this.rightDriveBack.setPower(speed);
-        this.leftDriveFront.setPower(0);
-        this.rightDriveFront.setPower(speed);
+        if (leftDriveBack != null && rightDriveBack!= null && leftDriveFront != null && rightDriveFront != null) {
+            this.leftDriveBack.setPower(0);
+            this.rightDriveBack.setPower(speed);
+            this.leftDriveFront.setPower(0);
+            this.rightDriveFront.setPower(speed);
+        }
     }
 
     public void turnRight(double speed){
-        this.leftDriveBack.setPower(speed);
-        this.rightDriveBack.setPower(0);
-        this.leftDriveFront.setPower(speed);
-        this.rightDriveFront.setPower(0);
+        if (leftDriveBack != null && rightDriveBack!= null && leftDriveFront != null && rightDriveFront != null) {
+            this.leftDriveBack.setPower(speed);
+            this.rightDriveBack.setPower(0);
+            this.leftDriveFront.setPower(speed);
+            this.rightDriveFront.setPower(0);
+        }
     }
 
     public void encoderDrive(double speed,
@@ -466,6 +581,62 @@ public class SimpleBot {
         catch (Exception ex){
             telemetry.addData("Issues running with encoders to position", ex);
             telemetry.update();
+        }
+    }
+
+
+    public void moveTower(double drive, Telemetry telemetry){
+        if (towerDrive != null ) {
+            double power = Range.clip(drive, -1.0, 1.0);
+
+            this.towerDrive.setPower(power);
+
+            telemetry.addData("Tower", "Speed from %.2f", drive);
+        }
+    }
+
+    public void movePlatform(double drive, Telemetry telemetry){
+        if (platformDrive != null ) {
+            double power = Range.clip(drive, -1.0, 1.0);
+
+            this.platformDrive.setPower(power);
+
+            telemetry.addData("Platform", "Speed from %.2f", drive);
+        }
+    }
+
+    public void pickup(float drive, Telemetry telemetry){
+        if (intake != null ) {
+            double power = Range.clip(drive, 0, 1.0);
+
+            this.intake.setPower(power);
+
+            telemetry.addData("Intake", "Speed from %.2f", drive);
+        }
+        else{
+            telemetry.addData("Intake", "Not initialized");
+        }
+    }
+
+    public void release(double drive, Telemetry telemetry){
+        if (intake != null ) {
+            double power = Range.clip(drive, -1, 0);
+
+            this.intake.setPower(power);
+
+            telemetry.addData("Intake", "Speed from %.2f", drive);
+        }
+    }
+
+    public void fold (){
+        if (intakePivot != null){
+            intakePivot.setPosition(1);
+        }
+    }
+
+    public void unfold (){
+        if (intakePivot != null){
+            intakePivot.setPosition(0);
         }
     }
 

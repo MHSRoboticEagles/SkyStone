@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode.gamefield;
 
-import android.support.annotation.NonNull;
 
 public class MineralObject implements Comparable<MineralObject>{
     private String label = "";
@@ -21,7 +20,7 @@ public class MineralObject implements Comparable<MineralObject>{
     }
 
     @Override
-    public int compareTo(@NonNull MineralObject mineralObject) {
+    public int compareTo(MineralObject mineralObject) {
         if(this.leftPos < mineralObject.getLeftPos()) {
             return -1;
         }

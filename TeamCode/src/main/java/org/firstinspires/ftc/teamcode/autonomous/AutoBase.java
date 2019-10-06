@@ -15,7 +15,6 @@ import org.firstinspires.ftc.teamcode.skills.GoldPosition;
 import org.firstinspires.ftc.teamcode.skills.ImageRecognition;
 import org.firstinspires.ftc.teamcode.skills.MineralDetection;
 import org.firstinspires.ftc.teamcode.skills.Navigator;
-import org.firstinspires.ftc.teamcode.skills.Parrot;
 import org.firstinspires.ftc.teamcode.skills.VuforiaWrapper;
 
 
@@ -132,15 +131,7 @@ public abstract class AutoBase extends LinearOpMode {
         MineralLineUp lineUp = mineralDetection.detectFlex(5, view);
         if (lineUp != null) {
             goldPosition = lineUp.getGoldPosition();
-            if (withSound) {
-                Parrot p = new Parrot(hardwareMap, telemetry);
-                if (goldPosition != GoldPosition.None) {
-                    p.playSequence(goldPosition);
-                }
-                else{
-                    p.playClever();
-                }
-            }
+
             telemetry.addData("Line up: ", lineUp.toString());
             telemetry.update();
         }

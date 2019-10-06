@@ -62,11 +62,14 @@ public class SimpleLinearMode extends LinearOpMode {
     @Override
     public void runOpMode() {
         try {
-            robot.init(this.hardwareMap);
-//            telemetry.addData("Status", "Initialized");
-////            jewelHunter.init(hardwareMap);
-//
-//            telemetry.update();
+            try {
+                robot.init(this.hardwareMap, telemetry);
+            }
+            catch (Exception ex){
+                telemetry.addData("Init", ex.getMessage());
+            }
+
+            telemetry.update();
 
             // Wait for the game to start (driver presses PLAY)
             waitForStart();
@@ -104,6 +107,34 @@ public class SimpleLinearMode extends LinearOpMode {
                 else if(rightPivot){
                     robot.pivotRight(1, telemetry);
                 }
+
+                //platform
+                double plat = gamepad2.left_stick_y;
+                robot.movePlatform(plat, telemetry);
+
+
+                //tower
+                double tower = gamepad2.right_stick_y;
+                robot.moveTower(tower, telemetry);
+
+                float pickup = gamepad2.right_trigger;
+                telemetry.addData("Intake pickup", "Speed from %.2f", pickup);
+                robot.pickup(pickup, telemetry);
+
+                float dump = -gamepad2.left_trigger;
+                telemetry.addData("Intake dump", "Speed from %.2f", dump);
+                robot.release(dump, telemetry);
+
+                if (gamepad2.x) {
+                    robot.unfold();
+                }
+
+                if (gamepad2.y) {
+                    robot.fold();
+                }
+
+
+                telemetry.update();
             }
         }
         catch (Exception ex){
