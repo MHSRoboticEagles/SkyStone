@@ -119,11 +119,11 @@ public class SimpleLinearMode extends LinearOpMode {
 
                 float pickup = gamepad2.right_trigger;
                 telemetry.addData("Intake pickup", "Speed from %.2f", pickup);
-                robot.pickup(pickup, telemetry);
+                robot.pickupTemp(pickup, telemetry);
 
                 float dump = -gamepad2.left_trigger;
                 telemetry.addData("Intake dump", "Speed from %.2f", dump);
-                robot.release(dump, telemetry);
+                robot.releaseTemp(dump, telemetry);
 
                 if (gamepad2.x) {
                     robot.unfold();

@@ -27,6 +27,8 @@ public class SimpleBot {
 
     public DcMotor intake = null;
 
+    public Servo intakeTemp = null;
+
     public Servo intakePivot = null;
 
     private DistanceSensor sensorRange;
@@ -164,6 +166,16 @@ public class SimpleBot {
         }
         catch (Exception ex){
             throw new Exception("Issues accessing intakePivot servo. Check the controller config", ex);
+        }
+
+        try{
+            intakeTemp = hwMap.get(Servo.class, "temp-intake");
+            if (intakeTemp != null){
+                intakeTemp.setPosition(0);
+            }
+        }
+        catch (Exception ex){
+            throw new Exception("Issues accessing temp intake servo. Check the controller config", ex);
         }
 
 
@@ -625,6 +637,32 @@ public class SimpleBot {
             this.intake.setPower(power);
 
             telemetry.addData("Intake", "Speed from %.2f", drive);
+        }
+    }
+
+    public void pickupTemp(float drive, Telemetry telemetry){
+        if (intakeTemp != null ) {
+            double power = Range.clip(drive, 0, 1.0);
+
+            this.intakeTemp.setPosition(0);
+
+            telemetry.addData("Intake Temp", "Speed from %.2f", drive);
+        }
+        else{
+            telemetry.addData("Intake Temp", "Not initialized");
+        }
+    }
+
+    public void releaseTemp(double drive, Telemetry telemetry){
+        if (intakeTemp != null ) {
+            double power = Range.clip(drive, -1, 0);
+
+            this.intakeTemp.setPosition(1);
+
+            telemetry.addData("Temp Intake", "Speed from %.2f", drive);
+        }
+        else{
+            telemetry.addData("Temp Intake", "Not initialized");
         }
     }
 
