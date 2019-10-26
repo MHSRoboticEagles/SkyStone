@@ -29,12 +29,10 @@
 
 package org.firstinspires.ftc.teamcode.OpModes;
 
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.bots.RevDoubleBot;
 import org.firstinspires.ftc.teamcode.bots.SimpleBot;
 
 
@@ -51,9 +49,9 @@ import org.firstinspires.ftc.teamcode.bots.SimpleBot;
  * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list
  */
 
-@TeleOp(name="SimpleDrive", group="Robot15173")
-@Disabled
-public class SimpleLinearMode extends LinearOpMode {
+@TeleOp(name="SimpleDriveTurn", group="Robot15173")
+//@Disabled
+public class SimpleLinearTurn extends LinearOpMode {
 
     // Declare OpMode members.
     SimpleBot robot   = new SimpleBot();
@@ -82,7 +80,15 @@ public class SimpleLinearMode extends LinearOpMode {
                 // POV Mode uses left stick to go forward, and right stick to turn.
                 // - This uses basic math to combine motions and is easier to drive straight.
                 double drive = gamepad1.left_stick_y;
-                double turn = gamepad1.left_stick_x;
+                double turn = 0;
+                double ltrigger = gamepad1.left_trigger;
+                double rtrigger = gamepad1.right_trigger;
+                if (ltrigger > 0){
+                    turn = -ltrigger;
+                }
+                else if (rtrigger > 0){
+                    turn = rtrigger;
+                }
 
                 double strafe = gamepad1.right_stick_x;
 
@@ -110,12 +116,12 @@ public class SimpleLinearMode extends LinearOpMode {
                 }
 
                 //platform
-                double plat = gamepad2.left_stick_y;
+                double plat = gamepad2.left_stick_x;
                 robot.movePlatform(plat, telemetry);
 
 
                 //tower
-                double tower = gamepad2.right_stick_y;
+                double tower = gamepad2.left_stick_y;
                 robot.moveTower(tower, telemetry);
 
                 float pickup = gamepad2.right_trigger;
@@ -130,9 +136,13 @@ public class SimpleLinearMode extends LinearOpMode {
                     robot.releaseTemp(dump, telemetry);
                 }
 
-                robot.unfold(gamepad2.x);
+                //intakePivot
+                double intakePivot = gamepad2.right_stick_y;
+                robot.moveIntake(intakePivot, telemetry);
 
-                robot.fold(gamepad2.y);
+//                robot.unfold(gamepad2.x);
+//
+//                robot.fold(gamepad2.y);
 
 
                 telemetry.update();

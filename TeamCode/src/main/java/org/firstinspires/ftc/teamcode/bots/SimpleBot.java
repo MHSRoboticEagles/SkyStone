@@ -25,11 +25,11 @@ public class SimpleBot {
 
     public DcMotor platformDrive = null;
 
-    public DcMotor intake = null;
+//    public DcMotor intake = null;
 
     public Servo intakeTemp = null;
 
-    public Servo intakePivot = null;
+    public DcMotor intakePivot = null;
 
     private DistanceSensor sensorRange;
 
@@ -44,6 +44,7 @@ public class SimpleBot {
     public double DRIVE_SPEED = 0.99;
 
     static final double     STRAFE_INCH    = 1.5 ;    // Rev Core Hex motor
+    public static final double     PIVOT_SPEED = 0.2;
 
 
 
@@ -99,13 +100,13 @@ public class SimpleBot {
         }
         telemetry.addData("Init", "platformDrive");
 
-        try{
-            intake = hwMap.get(DcMotor.class, "intake");
-        }
-        catch (Exception ex){
-            throw new Exception("Issues accessing intake. Check the controller config", ex);
-        }
-        telemetry.addData("Init", "intake");
+//        try{
+//            intake = hwMap.get(DcMotor.class, "intake");
+//        }
+//        catch (Exception ex){
+//            throw new Exception("Issues accessing intake. Check the controller config", ex);
+//        }
+//        telemetry.addData("Init", "intake");
 
 
         if (leftDriveBack != null) {
@@ -143,25 +144,31 @@ public class SimpleBot {
         if (towerDrive != null){
             towerDrive.setDirection(DcMotor.Direction.FORWARD);
             towerDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            towerDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             towerDrive.setPower(0);
         }
 
         if (platformDrive != null){
             platformDrive.setDirection(DcMotor.Direction.REVERSE);
             platformDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            platformDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             platformDrive.setPower(0);
         }
 
-        if (intake != null){
-            intake.setDirection(DcMotor.Direction.REVERSE);
-            intake.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            intake.setPower(0);
-        }
+//        if (intake != null){
+//            intake.setDirection(DcMotor.Direction.REVERSE);
+//            intake.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+//            intake.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+//            intake.setPower(0);
+//        }
 
         try{
-            intakePivot = hwMap.get(Servo.class, "pivot");
+            intakePivot = hwMap.get(DcMotor.class, "pivot");
             if (intakePivot != null){
-                intakePivot.setPosition(0);
+                intakePivot.setDirection(DcMotor.Direction.FORWARD);
+                intakePivot.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                intakePivot.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                intakePivot.setPower(0);
             }
         }
         catch (Exception ex){
@@ -171,7 +178,7 @@ public class SimpleBot {
         try{
             intakeTemp = hwMap.get(Servo.class, "temp-intake");
             if (intakeTemp != null){
-                intakeTemp.setPosition(0);
+                intakeTemp.setPosition(1);
             }
         }
         catch (Exception ex){
@@ -617,33 +624,31 @@ public class SimpleBot {
         }
     }
 
-    public void pickup(float drive, Telemetry telemetry){
-        if (intake != null ) {
-            double power = Range.clip(drive, 0, 1.0);
-
-            this.intake.setPower(power);
-
-            telemetry.addData("Intake", "Speed from %.2f", drive);
-        }
-        else{
-            telemetry.addData("Intake", "Not initialized");
-        }
-    }
-
-    public void release(double drive, Telemetry telemetry){
-        if (intake != null ) {
-            double power = Range.clip(drive, -1, 0);
-
-            this.intake.setPower(power);
-
-            telemetry.addData("Intake", "Speed from %.2f", drive);
-        }
-    }
+//    public void pickup(float drive, Telemetry telemetry){
+//        if (intake != null ) {
+//            double power = Range.clip(drive, 0, 1.0);
+//
+//            this.intake.setPower(power);
+//
+//            telemetry.addData("Intake", "Speed from %.2f", drive);
+//        }
+//        else{
+//            telemetry.addData("Intake", "Not initialized");
+//        }
+//    }
+//
+//    public void release(double drive, Telemetry telemetry){
+//        if (intake != null ) {
+//            double power = Range.clip(drive, -1, 0);
+//
+//            this.intake.setPower(power);
+//
+//            telemetry.addData("Intake", "Speed from %.2f", drive);
+//        }
+//    }
 
     public void pickupTemp(float drive, Telemetry telemetry){
-        if (intakeTemp != null ) {
-            double power = Range.clip(drive, 0, 1.0);
-
+        if (intakeTemp != null && drive > 0) {
             this.intakeTemp.setPosition(0);
 
             telemetry.addData("Intake Temp", "Speed from %.2f", drive);
@@ -654,9 +659,7 @@ public class SimpleBot {
     }
 
     public void releaseTemp(double drive, Telemetry telemetry){
-        if (intakeTemp != null ) {
-            double power = Range.clip(drive, -1, 0);
-
+        if (intakeTemp != null && drive > 0 ) {
             this.intakeTemp.setPosition(1);
 
             telemetry.addData("Temp Intake", "Speed from %.2f", drive);
@@ -666,15 +669,72 @@ public class SimpleBot {
         }
     }
 
-    public void fold (){
+    public void fold (boolean move){
         if (intakePivot != null){
-            intakePivot.setPosition(1);
+            if (move){
+                intakePivot.setPower(-PIVOT_SPEED*3);
+            }else {
+                intakePivot.setPower(0);
+            }
         }
     }
 
-    public void unfold (){
+    public void unfold (boolean move){
         if (intakePivot != null){
-            intakePivot.setPosition(0);
+            if (move){
+                intakePivot.setPower(PIVOT_SPEED);
+            }else {
+                intakePivot.setPower(0);
+            }
+        }
+    }
+
+    public void moveIntake(double drive, Telemetry telemetry){
+        if (intakePivot != null ) {
+            double power = Range.clip(drive, -1.0, 1.0);
+
+            this.intakePivot.setPower(power/3);
+
+            telemetry.addData("Pivot", "Speed from %.2f", drive);
+        }
+    }
+
+    public void encoderIntakeUnfold(double speed, double timeoutS, Telemetry telemetry) {
+
+        try {
+            // Determine new target position, and pass to motor controller
+            int newTarget = this.intakePivot.getCurrentPosition() + (int) (COUNTS_PER_MOTOR_REV/4);
+
+
+            this.intakePivot.setTargetPosition(newTarget);
+
+
+
+            // Turn On RUN_TO_POSITION
+            intakePivot.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+
+            // reset the timeout time and start motion.
+            runtime.reset();
+            this.intakePivot.setPower(Math.abs(speed));
+
+
+            boolean stop = false;
+
+            while (!stop) {
+                boolean timeUp = timeoutS > 0 && runtime.seconds() >= timeoutS;
+                stop = timeUp || (!this.leftDriveBack.isBusy());
+            }
+
+
+            this.intakePivot.setPower(0);
+
+            // Turn off RUN_TO_POSITION
+            intakePivot.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        }
+        catch (Exception ex){
+            telemetry.addData("Issues running with encoders to position", ex);
+            telemetry.update();
         }
     }
 
