@@ -140,9 +140,12 @@ public class SimpleLinearTurn extends LinearOpMode {
                 double intakePivot = gamepad2.right_stick_y;
                 robot.moveIntake(intakePivot, telemetry);
 
-//                robot.unfold(gamepad2.x);
-//
-//                robot.fold(gamepad2.y);
+                robot.getGyro().getOrientation();
+                robot.getGyro().getPosition();
+
+                if (gamepad1.x){
+                    robot.getGyro().correct();
+                }
 
 
                 telemetry.update();

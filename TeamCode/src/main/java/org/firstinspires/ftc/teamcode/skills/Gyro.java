@@ -1,26 +1,28 @@
-package org.firstinspires.ftc.teamcode.OpModes;
+package org.firstinspires.ftc.teamcode.skills;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.HardwareMap;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.Acceleration;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
-import org.firstinspires.ftc.teamcode.bots.RevDoubleBot;
+import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.robotcore.external.navigation.Quaternion;
+import org.firstinspires.ftc.teamcode.bots.SimpleBot;
 
-@TeleOp(name = "Gyro IMU test", group = "Sensor")
-//@Disabled
-public class GyroTest extends LinearOpMode {
+public class Gyro {
     BNO055IMU imu;
-    Orientation             lastAngles = new Orientation();
+    Orientation lastAngles = new Orientation();
     double                  globalAngle, power = .30, correction;
-    RevDoubleBot robot   = new RevDoubleBot();
+    SimpleBot robot = new SimpleBot();
+    Telemetry telemetry;
 
-    private void initIMU(){
+    public void init(HardwareMap ahwMap, Telemetry t){
+        telemetry = t;
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
         parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
         parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
@@ -28,27 +30,42 @@ public class GyroTest extends LinearOpMode {
         parameters.loggingTag          = "IMU";
         parameters.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
 
-        imu = (BNO055IMU) hardwareMap.get("imu");
-        imu.initialize(parameters);
+        imu = (BNO055IMU) ahwMap.get("imu");
+        if (imu != null){
+            imu.initialize(parameters);
+            telemetry.addData("Info", "Gyro initialized");
+        }
+        else{
+            telemetry.addData("Erro", "Gyro failed");
+        }
+
     }
 
-    @Override
-    public void runOpMode() throws InterruptedException {
-        initIMU();
-        robot.init(this.hardwareMap);
-        waitForStart();
-        while (opModeIsActive()) {
-            double angle = imu.getAngularOrientation().firstAngle;
-            double x = imu.getPosition().x;
-            double y = imu.getPosition().y;
-            telemetry.addData("1 imu heading", angle);
-            telemetry.addData("2 global heading", globalAngle);
-            telemetry.addData("3 correction", correction);
-            telemetry.addData("X", x);
-            telemetry.addData("Y", y);
-            telemetry.update();
+    public Orientation getOrientation()  {
+        Orientation orient = imu.getAngularOrientation();
+        double angle = orient.firstAngle;
+        telemetry.addData("1 imu heading", angle);
+        telemetry.addData("2 global heading", globalAngle);
+        telemetry.addData("3 correction", correction);
+        telemetry.addData("Mode", imu.getParameters().mode);
+        return orient;
+    }
 
-        }
+    public Acceleration getPosition()  {
+
+        Acceleration pos = imu.getAcceleration();
+
+        double x = pos.xAccel;
+        double y = pos.yAccel;
+
+        telemetry.addData("X", x);
+        telemetry.addData("Y", y);
+        return pos;
+    }
+
+    public void correct(){
+        double degrees = checkDirection();
+        rotate((int)degrees, 0.3);
     }
 
     private double checkDirection()
@@ -93,7 +110,7 @@ public class GyroTest extends LinearOpMode {
         return globalAngle;
     }
 
-    private void rotate(int degrees, double power)
+    public void rotate(int degrees, double power)
     {
         double  leftPower, rightPower;
 
@@ -125,12 +142,12 @@ public class GyroTest extends LinearOpMode {
         if (degrees < 0)
         {
             // On right turn we have to get off zero first.
-            while (opModeIsActive() && getAngle() == 0) {}
+            while ( getAngle() == 0) {}
 
-            while (opModeIsActive() && getAngle() > degrees) {}
+            while ( getAngle() > degrees) {}
         }
         else    // left turn.
-            while (opModeIsActive() && getAngle() < degrees) {}
+            while (getAngle() < degrees) {}
 
         // turn the motors off.
 
@@ -138,9 +155,6 @@ public class GyroTest extends LinearOpMode {
         robot.leftDriveFront.setPower(0);
         robot.rightDriveBack.setPower(0);
         robot.rightDriveFront.setPower(0);
-
-        // wait for rotation to stop.
-        sleep(1000);
 
         // reset angle tracking on new heading.
         resetAngle();
@@ -152,6 +166,5 @@ public class GyroTest extends LinearOpMode {
 
         globalAngle = 0;
     }
-
 
 }

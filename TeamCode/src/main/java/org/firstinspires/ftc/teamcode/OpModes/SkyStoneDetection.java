@@ -27,7 +27,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.firstinspires.ftc.teamcode.skills;
+package org.firstinspires.ftc.teamcode.OpModes;
 
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -51,8 +51,8 @@ import java.util.List;
  * IMPORTANT: In order to use this OpMode, you need to obtain your own Vuforia license key as
  * is explained below.
  */
-@TeleOp(name = "Concept: TensorFlow Object Detection", group = "Concept")
-@Disabled
+@TeleOp(name = "Stone Detection", group = "Concept")
+//@Disabled
 public class SkyStoneDetection extends LinearOpMode {
     private static final String TFOD_MODEL_ASSET = "Skystone.tflite";
     private static final String LABEL_FIRST_ELEMENT = "Stone";
@@ -89,24 +89,37 @@ public class SkyStoneDetection extends LinearOpMode {
     public void runOpMode() {
         // The TFObjectDetector uses the camera frames from the VuforiaLocalizer, so we create that
         // first.
-        initVuforia();
-
-        if (ClassFactory.getInstance().canCreateTFObjectDetector()) {
-            initTfod();
-        } else {
-            telemetry.addData("Sorry!", "This device is not compatible with TFOD");
+        try {
+            initVuforia();
+        }
+        catch (Exception ex){
+            telemetry.addData("Sorry!", "Unable to start Vuforia" + ex.getMessage());
         }
 
-        /**
-         * Activate TensorFlow Object Detection before we wait for the start command.
-         * Do it here so that the Camera Stream window will have the TensorFlow annotations visible.
-         **/
-        if (tfod != null) {
-            tfod.activate();
+        if (vuforia == null){
+            telemetry.addData("Sorry!", "Unable to start Vuforia");
         }
+        else {
+            telemetry.addData("Info", "Vuforia initialized");
 
-        /** Wait for the game to begin */
-        telemetry.addData(">", "Press Play to start op mode");
+            if (ClassFactory.getInstance().canCreateTFObjectDetector()) {
+                initTfod();
+                telemetry.addData("Info", "TF initialized");
+            } else {
+                telemetry.addData("Sorry!", "This device is not compatible with TFOD");
+            }
+
+            /**
+             * Activate TensorFlow Object Detection before we wait for the start command.
+             * Do it here so that the Camera Stream window will have the TensorFlow annotations visible.
+             **/
+            if (tfod != null) {
+                tfod.activate();
+            }
+
+            /** Wait for the game to begin */
+            telemetry.addData(">", "Press Play to start op mode");
+        }
         telemetry.update();
         waitForStart();
 

@@ -1,7 +1,6 @@
 package org.firstinspires.ftc.teamcode.bots;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -9,6 +8,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.teamcode.skills.Gyro;
 
 /**
  * Created by sjeltuhin on 9/12/17.
@@ -31,6 +32,8 @@ public class SimpleBot {
 
     public DcMotor intakePivot = null;
 
+    private Gyro gyro = null;
+
     private DistanceSensor sensorRange;
 
 
@@ -43,8 +46,10 @@ public class SimpleBot {
 
     public double DRIVE_SPEED = 0.99;
 
-    static final double     STRAFE_INCH    = 1.5 ;    // Rev Core Hex motor
+    static final double     STRAFE_COUNT_INCH    =  20;    // Rev Core Hex motor
     public static final double     PIVOT_SPEED = 0.2;
+
+    public static final double     INTAKE_PIVOT_SPEED = 0.2;
 
 
 
@@ -187,11 +192,14 @@ public class SimpleBot {
 
 
         try{
-            sensorRange = hwMap.get(DistanceSensor.class, "range");
+            sensorRange = hwMap.get(DistanceSensor.class, "sensor_range");
         }
         catch (Exception ex){
             throw new Exception("Issues accessing range sensor. Check the controller config", ex);
         }
+
+        setGyro(new Gyro());
+        getGyro().init(hwMap, telemetry);
 
     }
 
@@ -452,6 +460,11 @@ public class SimpleBot {
         }
     }
 
+    public int getStrafeIncrement(double moveTo){
+        int increment = (int) (moveTo * STRAFE_COUNT_INCH);
+        return increment;
+    }
+
     public void encoderStrafe(double speed,
                              double distanceInches,
                              double timeoutS, Telemetry telemetry) {
@@ -462,7 +475,8 @@ public class SimpleBot {
             int newRightTarget = 0;
             int newLeftFrontTarget = 0;
             int newRightFrontTarget = 0;
-            int increment = (int) (val * COUNTS_PER_INCH_REV * STRAFE_INCH);;
+
+            int increment = (int) (val * STRAFE_COUNT_INCH);
             if (distanceInches < 0){
                 //going left
                 newLeftTarget = this.leftDriveBack.getCurrentPosition() + increment;
@@ -699,11 +713,11 @@ public class SimpleBot {
         }
     }
 
-    public void encoderIntakeUnfold(double speed, double timeoutS, Telemetry telemetry) {
+    public void encoderIntakeMove(int fold, double speed, double timeoutS, Telemetry telemetry) {
 
         try {
             // Determine new target position, and pass to motor controller
-            int newTarget = this.intakePivot.getCurrentPosition() + (int) (COUNTS_PER_MOTOR_REV/4);
+            int newTarget = this.intakePivot.getCurrentPosition() + (int) (fold* COUNTS_PER_MOTOR_REV/4);
 
 
             this.intakePivot.setTargetPosition(newTarget);
@@ -723,7 +737,7 @@ public class SimpleBot {
 
             while (!stop) {
                 boolean timeUp = timeoutS > 0 && runtime.seconds() >= timeoutS;
-                stop = timeUp || (!this.leftDriveBack.isBusy());
+                stop = timeUp || (!this.intakePivot.isBusy());
             }
 
 
@@ -738,4 +752,19 @@ public class SimpleBot {
         }
     }
 
+    public double getRangetoObstacle(){
+        if (sensorRange == null) {
+            return 0;
+        }
+        double range = sensorRange.getDistance(DistanceUnit.INCH);
+        return range;
+    }
+
+    public Gyro getGyro() {
+        return gyro;
+    }
+
+    public void setGyro(Gyro gyro) {
+        this.gyro = gyro;
+    }
 }

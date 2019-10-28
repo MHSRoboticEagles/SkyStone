@@ -19,9 +19,19 @@ public class MoveTest extends AutoBase {
     @Override
     protected void act() {
         super.act();
-        unfoldIntake(0.2);
-        move(0.5, 4);
-        strafe(0.5, -20);
+        strafeRight(1, 7);
+//        move(0.5, -13);
+//        float left = detectStone(5);
+//        telemetry.addData("SkyStone", String.format(" Left position: %.01f in", left));
+//        telemetry.update();
+//        if (left >= 0) {
+//            strafe(1, -7);
+//        }
+//        else {
+//            strafe(1, 8);
+//        }
+        sleep(20000);
+        stopStoneDetection();
     }
 
 }
