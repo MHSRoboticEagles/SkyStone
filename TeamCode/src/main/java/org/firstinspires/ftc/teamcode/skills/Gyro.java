@@ -12,16 +12,20 @@ import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.Quaternion;
+import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
 import org.firstinspires.ftc.teamcode.bots.SimpleBot;
 
 public class Gyro {
     BNO055IMU imu;
     Orientation lastAngles = new Orientation();
-    double                  globalAngle, power = .30, correction;
-    SimpleBot robot = new SimpleBot();
+    double                  globalAngle = 0, power = .30, correction;
+    SimpleBot robot = null;
     Telemetry telemetry;
+    Position lastPos = null;
+    Velocity lastVelocity = null;
 
-    public void init(HardwareMap ahwMap, Telemetry t){
+    public void init(SimpleBot owner, HardwareMap ahwMap, Telemetry t){
+        robot = owner;
         telemetry = t;
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
         parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
@@ -30,15 +34,25 @@ public class Gyro {
         parameters.loggingTag          = "IMU";
         parameters.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
 
+
+
         imu = (BNO055IMU) ahwMap.get("imu");
         if (imu != null){
             imu.initialize(parameters);
             telemetry.addData("Info", "Gyro initialized");
         }
         else{
-            telemetry.addData("Erro", "Gyro failed");
+            telemetry.addData("Error", "Gyro failed");
         }
 
+    }
+
+    public void recordAcceleration(){
+        imu.startAccelerationIntegration(lastPos, lastVelocity, 50);
+    }
+
+    public void stopRecordingAcceleration(){
+        imu.stopAccelerationIntegration();
     }
 
     public Orientation getOrientation()  {
@@ -51,20 +65,41 @@ public class Gyro {
         return orient;
     }
 
-    public Acceleration getPosition()  {
+    public double getHeading()  {
+        Orientation orient = imu.getAngularOrientation();
+        double angle = orient.firstAngle;
 
-        Acceleration pos = imu.getAcceleration();
+        return angle;
+    }
 
-        double x = pos.xAccel;
-        double y = pos.yAccel;
+    public Position getPosition()  {
 
-        telemetry.addData("X", x);
-        telemetry.addData("Y", y);
-        return pos;
+        Position prevPos = lastPos;
+
+        lastPos = imu.getPosition();
+        lastVelocity = imu.getVelocity();
+
+        if (lastPos != null) {
+            double x = lastPos.x;
+            double y = lastPos.y;
+            double z = lastPos.z;
+            telemetry.addData("X", x);
+            telemetry.addData("Y", y);
+            telemetry.addData("z", z);
+
+            if (prevPos != null ){
+                telemetry.addData("Diff X", Math.abs(x-prevPos.x));
+                telemetry.addData("Diff Y", Math.abs(y-prevPos.y));
+                telemetry.addData("Diff z", Math.abs(z-prevPos.z));
+            }
+        }
+
+        return lastPos;
     }
 
     public void correct(){
         double degrees = checkDirection();
+        telemetry.addData("Angle to correct", degrees);
         rotate((int)degrees, 0.3);
     }
 
@@ -82,7 +117,7 @@ public class Gyro {
         else
             correction = -angle;        // reverse sign of angle for correction.
 
-        correction = correction * gain;
+//        correction = correction * gain;
 
         return correction;
     }
@@ -94,25 +129,30 @@ public class Gyro {
         // returned as 0 to +180 or 0 to -180 rolling back to -179 or +179 when rotation passes
         // 180 degrees. We detect this transition and track the total cumulative angle of rotation.
 
-        Orientation angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+        Orientation angles = imu.getAngularOrientation();//imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
 
-        double deltaAngle = angles.firstAngle - lastAngles.firstAngle;
+        telemetry.addData("Current angle", angles.firstAngle);
+        telemetry.addData("Desired angle", globalAngle);
+        double deltaAngle = angles.firstAngle - globalAngle;
+        telemetry.addData("deltaAngle", deltaAngle);
+        telemetry.update();
 
         if (deltaAngle < -180)
             deltaAngle += 360;
         else if (deltaAngle > 180)
             deltaAngle -= 360;
 
-        globalAngle += deltaAngle;
+//        globalAngle += deltaAngle;
+//
+//        lastAngles = angles;
 
-        lastAngles = angles;
-
-        return globalAngle;
+        return deltaAngle; //globalAngle;
     }
 
-    public void rotate(int degrees, double power)
-    {
-        double  leftPower, rightPower;
+    public void turn(int degrees, double power){
+        double currentHeading = this.getHeading();
+        double desired = currentHeading + degrees;
+        double  leftPower = 0, rightPower = 0;
 
         // restart imu movement tracking.
         resetAngle();
@@ -122,13 +162,13 @@ public class Gyro {
 
         if (degrees < 0)
         {   // turn right.
-            leftPower = power;
-            rightPower = -power;
+            leftPower = -power;
+            rightPower = power;
         }
         else if (degrees > 0)
         {   // turn left.
-            leftPower = -power;
-            rightPower = power;
+            leftPower = power;
+            rightPower = -power;
         }
         else return;
 
@@ -138,16 +178,70 @@ public class Gyro {
         robot.rightDriveBack.setPower(rightPower);
         robot.rightDriveFront.setPower(rightPower);
 
-        // rotate until turn is completed.
-        if (degrees < 0)
-        {
-            // On right turn we have to get off zero first.
-            while ( getAngle() == 0) {}
-
-            while ( getAngle() > degrees) {}
+        while (true){
+            int current = (int)this.getHeading();
+            telemetry.addData("current", current);
+            telemetry.addData("desired", desired);
+            telemetry.update();
+            if ((degrees < 0 && current <= (int)desired)
+                    || (degrees > 0 && current >= (int)desired)){
+                break;
+            }
         }
-        else    // left turn.
-            while (getAngle() < degrees) {}
+
+
+        robot.leftDriveBack.setPower(0);
+        robot.leftDriveFront.setPower(0);
+        robot.rightDriveBack.setPower(0);
+        robot.rightDriveFront.setPower(0);
+    }
+
+    public void rotate(int degrees, double power)
+    {
+        double  leftPower = 0, rightPower = 0;
+
+        // restart imu movement tracking.
+        resetAngle();
+
+        // getAngle() returns + when rotating counter clockwise (left) and - when rotating
+        // clockwise (right).
+
+        if (degrees < 0)
+        {   // turn right.
+            leftPower = -power;
+            rightPower = power;
+        }
+        else if (degrees > 0)
+        {   // turn left.
+            leftPower = power;
+            rightPower = -power;
+        }
+        else return;
+
+        // set power to rotate.
+        robot.leftDriveBack.setPower(leftPower);
+        robot.leftDriveFront.setPower(leftPower);
+        robot.rightDriveBack.setPower(rightPower);
+        robot.rightDriveFront.setPower(rightPower);
+
+        while (true){
+            int current = (int)getAngle();
+            if ( current == globalAngle){
+                break;
+            }
+        }
+
+
+//        // rotate until turn is completed.
+//        if (degrees < 0)
+//        {
+//            // On right turn we have to get off zero first.
+////            while ( getAngle() == 0) {}
+//
+//            while ( getAngle() > degrees) {}
+//        }
+//        else    // left turn.
+//            while (getAngle() < degrees) {}
 
         // turn the motors off.
 
@@ -160,11 +254,15 @@ public class Gyro {
         resetAngle();
     }
 
+    public void setTargetAngle(int angle){
+        this.globalAngle = angle;
+    }
+
     private void resetAngle()
     {
-        lastAngles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+//        lastAngles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
 
-        globalAngle = 0;
+//        globalAngle = 0;
     }
 
 }

@@ -173,6 +173,22 @@ public abstract class AutoBase extends LinearOpMode {
         robot.stop();
     }
 
+    protected void moveUntil(double speed, int moveUntil, int max){
+        robot.move(-speed, 0, telemetry);
+        int pos = robot.rightDriveFront.getCurrentPosition();
+        int target = pos + robot.getDriveIncrement(max);
+        while (true){
+            double range = robot.getRangetoObstacle();
+            telemetry.addData("Range", range);
+            telemetry.update();
+            int current = robot.rightDriveFront.getCurrentPosition();
+            if (range > 0 && (range < moveUntil || Math.abs(current) > Math.abs(target))){
+                break;
+            }
+        }
+        robot.stop();
+    }
+
     protected void strafe(double speed, double moveTo){
         telemetry.addData("Auto", "Distance = %.2f", moveTo);
         telemetry.update();
@@ -195,6 +211,21 @@ public abstract class AutoBase extends LinearOpMode {
         robot.stop();
     }
 
+    protected void strafeLeft(double speed, double moveTo){
+        int increment = robot.getStrafeIncrement(moveTo);
+        telemetry.addData("Strafe", "Increment = %d", increment);
+        int pos = robot.leftDriveBack.getCurrentPosition();
+        telemetry.addData("Strafe", "Start pos = %d", pos);
+        int current = pos;
+        robot.strafeRight(speed, telemetry);
+        while (current > pos - increment){
+            current = robot.leftDriveBack.getCurrentPosition();
+            telemetry.addData("Strafe", "Current pos = %d", current);
+            telemetry.update();
+        }
+        robot.stop();
+    }
+
     protected void turn(double speed, double moveTo){
         telemetry.addData("Auto", "Distance = %.2f", moveTo);
         telemetry.update();
@@ -203,11 +234,12 @@ public abstract class AutoBase extends LinearOpMode {
     }
 
     protected void unfoldIntake(){
-        robot.encoderIntakeMove(-1, robot.INTAKE_PIVOT_SPEED, 2, telemetry);
+        robot.encoderIntakeMove(-1, robot.INTAKE_PIVOT_SPEED, 1, telemetry);
     }
 
     protected void foldIntake(){
-        robot.encoderIntakeMove(1, robot.INTAKE_PIVOT_SPEED, 2, telemetry);
+        robot.encoderIntakeMove(1, robot.INTAKE_PIVOT_SPEED_UP, 1, telemetry);
+//        robot.intakePivot.setPower(-robot.ANTI_GRAVITY_POWER);
     }
 
 

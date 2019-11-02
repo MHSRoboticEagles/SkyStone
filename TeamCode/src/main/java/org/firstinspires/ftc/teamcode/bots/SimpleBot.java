@@ -42,7 +42,7 @@ public class SimpleBot {
 
 
 
-    private double ANTI_GRAVITY_POWER = 0.01;
+    public double ANTI_GRAVITY_POWER = 0.01;
 
     public double DRIVE_SPEED = 0.99;
 
@@ -50,6 +50,7 @@ public class SimpleBot {
     public static final double     PIVOT_SPEED = 0.2;
 
     public static final double     INTAKE_PIVOT_SPEED = 0.2;
+    public static final double     INTAKE_PIVOT_SPEED_UP = 0.7;
 
 
 
@@ -199,7 +200,7 @@ public class SimpleBot {
         }
 
         setGyro(new Gyro());
-        getGyro().init(hwMap, telemetry);
+        getGyro().init(this, hwMap, telemetry);
 
     }
 
@@ -465,6 +466,10 @@ public class SimpleBot {
         return increment;
     }
 
+    public int getDriveIncrement(double moveTo){
+       return  (int) (moveTo * this.COUNTS_PER_INCH_REV);
+    }
+
     public void encoderStrafe(double speed,
                              double distanceInches,
                              double timeoutS, Telemetry telemetry) {
@@ -717,7 +722,11 @@ public class SimpleBot {
 
         try {
             // Determine new target position, and pass to motor controller
-            int newTarget = this.intakePivot.getCurrentPosition() + (int) (fold* COUNTS_PER_MOTOR_REV/4);
+            int to = (int) (fold* COUNTS_PER_MOTOR_REV/4);
+            if (fold > 0){
+                to = (int) (fold* COUNTS_PER_MOTOR_REV/3);
+            }
+            int newTarget = this.intakePivot.getCurrentPosition() + to;
 
 
             this.intakePivot.setTargetPosition(newTarget);
@@ -750,6 +759,10 @@ public class SimpleBot {
             telemetry.addData("Issues running with encoders to position", ex);
             telemetry.update();
         }
+    }
+
+    public void intakePressDown(){
+        this.intakePivot.setPower(ANTI_GRAVITY_POWER);
     }
 
     public double getRangetoObstacle(){

@@ -63,6 +63,7 @@ public class SimpleLinearTurn extends LinearOpMode {
         try {
             try {
                 robot.init(this.hardwareMap, telemetry);
+//                robot.getGyro().recordAcceleration();
             }
             catch (Exception ex){
                 telemetry.addData("Init", ex.getMessage());
@@ -141,11 +142,13 @@ public class SimpleLinearTurn extends LinearOpMode {
                 robot.moveIntake(intakePivot, telemetry);
 
                 robot.getGyro().getOrientation();
-                robot.getGyro().getPosition();
+//                robot.getGyro().getPosition();
 
                 if (gamepad1.x){
                     robot.getGyro().correct();
                 }
+
+                telemetry.addData("To Obstacle", robot.getRangetoObstacle());
 
 
                 telemetry.update();
@@ -154,6 +157,11 @@ public class SimpleLinearTurn extends LinearOpMode {
         catch (Exception ex){
             telemetry.addData("Issues with the OpMode", ex.getMessage());
             telemetry.update();
+        }
+        finally {
+            if (robot != null){
+//                robot.getGyro().stopRecordingAcceleration();
+            }
         }
     }
 }
