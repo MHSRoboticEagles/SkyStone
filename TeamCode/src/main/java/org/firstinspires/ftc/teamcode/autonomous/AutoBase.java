@@ -8,6 +8,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 import org.firstinspires.ftc.teamcode.bots.SimpleBot;
+import org.firstinspires.ftc.teamcode.skills.DetectionInterface;
+import org.firstinspires.ftc.teamcode.skills.StoneFinder;
 
 import java.util.List;
 
@@ -20,6 +22,7 @@ public abstract class AutoBase extends LinearOpMode {
 
     protected SimpleBot robot = new SimpleBot();   // Use our standard robot configuration
     protected ElapsedTime runtime = new ElapsedTime();
+    protected boolean stoneDetected = false;
 
     private static final String TFOD_MODEL_ASSET = "Skystone.tflite";
     private static final String LABEL_FIRST_ELEMENT = "Stone";
@@ -123,8 +126,8 @@ public abstract class AutoBase extends LinearOpMode {
 
     }
 
-    protected float detectStone(int timeout){
-        float left = -1;
+    protected boolean detectStone(int timeout){
+        boolean detected = false;
         if (opModeIsActive()) {
             boolean stop = false;
             ElapsedTime runtime = new ElapsedTime();
@@ -144,18 +147,18 @@ public abstract class AutoBase extends LinearOpMode {
                                     recognition.getLeft(), recognition.getTop());
                             telemetry.addData(String.format("  right,bottom (%d)", i), "%.03f , %.03f",
                                     recognition.getRight(), recognition.getBottom());
-                            left = recognition.getLeft();
+                            detected = true;
                             break;
                         }
                         telemetry.update();
                     }
                 }
-                if (left > -1){
+                if (detected){
                     stop = true;
                 }
             }
         }
-        return left;
+        return detected;
     }
 
     protected void stopStoneDetection(){
@@ -172,6 +175,22 @@ public abstract class AutoBase extends LinearOpMode {
 
         robot.stop();
     }
+
+//    protected void moveDetect(double speed, double moveTo){
+//        final StoneFinder sf = new StoneFinder(tfod);
+//        robot.encoderMoveDetect(speed, moveTo, moveTo, 0, telemetry, new DetectionInterface() {
+//            @Override
+//            public boolean detect() {
+//                if (!stoneDetected) {
+//                    stoneDetected = sf.detect(telemetry);
+//                }
+//                return stoneDetected;
+//            }
+//        });
+//
+//        robot.stop();
+//    }
+
 
     protected void moveUntil(double speed, int moveUntil, int max){
         robot.move(-speed, 0, telemetry);

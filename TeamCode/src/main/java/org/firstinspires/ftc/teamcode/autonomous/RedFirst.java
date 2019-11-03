@@ -4,9 +4,9 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 
-@Autonomous(name="Test Move", group ="Robot15173")
+@Autonomous(name="Red First", group ="Robot15173")
 
-public class MoveTest extends AutoBase {
+public class RedFirst extends AutoBase {
     @Override
     public void runOpMode() throws InterruptedException {
         runAutoMode();
@@ -21,16 +21,39 @@ public class MoveTest extends AutoBase {
         super.act();
         try {
             move(0.5, -12);
-            float left = detectStone(2);
-            telemetry.addData("SkyStone", String.format(" Left position: %.01f in", left));
+            if (!stoneDetected ) {
+                stoneDetected = detectStone(2);
+            }
+            telemetry.addData("SkyStone", String.format(" Left position: %b in", stoneDetected));
             telemetry.update();
-            if (left >= 0) {
-                strafeRight(0.6, 4.5);
+
+            if (stoneDetected) {
+                stopStoneDetection();
+                //pick right-most
+                strafeRight(0.6, 4);
+                robot.getGyro().correct();
             }
             else {
-                strafeLeft(0.6, 6);
+                strafeLeft(0.6, 5);
+                robot.getGyro().correct();
+                stoneDetected = detectStone(2);
+                stopStoneDetection();
+                telemetry.addData("SkyStone", String.format(" Left position: %b in", stoneDetected));
+                telemetry.update();
+
+                if (stoneDetected){
+                    //pick the middle one
+                    strafeRight(0.6, 3);
+                    robot.getGyro().correct();
+                }
+                else{
+                    //pick left-most
+                    strafeLeft(0.6, 3);
+                    robot.getGyro().correct();
+                }
             }
             robot.getGyro().correct();
+
             moveUntil(0.2, 8, -30);
             unfoldIntake();
             moveUntil(0.2, 4, -10);
@@ -45,7 +68,10 @@ public class MoveTest extends AutoBase {
             move(0.5, -5);
             unfoldIntake();
             robot.releaseTemp(1, telemetry);
+            sleep(200);
+            foldIntake();
             robot.getGyro().turn(-80, 0.4);
+            unfoldIntake();
             move(0.5, 50);
 
         }

@@ -9,6 +9,7 @@ import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.teamcode.skills.DetectionInterface;
 import org.firstinspires.ftc.teamcode.skills.Gyro;
 
 /**
@@ -780,4 +781,76 @@ public class SimpleBot {
     public void setGyro(Gyro gyro) {
         this.gyro = gyro;
     }
+
+    public void encoderMoveDetect(double speed,
+                              double leftInches, double rightInches,
+                              double timeoutS, Telemetry telemetry, DetectionInterface callback) {
+
+        try {
+            // Determine new target position, and pass to motor controller
+            int newLeftTarget = this.leftDriveBack.getCurrentPosition() + (int) (leftInches * COUNTS_PER_INCH_REV);
+            int newRightTarget = this.rightDriveBack.getCurrentPosition() + (int) (rightInches * COUNTS_PER_INCH_REV);
+            int newLeftFrontTarget = this.leftDriveFront.getCurrentPosition() + (int) (leftInches * COUNTS_PER_INCH_REV);
+            int newRightFrontTarget = this.rightDriveFront.getCurrentPosition() + (int) (rightInches * COUNTS_PER_INCH_REV);
+
+            this.leftDriveBack.setTargetPosition(newLeftTarget);
+            this.rightDriveBack.setTargetPosition(newRightTarget);
+            this.leftDriveFront.setTargetPosition(newLeftFrontTarget);
+            this.rightDriveFront.setTargetPosition(newRightFrontTarget);
+
+
+            // Turn On RUN_TO_POSITION
+            leftDriveBack.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            rightDriveBack.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            leftDriveFront.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            rightDriveFront.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+            // reset the timeout time and start motion.
+            runtime.reset();
+            this.leftDriveBack.setPower(Math.abs(speed));
+            this.rightDriveBack.setPower(Math.abs(speed));
+            this.leftDriveFront.setPower(Math.abs(speed));
+            this.rightDriveFront.setPower(Math.abs(speed));
+
+            boolean stop = false;
+            boolean leftMove = leftInches != 0;
+            boolean rightMove = rightInches != 0;
+            boolean detected = false;
+            while (!stop) {
+                boolean timeUp = timeoutS > 0 && runtime.seconds() >= timeoutS;
+                stop = timeUp || ((leftMove && !this.leftDriveBack.isBusy()) || (rightMove && !this.rightDriveBack.isBusy())
+                        || (leftMove && !this.leftDriveFront.isBusy()) || (rightMove && !this.rightDriveFront.isBusy()));
+
+//                telemetry.addData("Motors", "Starting encoder drive. Left: %.2f, Right:%.2f", leftInches, rightInches);
+//                telemetry.addData("Motors", "LeftFront from %7d to %7d", leftDriveFront.getCurrentPosition(), newLeftFrontTarget);
+//                telemetry.addData("Motors", "LeftBack from %7d to %7d", leftDriveBack.getCurrentPosition(), newLeftTarget);
+//                telemetry.addData("Motors", "RightFront from %7d to %7d", rightDriveFront.getCurrentPosition(), newRightFrontTarget);
+//                telemetry.addData("Motors", "RightBack from %7d to %7d", rightDriveBack.getCurrentPosition(), newRightTarget);
+//                telemetry.update();
+                if (callback != null && !detected){
+                    detected = callback.detect();
+                }
+            }
+
+            telemetry.addData("Motors", "Going to stop");
+            telemetry.update();
+            this.stop();
+            telemetry.addData("Motors", "Stopped");
+            telemetry.update();
+
+            // Turn off RUN_TO_POSITION
+            leftDriveBack.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            rightDriveBack.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            leftDriveFront.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            rightDriveFront.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        }
+        catch (Exception ex){
+            telemetry.addData("Issues running with encoders to position", ex);
+            telemetry.update();
+        }
+    }
+
+
+    //callbacks
+
 }
