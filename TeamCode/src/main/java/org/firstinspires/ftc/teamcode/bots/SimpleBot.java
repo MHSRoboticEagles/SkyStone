@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.bots;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -24,12 +25,15 @@ public class SimpleBot {
     public DcMotor rightDriveFront = null;
 
     public DcMotor towerDrive = null;
+    public DcMotor towerDrive2 = null;
 
     public DcMotor platformDrive = null;
 
 //    public DcMotor intake = null;
 
     public Servo intakeTemp = null;
+
+    public Servo capstone = null;
 
     public DcMotor intakePivot = null;
 
@@ -100,6 +104,14 @@ public class SimpleBot {
         telemetry.addData("Init", "towerDrive");
 
         try{
+            towerDrive2 = hwMap.get(DcMotor.class, "second_lift");
+        }
+        catch (Exception ex){
+            throw new Exception("Issues accessing tower drive 2. Check the controller config", ex);
+        }
+        telemetry.addData("Init", "towerDrive2");
+
+        try{
             platformDrive = hwMap.get(DcMotor.class, "platform");
         }
         catch (Exception ex){
@@ -155,6 +167,13 @@ public class SimpleBot {
             towerDrive.setPower(0);
         }
 
+        if (towerDrive2 != null){
+            towerDrive2.setDirection(DcMotor.Direction.REVERSE);
+            towerDrive2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            towerDrive2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            towerDrive2.setPower(0);
+        }
+
         if (platformDrive != null){
             platformDrive.setDirection(DcMotor.Direction.REVERSE);
             platformDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -186,6 +205,16 @@ public class SimpleBot {
             intakeTemp = hwMap.get(Servo.class, "temp-intake");
             if (intakeTemp != null){
                 intakeTemp.setPosition(1);
+            }
+        }
+        catch (Exception ex){
+            throw new Exception("Issues accessing temp intake servo. Check the controller config", ex);
+        }
+
+        try{
+            capstone = hwMap.get(Servo.class, "capstone_servo");
+            if (capstone != null){
+                capstone.setPosition(0);
             }
         }
         catch (Exception ex){
@@ -632,7 +661,17 @@ public class SimpleBot {
 
             telemetry.addData("Tower", "Speed from %.2f", drive);
         }
+
+        if (towerDrive2 != null ) {
+            double power = Range.clip(drive, -1.0, 1.0);
+
+            this.towerDrive2.setPower(power);
+
+            telemetry.addData("Tower", "Speed from %.2f", drive);
+        }
     }
+
+
 
     public void movePlatform(double drive, Telemetry telemetry){
         if (platformDrive != null ) {
@@ -686,6 +725,21 @@ public class SimpleBot {
         }
         else{
             telemetry.addData("Temp Intake", "Not initialized");
+        }
+    }
+
+    public void dropCapstone(boolean drop, Telemetry telemetry){
+        if (capstone != null) {
+            if (drop) {
+                this.capstone.setPosition(1);
+            }
+            else
+            {
+                this.capstone.setPosition(0);
+            }
+        }
+        else{
+            telemetry.addData("Capstone", "Not initialized");
         }
     }
 
