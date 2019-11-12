@@ -13,7 +13,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.teamcode.bots.RevDoubleBot;
 
 @TeleOp(name = "Gyro IMU test", group = "Sensor")
-//@Disabled
+@Disabled
 public class GyroTest extends LinearOpMode {
     BNO055IMU imu;
     Orientation             lastAngles = new Orientation();

@@ -23,6 +23,9 @@ public class Gyro {
     Telemetry telemetry;
     Position lastPos = null;
     Velocity lastVelocity = null;
+    int desiredHeading = 0;
+    int MIN_TOLERANCE = -2;
+    int MAX_TOLERANCE = 2;
 
     public void init(SimpleBot owner, HardwareMap ahwMap, Telemetry t){
         robot = owner;
@@ -150,8 +153,9 @@ public class Gyro {
     }
 
     public void turn(int degrees, double power){
-        double currentHeading = this.getHeading();
-        double desired = currentHeading + degrees;
+        //set to 0 heading first
+        correct();
+        desiredHeading = degrees;
         double  leftPower = 0, rightPower = 0;
 
         // restart imu movement tracking.
@@ -177,6 +181,52 @@ public class Gyro {
         robot.leftDriveFront.setPower(leftPower);
         robot.rightDriveBack.setPower(rightPower);
         robot.rightDriveFront.setPower(rightPower);
+
+        while (true){
+            int current = (int)this.getHeading();
+            telemetry.addData("current", current);
+            telemetry.addData("desired", desiredHeading);
+            telemetry.update();
+            if ((degrees < 0 && current <= desiredHeading)
+                    || (degrees > 0 && current >= desiredHeading)){
+                break;
+            }
+        }
+
+        robot.leftDriveBack.setPower(0);
+        robot.leftDriveFront.setPower(0);
+        robot.rightDriveBack.setPower(0);
+        robot.rightDriveFront.setPower(0);
+    }
+
+    public void pivot(int degrees, double power){
+        double currentHeading = this.getHeading();
+        double desired = currentHeading + degrees;
+        double  leftPower = 0, rightPower = 0;
+
+        // restart imu movement tracking.
+        resetAngle();
+
+        // getAngle() returns + when rotating counter clockwise (left) and - when rotating
+        // clockwise (right).
+
+        if (degrees < 0)
+        {   // turn right.
+            rightPower = power;
+            robot.rightDriveBack.setPower(rightPower);
+            robot.rightDriveFront.setPower(rightPower);
+        }
+        else if (degrees > 0)
+        {   // turn left.
+            leftPower = power;
+            robot.leftDriveBack.setPower(leftPower);
+            robot.leftDriveFront.setPower(leftPower);
+        }
+        else return;
+
+        // set power to rotate.
+
+
 
         while (true){
             int current = (int)this.getHeading();
@@ -242,6 +292,61 @@ public class Gyro {
 //        }
 //        else    // left turn.
 //            while (getAngle() < degrees) {}
+
+        // turn the motors off.
+
+        robot.leftDriveBack.setPower(0);
+        robot.leftDriveFront.setPower(0);
+        robot.rightDriveBack.setPower(0);
+        robot.rightDriveFront.setPower(0);
+
+        // reset angle tracking on new heading.
+        resetAngle();
+    }
+
+    public void fixHeading(double power)
+    {
+        int current = (int) getHeading();
+        double  leftPower = 0, rightPower = 0;
+
+        int absdesired = Math.abs(desiredHeading);
+        int absCurrent = Math.abs(current);
+
+        int correction = absCurrent - absdesired;
+        if (correction >= MIN_TOLERANCE && correction <= MAX_TOLERANCE){
+            return;
+        }
+
+        if (current < desiredHeading){
+            //turn left
+            leftPower = power;
+            rightPower = -power;
+        }else{
+            //turn right
+            leftPower = -power;
+            rightPower = power;
+        }
+
+
+
+        // set power to rotate.
+        robot.leftDriveBack.setPower(leftPower);
+        robot.leftDriveFront.setPower(leftPower);
+        robot.rightDriveBack.setPower(rightPower);
+        robot.rightDriveFront.setPower(rightPower);
+
+        while (true){
+            current = (int)getHeading();
+            correction = Math.abs(current) - absdesired;
+            telemetry.addData("abscurrent", Math.abs(current));
+            telemetry.addData("absdesired", absdesired);
+            telemetry.addData("correction", correction);
+            telemetry.update();
+
+            if (correction >= MIN_TOLERANCE && correction <= MAX_TOLERANCE){
+                break;
+            }
+        }
 
         // turn the motors off.
 

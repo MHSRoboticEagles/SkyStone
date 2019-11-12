@@ -32,7 +32,7 @@ public class BlueFirst extends AutoBase {
                 rightMost = true;
                 stopStoneDetection();
                 //pick right-most
-                strafeRight(0.6, 4);
+                strafeRight(0.6, 3);
                 robot.getGyro().correct();
             }
             else {
@@ -45,11 +45,11 @@ public class BlueFirst extends AutoBase {
 
                 if (stoneDetected) {
                     //pick the middle one
-                    strafeRight(0.6, 4);
+                    strafeRight(0.6, 3);
                     robot.getGyro().correct();
                 } else {
                     //pick left-most
-                    strafeLeft(0.6, 4);
+                    strafeLeft(0.6, 3);
                     robot.getGyro().correct();
                 }
             }
@@ -64,9 +64,9 @@ public class BlueFirst extends AutoBase {
                 moveUntil(0.2, 4, -10);
             }
             else{
-                move(0.4, 16);
+                move(0.4, -16);
                 unfoldIntake();
-                move(0.4, 6);
+                move(0.4, -6);
             }
             robot.pickupTemp(1, telemetry);
             sleep(200);
@@ -79,14 +79,13 @@ public class BlueFirst extends AutoBase {
             move(0.5, -5);
             unfoldIntake();
             robot.releaseTemp(1, telemetry);
+            move(0.5, 2);
             sleep(200);
             foldIntake();
             robot.getGyro().turn(80, 0.4);
             unfoldIntake();
             move(0.5, 50);
 
-
-            sleep(20000);
         }
         catch (Exception ex){
             telemetry.addData("Error", ex.getMessage());

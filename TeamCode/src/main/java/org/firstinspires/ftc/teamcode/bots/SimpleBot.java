@@ -47,15 +47,15 @@ public class SimpleBot {
 
 
 
-    public double ANTI_GRAVITY_POWER = 0.01;
+    public double ANTI_GRAVITY_POWER = -0.5;
 
     public double DRIVE_SPEED = 0.99;
 
     static final double     STRAFE_COUNT_INCH    =  20;    // Rev Core Hex motor
     public static final double     PIVOT_SPEED = 0.2;
 
-    public static final double     INTAKE_PIVOT_SPEED = 0.2;
-    public static final double     INTAKE_PIVOT_SPEED_UP = 0.7;
+    public static final double     INTAKE_PIVOT_SPEED = 1;
+    public static final double     INTAKE_PIVOT_SPEED_UP = 1;
 
 
 
@@ -168,7 +168,7 @@ public class SimpleBot {
         }
 
         if (towerDrive2 != null){
-            towerDrive2.setDirection(DcMotor.Direction.REVERSE);
+            towerDrive2.setDirection(DcMotor.Direction.FORWARD);
             towerDrive2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
             towerDrive2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             towerDrive2.setPower(0);
@@ -214,7 +214,7 @@ public class SimpleBot {
         try{
             capstone = hwMap.get(Servo.class, "capstone_servo");
             if (capstone != null){
-                capstone.setPosition(0);
+                capstone.setPosition(1);
             }
         }
         catch (Exception ex){
@@ -264,8 +264,8 @@ public class SimpleBot {
 
     public void move(double drive, double turn, Telemetry telemetry){
         if (leftDriveBack != null && rightDriveBack!= null && leftDriveFront != null && rightDriveFront != null) {
-            double rightPower = Range.clip(drive + turn, -1.0, 1.0);
-            double leftPower = Range.clip(drive - turn, -1.0, 1.0);
+            double rightPower = Range.clip(drive + (turn * 0.85), -1.0, 1.0);
+            double leftPower = Range.clip(drive - (turn * 0.85), -1.0, 1.0);
             //use cubic modifier
 //        rightPower = rightPower*rightPower*rightPower;
 //        leftPower = leftPower*leftPower*leftPower;
@@ -667,7 +667,7 @@ public class SimpleBot {
 
             this.towerDrive2.setPower(power);
 
-            telemetry.addData("Tower", "Speed from %.2f", drive);
+            telemetry.addData("Tower 2", "Speed from %.2f", drive);
         }
     }
 
@@ -731,11 +731,11 @@ public class SimpleBot {
     public void dropCapstone(boolean drop, Telemetry telemetry){
         if (capstone != null) {
             if (drop) {
-                this.capstone.setPosition(1);
+                this.capstone.setPosition(0);
             }
             else
             {
-                this.capstone.setPosition(0);
+                this.capstone.setPosition(1);
             }
         }
         else{
@@ -777,9 +777,9 @@ public class SimpleBot {
 
         try {
             // Determine new target position, and pass to motor controller
-            int to = (int) (fold* COUNTS_PER_MOTOR_REV/4);
+            int to = (int) (fold* COUNTS_PER_MOTOR_REV/4.5);
             if (fold > 0){
-                to = (int) (fold* COUNTS_PER_MOTOR_REV/3);
+                to = (int) (fold* COUNTS_PER_MOTOR_REV/4);
             }
             int newTarget = this.intakePivot.getCurrentPosition() + to;
 
@@ -841,6 +841,9 @@ public class SimpleBot {
                               double timeoutS, Telemetry telemetry, DetectionInterface callback) {
 
         try {
+            if (callback == null){
+                return;
+            }
             // Determine new target position, and pass to motor controller
             int newLeftTarget = this.leftDriveBack.getCurrentPosition() + (int) (leftInches * COUNTS_PER_INCH_REV);
             int newRightTarget = this.rightDriveBack.getCurrentPosition() + (int) (rightInches * COUNTS_PER_INCH_REV);
@@ -872,25 +875,15 @@ public class SimpleBot {
             boolean detected = false;
             while (!stop) {
                 boolean timeUp = timeoutS > 0 && runtime.seconds() >= timeoutS;
-                stop = timeUp || ((leftMove && !this.leftDriveBack.isBusy()) || (rightMove && !this.rightDriveBack.isBusy())
+                stop = timeUp || detected || ((leftMove && !this.leftDriveBack.isBusy()) || (rightMove && !this.rightDriveBack.isBusy())
                         || (leftMove && !this.leftDriveFront.isBusy()) || (rightMove && !this.rightDriveFront.isBusy()));
 
-//                telemetry.addData("Motors", "Starting encoder drive. Left: %.2f, Right:%.2f", leftInches, rightInches);
-//                telemetry.addData("Motors", "LeftFront from %7d to %7d", leftDriveFront.getCurrentPosition(), newLeftFrontTarget);
-//                telemetry.addData("Motors", "LeftBack from %7d to %7d", leftDriveBack.getCurrentPosition(), newLeftTarget);
-//                telemetry.addData("Motors", "RightFront from %7d to %7d", rightDriveFront.getCurrentPosition(), newRightFrontTarget);
-//                telemetry.addData("Motors", "RightBack from %7d to %7d", rightDriveBack.getCurrentPosition(), newRightTarget);
-//                telemetry.update();
-                if (callback != null && !detected){
-                    detected = callback.detect();
-                }
+                detected = callback.detect();
+
             }
 
-            telemetry.addData("Motors", "Going to stop");
-            telemetry.update();
             this.stop();
-            telemetry.addData("Motors", "Stopped");
-            telemetry.update();
+
 
             // Turn off RUN_TO_POSITION
             leftDriveBack.setMode(DcMotor.RunMode.RUN_USING_ENCODER);

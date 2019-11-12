@@ -1,12 +1,11 @@
 package org.firstinspires.ftc.teamcode.autonomous;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 
-@Autonomous(name="Red First", group ="Robot15173")
+@Autonomous(name="Red Simple", group ="Robot15173")
 
-public class RedFirst extends AutoBase {
+public class RedSimple extends AutoBase {
     @Override
     public void runOpMode() throws InterruptedException {
         runAutoMode();
@@ -21,37 +20,7 @@ public class RedFirst extends AutoBase {
         super.act();
         try {
             move(0.5, -12);
-            if (!stoneDetected ) {
-                stoneDetected = detectStone(2);
-            }
-            telemetry.addData("SkyStone", String.format(" Left position: %b in", stoneDetected));
-            telemetry.update();
 
-            if (stoneDetected) {
-                stopStoneDetection();
-                //pick right-most
-                strafeRight(0.6, 4);
-                robot.getGyro().correct();
-            }
-            else {
-                strafeLeft(0.6, 5);
-                robot.getGyro().correct();
-                stoneDetected = detectStone(2);
-                stopStoneDetection();
-                telemetry.addData("SkyStone", String.format(" Left position: %b in", stoneDetected));
-                telemetry.update();
-
-                if (stoneDetected){
-                    //pick the middle one
-                    strafeRight(0.6, 3);
-                    robot.getGyro().correct();
-                }
-                else{
-                    //pick left-most
-                    strafeLeft(0.6, 3);
-                    robot.getGyro().correct();
-                }
-            }
             robot.getGyro().correct();
 
             moveUntil(0.2, 8, -30);

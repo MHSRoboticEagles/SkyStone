@@ -29,6 +29,7 @@
 
 package org.firstinspires.ftc.teamcode.OpModes;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -55,7 +56,7 @@ import org.firstinspires.ftc.teamcode.skills.StoneFinder;
  */
 
 @TeleOp(name="SkyStoneDetection", group="Robot15173")
-//@Disabled
+@Disabled
 public class SkyStoneDetection extends LinearOpMode {
 
     // Declare OpMode members.

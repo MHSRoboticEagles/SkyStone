@@ -23,6 +23,7 @@ public abstract class AutoBase extends LinearOpMode {
     protected SimpleBot robot = new SimpleBot();   // Use our standard robot configuration
     protected ElapsedTime runtime = new ElapsedTime();
     protected boolean stoneDetected = false;
+    protected float stoneLeft = -1;
 
     private static final String TFOD_MODEL_ASSET = "Skystone.tflite";
     private static final String LABEL_FIRST_ELEMENT = "Stone";
@@ -127,38 +128,12 @@ public abstract class AutoBase extends LinearOpMode {
     }
 
     protected boolean detectStone(int timeout){
-        boolean detected = false;
-        if (opModeIsActive()) {
-            boolean stop = false;
-            ElapsedTime runtime = new ElapsedTime();
-            while (!stop && runtime.seconds() < timeout) {
-                if (tfod != null) {
-                    // getUpdatedRecognitions() will return null if no new information is available since
-                    // the last time that call was made.
-                    List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
-                    if (updatedRecognitions != null) {
-                        telemetry.addData("# Object Detected", updatedRecognitions.size());
-
-                        // step through the list of recognitions and display boundary info.
-                        int i = 0;
-                        for (Recognition recognition : updatedRecognitions) {
-                            telemetry.addData(String.format("label (%d)", i), recognition.getLabel());
-                            telemetry.addData(String.format("  left,top (%d)", i), "%.03f , %.03f",
-                                    recognition.getLeft(), recognition.getTop());
-                            telemetry.addData(String.format("  right,bottom (%d)", i), "%.03f , %.03f",
-                                    recognition.getRight(), recognition.getBottom());
-                            detected = true;
-                            break;
-                        }
-                        telemetry.update();
-                    }
-                }
-                if (detected){
-                    stop = true;
-                }
-            }
+        StoneFinder sf = new StoneFinder(tfod);
+        boolean found = sf.detectStone(timeout, telemetry);
+        if (found){
+            stoneLeft = sf.getStoneLeft();
         }
-        return detected;
+        return found;
     }
 
     protected void stopStoneDetection(){
@@ -176,20 +151,20 @@ public abstract class AutoBase extends LinearOpMode {
         robot.stop();
     }
 
-//    protected void moveDetect(double speed, double moveTo){
-//        final StoneFinder sf = new StoneFinder(tfod);
-//        robot.encoderMoveDetect(speed, moveTo, moveTo, 0, telemetry, new DetectionInterface() {
-//            @Override
-//            public boolean detect() {
-//                if (!stoneDetected) {
-//                    stoneDetected = sf.detect(telemetry);
-//                }
-//                return stoneDetected;
-//            }
-//        });
-//
-//        robot.stop();
-//    }
+    protected void moveDetect(double speed, double moveTo){
+        final StoneFinder sf = new StoneFinder(tfod);
+        robot.encoderMoveDetect(speed, moveTo, moveTo, 0, telemetry, new DetectionInterface() {
+            @Override
+            public boolean detect() {
+                if (!stoneDetected) {
+                    stoneDetected = sf.detect(telemetry);
+                }
+                return stoneDetected;
+            }
+        });
+
+        robot.stop();
+    }
 
 
     protected void moveUntil(double speed, int moveUntil, int max){
