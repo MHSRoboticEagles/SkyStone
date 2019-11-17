@@ -1,12 +1,11 @@
 package org.firstinspires.ftc.teamcode.autonomous;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 
-@Autonomous(name="Blue Simple", group ="Robot15173")
-@Disabled
-public class BlueSimple extends AutoBase {
+@Autonomous(name="Stone Red", group ="Robot15173")
+
+public class StoneRed extends AutoBase {
     @Override
     public void runOpMode() throws InterruptedException {
         runAutoMode();
@@ -20,33 +19,44 @@ public class BlueSimple extends AutoBase {
     protected void act() {
         super.act();
         try {
+           moveDetect(0.2, -9);
 
-            move(0.5, -12);
+           if (!stoneDetected){
+               stoneDetected = detectStone(2);
+           }
 
-            robot.getGyro().correct();
-
-            moveUntil(0.2, 8, -30);
+           telemetry.addData("Left", stoneLeft);
+           telemetry.update();
+           sleep(2000);
+           if (stoneLeft < 0){
+               strafeLeft(1, 5);
+           }
+           else if (stoneLeft >=0 && stoneLeft < 100){
+               strafeRight(1, 3);
+           }
+           else {
+               strafeRight(1, 9);
+           }
+           sleep(300);
+           robot.getGyro().correct();
+            moveUntil(0.2, 9, -30);
             unfoldIntake();
             robot.intakePressDown();
             moveUntil(0.2, 4, -10);
-
             robot.pickupTemp(1, telemetry);
             sleep(200);
-            move(0.5, 5);
-            robot.getGyro().turn(80, 0.4);
+            move(0.5, 7);
+            robot.getGyro().turn(-90, 0.9);
+            robot.getGyro().fixHeading(0.3);
+
             move(0.8, -55);
-            moveUntil(0.4, 20, -40);
             foldIntake();
-            robot.getGyro().correct();
-            move(0.5, -5);
+            moveUntil(0.4, 30, -40);
             unfoldIntake();
             robot.releaseTemp(1, telemetry);
-            move(0.5, 2);
-            sleep(200);
-            foldIntake();
-            robot.getGyro().turn(80, 0.4);
-            unfoldIntake();
-            move(0.5, 50);
+            move(0.5, 44);
+
+           sleep(20000);
 
         }
         catch (Exception ex){

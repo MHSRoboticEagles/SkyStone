@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 
 @Autonomous(name="Red First", group ="Robot15173")
-
+@Disabled
 public class RedFirst extends AutoBase {
     @Override
     public void runOpMode() throws InterruptedException {

@@ -200,8 +200,8 @@ public class Gyro {
     }
 
     public void pivot(int degrees, double power){
-        double currentHeading = this.getHeading();
-        double desired = currentHeading + degrees;
+        correct();
+        desiredHeading = degrees;
         double  leftPower = 0, rightPower = 0;
 
         // restart imu movement tracking.
@@ -231,10 +231,10 @@ public class Gyro {
         while (true){
             int current = (int)this.getHeading();
             telemetry.addData("current", current);
-            telemetry.addData("desired", desired);
+            telemetry.addData("desired", desiredHeading);
             telemetry.update();
-            if ((degrees < 0 && current <= (int)desired)
-                    || (degrees > 0 && current >= (int)desired)){
+            if ((degrees < 0 && current <= (int)desiredHeading)
+                    || (degrees > 0 && current >= (int)desiredHeading)){
                 break;
             }
         }

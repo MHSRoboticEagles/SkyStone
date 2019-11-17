@@ -766,8 +766,12 @@ public class SimpleBot {
     public void moveIntake(double drive, Telemetry telemetry){
         if (intakePivot != null ) {
             double power = Range.clip(drive, -1.0, 1.0);
-
-            this.intakePivot.setPower(power/3);
+            if (drive > 0) {
+                this.intakePivot.setPower(power / 3);
+            }
+            else {
+                this.intakePivot.setPower(power / 1.5);
+            }
 
             telemetry.addData("Pivot", "Speed from %.2f", drive);
         }
@@ -779,7 +783,7 @@ public class SimpleBot {
             // Determine new target position, and pass to motor controller
             int to = (int) (fold* COUNTS_PER_MOTOR_REV/4.5);
             if (fold > 0){
-                to = (int) (fold* COUNTS_PER_MOTOR_REV/4);
+                to = (int) (fold* COUNTS_PER_MOTOR_REV/2);
             }
             int newTarget = this.intakePivot.getCurrentPosition() + to;
 

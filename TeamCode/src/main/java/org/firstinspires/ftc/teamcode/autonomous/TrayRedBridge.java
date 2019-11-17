@@ -3,9 +3,9 @@ package org.firstinspires.ftc.teamcode.autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 
-@Autonomous(name="TrayRed", group ="Robot15173")
+@Autonomous(name="TrayRedBridge", group ="Robot15173")
 
-public class TrayRed extends AutoBase {
+public class TrayRedBridge extends AutoBase {
     @Override
     public void runOpMode() throws InterruptedException {
         runAutoMode();
@@ -19,14 +19,23 @@ public class TrayRed extends AutoBase {
     protected void act() {
         super.act();
         try {
-            move(0.9, -28);
+            strafeRight(1, 12);
+            robot.getGyro().correct();
+            move(0.9, 3);
+            move(0.9, -30);
             robot.getGyro().correct();
             unfoldIntake();
             robot.intakePressDown();
-            robot.getGyro().pivot(-85, 0.8);
+            robot.getGyro().pivot(-90, 0.8);
             move(1, -16);
             foldIntake();
-            moveUntil(0.6, -20, -24);
+            strafeLeft(1, 14);
+            robot.getGyro().fixHeading(0.3);
+            move(0.8, -10);
+            move(0.9, 8);
+            unfoldIntake();
+            move(0.9, 30);
+
         }
         catch (Exception ex){
             telemetry.addData("Error", ex.getMessage());
