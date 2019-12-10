@@ -24,16 +24,12 @@ public class TrayRedBridge extends AutoBase {
             move(0.9, 3);
             move(0.9, -30);
             robot.getGyro().correct();
-            unfoldIntake();
-            robot.intakePressDown();
             robot.getGyro().pivot(-90, 0.8);
             move(1, -16);
-            foldIntake();
             strafeLeft(1, 14);
             robot.getGyro().fixHeading(0.3);
             move(0.8, -10);
             move(0.9, 8);
-            unfoldIntake();
             move(0.9, 30);
 
         }

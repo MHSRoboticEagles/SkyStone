@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.skills;
 
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -12,6 +13,9 @@ import java.util.List;
 public class StoneFinder {
     private TFObjectDetector tfod;
     private float stoneLeft = -1;
+    private float stoneWidth = -1;
+    private float stoneTop = -1;
+    private static final String LABEL_SKYSTONE = "Skystone";
 
     public StoneFinder(TFObjectDetector tf) {
         tfod = tf;
@@ -41,6 +45,7 @@ public class StoneFinder {
                                 recognition.getRight(), recognition.getBottom());
                     found = true;
                     stoneLeft = recognition.getLeft();
+                    stoneWidth = recognition.getWidth();
                     telemetry.addData("Found", found);
                     telemetry.addData("Left", getStoneLeft());
                     break;
@@ -51,7 +56,7 @@ public class StoneFinder {
         return found;
     }
 
-    public boolean detectStone(int timeout, Telemetry telemetry){
+    public boolean detectStone(int timeout, Telemetry telemetry, LinearOpMode caller){
         boolean found = false;
 
         boolean stop = false;
@@ -72,14 +77,21 @@ public class StoneFinder {
                                 recognition.getLeft(), recognition.getTop());
                         telemetry.addData(String.format("  right,bottom (%d)", i), "%.03f , %.03f",
                                 recognition.getRight(), recognition.getBottom());
-                        found = true;
-                        stoneLeft = recognition.getLeft();
-                        break;
+                        telemetry.addData(String.format("  Width/height (%d)", i), "%.03f , %.03f, %d , %d",
+                                recognition.getWidth(), recognition.getHeight(), recognition.getImageWidth(), recognition.getImageHeight());
+                        if (recognition.getLabel().contentEquals(LABEL_SKYSTONE)) {
+                            found = true;
+                            telemetry.addData("Found", found);
+                            stoneLeft = recognition.getLeft();
+                            stoneWidth = recognition.getWidth();
+                            stoneTop = recognition.getTop();
+                            break;
+                        }
                     }
                     telemetry.update();
                 }
             }
-            if (found){
+            if (found || !caller.opModeIsActive()){
                 stop = true;
             }
         }
@@ -96,5 +108,12 @@ public class StoneFinder {
 
     public float getStoneLeft() {
         return stoneLeft;
+    }
+    public float getStoneWidth() {
+        return stoneWidth;
+    }
+
+    public float getStoneTop() {
+        return stoneTop;
     }
 }

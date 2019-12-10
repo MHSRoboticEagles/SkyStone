@@ -106,6 +106,15 @@ public class SimpleLinearTurn extends LinearOpMode {
                     robot.move(drive, turn, telemetry);
                 }
 
+//                //diag
+//                double diag = gamepad1.left_stick_x;
+//                if (diag >= 0){
+//                    robot.diagRight(diag, telemetry);
+//                }
+//                else{
+//                    robot.diagLeft(-diag, telemetry);
+//                }
+
                 ///pivot
                 boolean leftPivot = gamepad1.dpad_left;
                 boolean rightPivot = gamepad1.dpad_right;
@@ -116,30 +125,19 @@ public class SimpleLinearTurn extends LinearOpMode {
                     robot.pivotRight(1, telemetry);
                 }
 
-                //platform
-                double plat = gamepad2.left_stick_x;
-                robot.movePlatform(plat, telemetry);
-
 
                 //tower
                 double tower = gamepad2.left_stick_y;
                 robot.moveTower(tower, telemetry);
 
+                //crane
+                double crane = gamepad2.right_stick_y;
+                robot.moveCrane(crane, telemetry);
+
+                //intake
                 float pickup = gamepad2.right_trigger;
-                if (pickup > 0) {
-                    telemetry.addData("Intake pickup", "Speed from %.2f", pickup);
-                    robot.pickupTemp(pickup, telemetry);
-                }
+                robot.moveIntake(pickup, telemetry);
 
-                float dump = gamepad2.left_trigger;
-                if (dump > 0) {
-                    telemetry.addData("Intake dump", "Speed from %.2f", dump);
-                    robot.releaseTemp(dump, telemetry);
-                }
-
-                //intakePivot
-                double intakePivot = gamepad2.right_stick_y;
-                robot.moveIntake(intakePivot, telemetry);
 
                 if (gamepad1.x){
                     robot.dropCapstone(true, telemetry);
@@ -149,7 +147,11 @@ public class SimpleLinearTurn extends LinearOpMode {
                     robot.dropCapstone(false, telemetry);
                 }
 
-                telemetry.addData("To Obstacle", robot.getRangetoObstacle());
+                telemetry.addData("Front Left", robot.getRangetoObstacleFrontLeft());
+                telemetry.addData("Front Right", robot.getRangetoObstacleFrontRight());
+                telemetry.addData("Left", robot.getRangetoObstacleLeft());
+                telemetry.addData("Right", robot.getRangetoObstacleRight());
+                telemetry.addData("Back", robot.getRangetoObstacleBack());
 
 
                 telemetry.update();

@@ -24,10 +24,14 @@ public abstract class AutoBase extends LinearOpMode {
     protected ElapsedTime runtime = new ElapsedTime();
     protected boolean stoneDetected = false;
     protected float stoneLeft = -1;
+    protected float stoneWidth = -1;
+    protected float stoneTop = -1;
+
+    protected int skyStoneIndex = 0; // 1-based
 
     private static final String TFOD_MODEL_ASSET = "Skystone.tflite";
     private static final String LABEL_FIRST_ELEMENT = "Stone";
-    private static final String LABEL_SECOND_ELEMENT = "Skystone";
+    private static final String LABEL_SKYSTONE = "Skystone";
 
     private static final String VUFORIA_KEY =
             "AZs0syj/////AAABmaxIME6H4k74lx12Yv3gnoYvtGHACOflWi3Ej36sE7Hn86xDafDA3vhzxSOgBtyNIQ1ua6KP2j3I2ScFedVw8n6MJ7PReZQP4sTdc8gHvoy17hD574exMmoUQ3rVUMkgU2fwN2enw2X+Ls2F3BLuCg/A4SBZjzG3cweO+owiKO/2iSIpeC4rBdUnPiTxqPHNa8UOxyncCGV0+ZFXresQm/rK7HbOKB9MEszi8eW2JNyfjTdKozwDxikeDRV7yPvoIhZ5A+mrrC1GgrEzYwNTVHeki2cg4Ea62pYwdscaJ+6IWHlBIDutqmgJu/Os3kAzZkOh0TJ8P3e29Ou4ZczTdDH0oqkPt78Nt4VdYbSbLRCw";
@@ -49,7 +53,20 @@ public abstract class AutoBase extends LinearOpMode {
     protected void runAutoMode(){
         initRobot();
         initVuforia();
+        try {
+            preStart();
+            waitForStart();
+            act();
+        }
+        catch (Exception ex){
+            telemetry.addData("Issues autonomous initialization", ex);
+        }
 
+        telemetry.update();
+
+    }
+
+    protected void initRec(){
         if (vuforia == null){
             telemetry.addData("Error", "Unable to start Vuforia");
         }
@@ -79,16 +96,9 @@ public abstract class AutoBase extends LinearOpMode {
             }
         }
         telemetry.update();
+    }
 
-        try {
-            waitForStart();
-            act();
-        }
-        catch (Exception ex){
-            telemetry.addData("Issues autonomous initialization", ex);
-        }
-
-        telemetry.update();
+    protected void preStart(){
 
     }
 
@@ -120,7 +130,7 @@ public abstract class AutoBase extends LinearOpMode {
         TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
         tfodParameters.minimumConfidence = 0.8;
         tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
-        tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABEL_FIRST_ELEMENT, LABEL_SECOND_ELEMENT);
+        tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABEL_FIRST_ELEMENT, LABEL_SKYSTONE);
     }
 
     protected void act(){
@@ -129,9 +139,11 @@ public abstract class AutoBase extends LinearOpMode {
 
     protected boolean detectStone(int timeout){
         StoneFinder sf = new StoneFinder(tfod);
-        boolean found = sf.detectStone(timeout, telemetry);
+        boolean found = sf.detectStone(timeout, telemetry, this);
         if (found){
             stoneLeft = sf.getStoneLeft();
+            stoneWidth = sf.getStoneWidth();
+            stoneTop = sf.getStoneTop();
         }
         return found;
     }
@@ -167,20 +179,128 @@ public abstract class AutoBase extends LinearOpMode {
     }
 
 
-    protected void moveUntil(double speed, int moveUntil, int max){
-        robot.move(-speed, 0, telemetry);
+    protected void moveUntil(double speed, int moveUntil, int max, boolean stop){
+        boolean closer = moveUntil > 0;
+        moveUntil = Math.abs(moveUntil);
+        if (closer){
+            speed = -speed;
+        }
+        robot.move(speed, 0, telemetry);
         int pos = robot.rightDriveFront.getCurrentPosition();
         int target = pos + robot.getDriveIncrement(max);
+
         while (true){
-            double range = robot.getRangetoObstacle();
-            telemetry.addData("Range", range);
+            double rangeLeft = robot.getRangetoObstacleFrontLeft();
+            double rangeRight = robot.getRangetoObstacleFrontRight();
+            telemetry.addData("rangeFrontLeft", rangeLeft);
+            telemetry.addData("rangeFrontRight", rangeRight);
+            double range = rangeLeft > 0 && rangeRight > rangeLeft ? rangeLeft : rangeRight;
             telemetry.update();
             int current = robot.rightDriveFront.getCurrentPosition();
-            if (range > 0 && (range < moveUntil || Math.abs(current) > Math.abs(target))){
-                break;
+            if (closer) {
+                if (range > 0 && (range < moveUntil || Math.abs(current) > Math.abs(target))) {
+                    break;
+                }
+            }
+            else{
+                if (range > 0 && (range > moveUntil || Math.abs(current) > Math.abs(target))) {
+                    break;
+                }
             }
         }
-        robot.stop();
+        if (stop) {
+            robot.stop();
+        }
+    }
+
+    protected void moveLeftUntil(double speed, int moveUntil, int max, boolean stop){
+        boolean closer = moveUntil > 0;
+        moveUntil = Math.abs(moveUntil);
+        if (closer){
+            speed = -speed;
+        }
+        robot.move(speed, 0, telemetry);
+        int pos = robot.rightDriveFront.getCurrentPosition();
+        int target = pos + robot.getDriveIncrement(max);
+
+        while (true){
+            double range = robot.getRangetoObstacleLeft();
+            telemetry.addData("rangeLeft", range);
+            int current = robot.rightDriveFront.getCurrentPosition();
+            if (closer) {
+                if (range > 0 && (range < moveUntil || Math.abs(current) > Math.abs(target))) {
+                    break;
+                }
+            }
+            else{
+                if (range > 0 && (range > moveUntil || Math.abs(current) > Math.abs(target))) {
+                    break;
+                }
+            }
+        }
+        if (stop) {
+            robot.stop();
+        }
+    }
+
+    protected void moveRightUntil(double speed, int moveUntil, int max, boolean stop){
+        boolean closer = moveUntil > 0;
+        moveUntil = Math.abs(moveUntil);
+        if (closer){
+            speed = -speed;
+        }
+        robot.move(speed, 0, telemetry);
+        int pos = robot.rightDriveFront.getCurrentPosition();
+        int target = pos + robot.getDriveIncrement(max);
+
+        while (true){
+            double range = robot.getRangetoObstacleRight();
+            telemetry.addData("rangeRight", range);
+            int current = robot.rightDriveFront.getCurrentPosition();
+            if (closer) {
+                if (range > 0 && (range < moveUntil || Math.abs(current) > Math.abs(target))) {
+                    break;
+                }
+            }
+            else{
+                if (range > 0 && (range > moveUntil || Math.abs(current) > Math.abs(target))) {
+                    break;
+                }
+            }
+        }
+        if (stop) {
+            robot.stop();
+        }
+    }
+
+    protected void moveBackUntil(double speed, int moveUntil, int max, boolean stop){
+        boolean away = moveUntil > 0;
+        moveUntil = Math.abs(moveUntil);
+        if (away){
+            speed = -speed;
+        }
+        robot.move(speed, 0, telemetry);
+        int pos = robot.rightDriveFront.getCurrentPosition();
+        int target = pos + robot.getDriveIncrement(max);
+
+        while (true){
+            double range = robot.getRangetoObstacleBack();
+            telemetry.addData("rangeBack", range);
+            int current = robot.rightDriveFront.getCurrentPosition();
+            if (away) {
+                if (range > 0 && (range > moveUntil || Math.abs(current) > Math.abs(target))) {
+                    break;
+                }
+            }
+            else{
+                if (range > 0 && (range < moveUntil || Math.abs(current) > Math.abs(target))) {
+                    break;
+                }
+            }
+        }
+        if (stop) {
+            robot.stop();
+        }
     }
 
     protected void strafe(double speed, double moveTo){
@@ -220,21 +340,38 @@ public abstract class AutoBase extends LinearOpMode {
         robot.stop();
     }
 
+
+    protected void strafeRightUntil(double speed, int leftStop, int rightStop){
+        robot.strafeLeft(speed, telemetry);
+        int stop = leftStop != 0 ? leftStop : rightStop;
+        while (true) {
+            double range = leftStop != 0  ? robot.getRangetoObstacleLeft() : robot.getRangetoObstacleRight();
+            telemetry.update();
+            if (range > 0 && range <= stop ) {
+                break;
+            }
+        }
+        robot.stop();
+    }
+
+    protected void strafeLeftUntil(double speed, int leftStop, int rightStop){
+        robot.strafeRight(speed, telemetry);
+        int stop = leftStop != 0 ? leftStop : rightStop;
+        while (true) {
+            double range = leftStop != 0  ? robot.getRangetoObstacleLeft() : robot.getRangetoObstacleRight();
+            telemetry.update();
+            if (range > 0 && range <= stop ) {
+                break;
+            }
+        }
+        robot.stop();
+    }
+
     protected void turn(double speed, double moveTo){
         telemetry.addData("Auto", "Distance = %.2f", moveTo);
         telemetry.update();
         robot.encoderTurn(speed, moveTo, moveTo, 0, telemetry);
         robot.stop();
     }
-
-    protected void unfoldIntake(){
-        robot.encoderIntakeMove(-1, robot.INTAKE_PIVOT_SPEED, 1, telemetry);
-    }
-
-    protected void foldIntake(){
-        robot.encoderIntakeMove(1, robot.INTAKE_PIVOT_SPEED_UP, 1, telemetry);
-//        robot.intakePivot.setPower(-robot.ANTI_GRAVITY_POWER);
-    }
-
 
 }
