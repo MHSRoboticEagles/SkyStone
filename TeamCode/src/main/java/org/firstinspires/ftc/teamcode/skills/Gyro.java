@@ -246,6 +246,53 @@ public class Gyro {
         robot.rightDriveFront.setPower(0);
     }
 
+    public void pivotBack(int degrees, double power){
+        correct();
+        desiredHeading = degrees;
+        double  leftPower = 0, rightPower = 0;
+
+        // restart imu movement tracking.
+        resetAngle();
+
+        // getAngle() returns + when rotating counter clockwise (left) and - when rotating
+        // clockwise (right).
+
+        if (degrees < 0)
+        {   // turn right.
+            rightPower = -power;
+            robot.rightDriveBack.setPower(rightPower);
+            robot.rightDriveFront.setPower(rightPower);
+        }
+        else if (degrees > 0)
+        {   // turn left.
+            leftPower = -power;
+            robot.leftDriveBack.setPower(leftPower);
+            robot.leftDriveFront.setPower(leftPower);
+        }
+        else return;
+
+        // set power to rotate.
+
+
+
+        while (true){
+            int current = (int)this.getHeading();
+            telemetry.addData("current", current);
+            telemetry.addData("desired", desiredHeading);
+            telemetry.update();
+            if ((degrees < 0 && current <= (int)desiredHeading)
+                    || (degrees > 0 && current >= (int)desiredHeading)){
+                break;
+            }
+        }
+
+
+        robot.leftDriveBack.setPower(0);
+        robot.leftDriveFront.setPower(0);
+        robot.rightDriveBack.setPower(0);
+        robot.rightDriveFront.setPower(0);
+    }
+
     public void rotate(int degrees, double power)
     {
         double  leftPower = 0, rightPower = 0;

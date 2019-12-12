@@ -24,18 +24,17 @@ public class TrayBlueWall extends AutoBase {
 //            move(0.9, 3);
             move(0.9, -30);
             robot.getGyro().correct();
-            unfoldIntake();
-            robot.intakePressDown();
+
             robot.getGyro().pivot(90, 0.8);
             move(1, -16);
-            foldIntake();
+
             strafeRight(1, 21);
             robot.getGyro().fixHeading(0.3);
             move(0.8, -10);
             strafeLeft(1, 19);
             robot.getGyro().fixHeading(0.3);
             move(0.9, 8);
-            unfoldIntake();
+
             move(0.9, 30);
         }
         catch (Exception ex){

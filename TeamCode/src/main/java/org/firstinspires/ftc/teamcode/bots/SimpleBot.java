@@ -25,9 +25,11 @@ public class SimpleBot {
     public DcMotor rightDriveFront = null;
 
     public DcMotor towerDrive = null;
-    public DcMotor towerDrive2 = null;
 
-    public DcMotor platformDrive = null;
+    public DcMotor craneDrive = null;
+
+    public DcMotor intakeLeft = null;
+    public DcMotor intakeRight = null;
 
 //    public DcMotor intake = null;
 
@@ -35,11 +37,17 @@ public class SimpleBot {
 
     public Servo capstone = null;
 
-    public DcMotor intakePivot = null;
+    public Servo lockStone = null;
+
+    public Servo rotateStone = null;
 
     private Gyro gyro = null;
 
-    private DistanceSensor sensorRange;
+    private DistanceSensor rangeBack;
+    private DistanceSensor rangeLeft;
+    private DistanceSensor rangeRight;
+    private DistanceSensor rangeFrontLeft;
+    private DistanceSensor rangeFrontRight;
 
 
 
@@ -56,6 +64,8 @@ public class SimpleBot {
 
     public static final double     INTAKE_PIVOT_SPEED = 1;
     public static final double     INTAKE_PIVOT_SPEED_UP = 1;
+
+    private static final double MAX_RANGE = 200;
 
 
 
@@ -83,7 +93,6 @@ public class SimpleBot {
         hwMap = ahwMap;
 
         try {
-
             // Define and Initialize Motors
             leftDriveBack = hwMap.get(DcMotor.class, "left_drive_back");
             rightDriveBack = hwMap.get(DcMotor.class, "right_drive_back");
@@ -92,7 +101,7 @@ public class SimpleBot {
         }
         catch (Exception ex){
             //issues accessing drive resources
-            throw new Exception("Issues accessing drive resources. Check the controller config", ex);
+//            throw new Exception("Issues accessing drive resources. Check the controller config", ex);
         }
 
         try{
@@ -103,29 +112,41 @@ public class SimpleBot {
         }
         telemetry.addData("Init", "towerDrive");
 
-        try{
-            towerDrive2 = hwMap.get(DcMotor.class, "second_lift");
-        }
-        catch (Exception ex){
-            throw new Exception("Issues accessing tower drive 2. Check the controller config", ex);
-        }
-        telemetry.addData("Init", "towerDrive2");
 
         try{
-            platformDrive = hwMap.get(DcMotor.class, "platform");
+            craneDrive = hwMap.get(DcMotor.class, "crane");
         }
         catch (Exception ex){
             throw new Exception("Issues accessing platform. Check the controller config", ex);
         }
-        telemetry.addData("Init", "platformDrive");
+        telemetry.addData("Init", "craneDrive");
 
-//        try{
-//            intake = hwMap.get(DcMotor.class, "intake");
-//        }
-//        catch (Exception ex){
-//            throw new Exception("Issues accessing intake. Check the controller config", ex);
-//        }
-//        telemetry.addData("Init", "intake");
+        try{
+            intakeLeft = hwMap.get(DcMotor.class, "intake-left");
+            if (intakeLeft != null){
+                intakeLeft.setDirection(DcMotor.Direction.REVERSE);
+                intakeLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                intakeLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                intakeLeft.setPower(0);
+            }
+        }
+        catch (Exception ex){
+            throw new Exception("Issues accessing left intake. Check the controller config", ex);
+        }
+
+
+        try{
+            intakeRight = hwMap.get(DcMotor.class, "intake-right");
+            if (intakeRight != null){
+                intakeRight.setDirection(DcMotor.Direction.FORWARD);
+                intakeRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                intakeRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                intakeRight.setPower(0);
+            }
+        }
+        catch (Exception ex){
+            throw new Exception("Issues accessing right intake. Check the controller config", ex);
+        }
 
 
         if (leftDriveBack != null) {
@@ -161,55 +182,21 @@ public class SimpleBot {
         }
 
         if (towerDrive != null){
-            towerDrive.setDirection(DcMotor.Direction.FORWARD);
+            towerDrive.setDirection(DcMotor.Direction.REVERSE);
             towerDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
             towerDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             towerDrive.setPower(0);
         }
 
-        if (towerDrive2 != null){
-            towerDrive2.setDirection(DcMotor.Direction.FORWARD);
-            towerDrive2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            towerDrive2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            towerDrive2.setPower(0);
+
+        if (craneDrive != null){
+            craneDrive.setDirection(DcMotor.Direction.REVERSE);
+            craneDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            craneDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            craneDrive.setPower(0);
         }
 
-        if (platformDrive != null){
-            platformDrive.setDirection(DcMotor.Direction.REVERSE);
-            platformDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            platformDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            platformDrive.setPower(0);
-        }
 
-//        if (intake != null){
-//            intake.setDirection(DcMotor.Direction.REVERSE);
-//            intake.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-//            intake.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-//            intake.setPower(0);
-//        }
-
-        try{
-            intakePivot = hwMap.get(DcMotor.class, "pivot");
-            if (intakePivot != null){
-                intakePivot.setDirection(DcMotor.Direction.FORWARD);
-                intakePivot.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-                intakePivot.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                intakePivot.setPower(0);
-            }
-        }
-        catch (Exception ex){
-            throw new Exception("Issues accessing intakePivot servo. Check the controller config", ex);
-        }
-
-        try{
-            intakeTemp = hwMap.get(Servo.class, "temp-intake");
-            if (intakeTemp != null){
-                intakeTemp.setPosition(1);
-            }
-        }
-        catch (Exception ex){
-            throw new Exception("Issues accessing temp intake servo. Check the controller config", ex);
-        }
 
         try{
             capstone = hwMap.get(Servo.class, "capstone_servo");
@@ -221,12 +208,60 @@ public class SimpleBot {
             throw new Exception("Issues accessing temp intake servo. Check the controller config", ex);
         }
 
-
         try{
-            sensorRange = hwMap.get(DistanceSensor.class, "sensor_range");
+            lockStone = hwMap.get(Servo.class, "lock_servo");
+//            if (lockStone != null){
+//                lockStone.setPosition(1);
+//            }
         }
         catch (Exception ex){
-            throw new Exception("Issues accessing range sensor. Check the controller config", ex);
+            throw new Exception("Issues accessing temp intake servo. Check the controller config", ex);
+        }
+
+        try{
+            rotateStone = hwMap.get(Servo.class, "rotate_servo");
+//            if (lockStone != null){
+//                lockStone.setPosition(1);
+//            }
+        }
+        catch (Exception ex){
+            throw new Exception("Issues accessing temp intake servo. Check the controller config", ex);
+        }
+
+
+        try{
+            rangeBack = hwMap.get(DistanceSensor.class, "range_back");
+        }
+        catch (Exception ex){
+            throw new Exception("Issues accessing range sensor back . Check the controller config", ex);
+        }
+
+        try{
+            rangeLeft = hwMap.get(DistanceSensor.class, "range_left");
+        }
+        catch (Exception ex){
+            throw new Exception("Issues accessing range sensor left. Check the controller config", ex);
+        }
+
+        try{
+            rangeRight = hwMap.get(DistanceSensor.class, "range_right");
+        }
+        catch (Exception ex){
+            throw new Exception("Issues accessing range sensor right. Check the controller config", ex);
+        }
+
+        try{
+            rangeFrontLeft = hwMap.get(DistanceSensor.class, "range_frontleft");
+        }
+        catch (Exception ex){
+            throw new Exception("Issues accessing range sensor  front left. Check the controller config", ex);
+        }
+
+        try{
+            rangeFrontRight = hwMap.get(DistanceSensor.class, "range_frontright");
+        }
+        catch (Exception ex){
+            throw new Exception("Issues accessing range sensor front right. Check the controller config", ex);
         }
 
         setGyro(new Gyro());
@@ -306,6 +341,28 @@ public class SimpleBot {
             this.rightDriveFront.setPower(-power);
             telemetry.addData("Motors", "Front: %.0f", power);
             telemetry.addData("Motors", "Back: %.0f", power);
+        }
+    }
+
+    public void diagLeft(double speed, Telemetry telemetry){
+        if (leftDriveBack != null && rightDriveBack!= null && leftDriveFront != null && rightDriveFront != null) {
+            double power = Range.clip(speed, -1.0, 1.0);
+            double half = power/2;
+            this.leftDriveBack.setPower(power);
+            this.rightDriveBack.setPower(-half);
+            this.leftDriveFront.setPower(-half);
+            this.rightDriveFront.setPower(power);
+        }
+    }
+
+    public void diagRight(double speed, Telemetry telemetry){
+        if (leftDriveBack != null && rightDriveBack!= null && leftDriveFront != null && rightDriveFront != null) {
+            double power = Range.clip(speed, -1.0, 1.0);
+            double half = power/2;
+            this.leftDriveBack.setPower(-half);
+            this.rightDriveBack.setPower(power);
+            this.leftDriveFront.setPower(power);
+            this.rightDriveFront.setPower(-half);
         }
     }
 
@@ -661,23 +718,15 @@ public class SimpleBot {
 
             telemetry.addData("Tower", "Speed from %.2f", drive);
         }
-
-        if (towerDrive2 != null ) {
-            double power = Range.clip(drive, -1.0, 1.0);
-
-            this.towerDrive2.setPower(power);
-
-            telemetry.addData("Tower 2", "Speed from %.2f", drive);
-        }
     }
 
 
 
-    public void movePlatform(double drive, Telemetry telemetry){
-        if (platformDrive != null ) {
+    public void moveCrane(double drive, Telemetry telemetry){
+        if (craneDrive != null ) {
             double power = Range.clip(drive, -1.0, 1.0);
 
-            this.platformDrive.setPower(power);
+            this.craneDrive.setPower(power);
 
             telemetry.addData("Platform", "Speed from %.2f", drive);
         }
@@ -743,94 +792,105 @@ public class SimpleBot {
         }
     }
 
-    public void fold (boolean move){
-        if (intakePivot != null){
-            if (move){
-                intakePivot.setPower(-PIVOT_SPEED*3);
-            }else {
-                intakePivot.setPower(0);
+    public void toggleStoneLock(boolean lock, Telemetry telemetry){
+        if (lockStone != null) {
+            if (lock) {
+                this.lockStone.setPosition(0);
             }
+            else
+            {
+                this.lockStone.setPosition(0.95);
+            }
+        }
+        else{
+            telemetry.addData("lockStone", "Not initialized");
         }
     }
 
-    public void unfold (boolean move){
-        if (intakePivot != null){
-            if (move){
-                intakePivot.setPower(PIVOT_SPEED);
-            }else {
-                intakePivot.setPower(0);
+    public void swivelStone(boolean out, Telemetry telemetry){
+        if (rotateStone != null) {
+            if (out) {
+                this.rotateStone.setPosition(0);
+            }
+            else
+            {
+                this.rotateStone.setPosition(1);
             }
         }
+        else{
+            telemetry.addData("rotateStone", "Not initialized");
+        }
     }
+
+
 
     public void moveIntake(double drive, Telemetry telemetry){
-        if (intakePivot != null ) {
+
+        if (intakeLeft != null && intakeRight != null) {
             double power = Range.clip(drive, -1.0, 1.0);
-            if (drive > 0) {
-                this.intakePivot.setPower(power / 3);
-            }
-            else {
-                this.intakePivot.setPower(power / 1.5);
-            }
-
-            telemetry.addData("Pivot", "Speed from %.2f", drive);
+            intakeLeft.setPower(power);
+            intakeRight.setPower(power);
         }
     }
 
-    public void encoderIntakeMove(int fold, double speed, double timeoutS, Telemetry telemetry) {
-
-        try {
-            // Determine new target position, and pass to motor controller
-            int to = (int) (fold* COUNTS_PER_MOTOR_REV/4.5);
-            if (fold > 0){
-                to = (int) (fold* COUNTS_PER_MOTOR_REV/2);
-            }
-            int newTarget = this.intakePivot.getCurrentPosition() + to;
-
-
-            this.intakePivot.setTargetPosition(newTarget);
-
-
-
-            // Turn On RUN_TO_POSITION
-            intakePivot.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-
-
-            // reset the timeout time and start motion.
-            runtime.reset();
-            this.intakePivot.setPower(Math.abs(speed));
-
-
-            boolean stop = false;
-
-            while (!stop) {
-                boolean timeUp = timeoutS > 0 && runtime.seconds() >= timeoutS;
-                stop = timeUp || (!this.intakePivot.isBusy());
-            }
-
-
-            this.intakePivot.setPower(0);
-
-            // Turn off RUN_TO_POSITION
-            intakePivot.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        }
-        catch (Exception ex){
-            telemetry.addData("Issues running with encoders to position", ex);
-            telemetry.update();
+    public void moveIntakeReverse(double drive, Telemetry telemetry){
+        if (intakeLeft != null && intakeRight != null) {
+            double power = Range.clip(drive, -1.0, 1.0);
+            intakeLeft.setPower(power);
+            intakeRight.setPower(power);
         }
     }
 
-    public void intakePressDown(){
-        this.intakePivot.setPower(ANTI_GRAVITY_POWER);
+    private double normalizeRange(double raw){
+        if (raw < 0 || raw > MAX_RANGE) {
+            raw = 0;
+        }
+        return raw;
     }
 
-    public double getRangetoObstacle(){
-        if (sensorRange == null) {
+
+    public double getRangetoObstacleBack(){
+        if (rangeBack == null) {
             return 0;
         }
-        double range = sensorRange.getDistance(DistanceUnit.INCH);
-        return range;
+        double range = rangeBack.getDistance(DistanceUnit.INCH);
+        return normalizeRange(range);
     }
+
+    public double getRangetoObstacleLeft(){
+        if (rangeLeft == null) {
+            return 0;
+        }
+        double range = rangeLeft.getDistance(DistanceUnit.INCH);
+        return normalizeRange(range);
+    }
+
+    public double getRangetoObstacleRight(){
+        if (rangeRight == null) {
+            return 0;
+        }
+        double range = rangeRight.getDistance(DistanceUnit.INCH);
+        return normalizeRange(range);
+    }
+
+
+    public double getRangetoObstacleFrontLeft(){
+        if (rangeFrontLeft == null) {
+            return 0;
+        }
+        double range = rangeFrontLeft.getDistance(DistanceUnit.INCH);
+        return normalizeRange(range);
+    }
+
+    public double getRangetoObstacleFrontRight(){
+        if (rangeFrontRight == null) {
+            return 0;
+        }
+        double range = rangeFrontRight.getDistance(DistanceUnit.INCH);
+        return normalizeRange(range);
+    }
+
+
 
     public Gyro getGyro() {
         return gyro;
