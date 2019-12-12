@@ -138,6 +138,25 @@ public class SimpleLinearTurn extends LinearOpMode {
                 float pickup = gamepad2.right_trigger;
                 robot.moveIntake(pickup, telemetry);
 
+                //spit out
+                float spitOut = gamepad2.left_trigger;
+                robot.moveIntakeReverse(-spitOut, telemetry);
+
+                if (gamepad2.right_bumper){
+                    robot.toggleStoneLock(true, telemetry);
+                }
+
+                if (gamepad2.left_bumper){
+                    robot.toggleStoneLock(false, telemetry);
+                }
+
+                if (gamepad2.x){
+                    robot.swivelStone(true, telemetry);
+                }
+                else if (gamepad2.y) {
+                    robot.swivelStone(false, telemetry);
+                }
+
 
                 if (gamepad1.x){
                     robot.dropCapstone(true, telemetry);

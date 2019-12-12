@@ -37,6 +37,10 @@ public class SimpleBot {
 
     public Servo capstone = null;
 
+    public Servo lockStone = null;
+
+    public Servo rotateStone = null;
+
     private Gyro gyro = null;
 
     private DistanceSensor rangeBack;
@@ -199,6 +203,26 @@ public class SimpleBot {
             if (capstone != null){
                 capstone.setPosition(1);
             }
+        }
+        catch (Exception ex){
+            throw new Exception("Issues accessing temp intake servo. Check the controller config", ex);
+        }
+
+        try{
+            lockStone = hwMap.get(Servo.class, "lock_servo");
+//            if (lockStone != null){
+//                lockStone.setPosition(1);
+//            }
+        }
+        catch (Exception ex){
+            throw new Exception("Issues accessing temp intake servo. Check the controller config", ex);
+        }
+
+        try{
+            rotateStone = hwMap.get(Servo.class, "rotate_servo");
+//            if (lockStone != null){
+//                lockStone.setPosition(1);
+//            }
         }
         catch (Exception ex){
             throw new Exception("Issues accessing temp intake servo. Check the controller config", ex);
@@ -768,8 +792,48 @@ public class SimpleBot {
         }
     }
 
+    public void toggleStoneLock(boolean lock, Telemetry telemetry){
+        if (lockStone != null) {
+            if (lock) {
+                this.lockStone.setPosition(0);
+            }
+            else
+            {
+                this.lockStone.setPosition(0.95);
+            }
+        }
+        else{
+            telemetry.addData("lockStone", "Not initialized");
+        }
+    }
+
+    public void swivelStone(boolean out, Telemetry telemetry){
+        if (rotateStone != null) {
+            if (out) {
+                this.rotateStone.setPosition(0);
+            }
+            else
+            {
+                this.rotateStone.setPosition(1);
+            }
+        }
+        else{
+            telemetry.addData("rotateStone", "Not initialized");
+        }
+    }
+
+
+
     public void moveIntake(double drive, Telemetry telemetry){
 
+        if (intakeLeft != null && intakeRight != null) {
+            double power = Range.clip(drive, -1.0, 1.0);
+            intakeLeft.setPower(power);
+            intakeRight.setPower(power);
+        }
+    }
+
+    public void moveIntakeReverse(double drive, Telemetry telemetry){
         if (intakeLeft != null && intakeRight != null) {
             double power = Range.clip(drive, -1.0, 1.0);
             intakeLeft.setPower(power);
