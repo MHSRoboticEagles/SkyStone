@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 
@@ -15,6 +16,7 @@ public class StoneFinder {
     private float stoneLeft = -1;
     private float stoneWidth = -1;
     private float stoneTop = -1;
+    private double angle = 0;
     private static final String LABEL_SKYSTONE = "Skystone";
 
     public StoneFinder(TFObjectDetector tf) {
@@ -85,6 +87,7 @@ public class StoneFinder {
                             stoneLeft = recognition.getLeft();
                             stoneWidth = recognition.getWidth();
                             stoneTop = recognition.getTop();
+                            angle = recognition.estimateAngleToObject(AngleUnit.DEGREES);
                             break;
                         }
                     }
@@ -115,5 +118,9 @@ public class StoneFinder {
 
     public float getStoneTop() {
         return stoneTop;
+    }
+
+    public double getAngle() {
+        return angle;
     }
 }

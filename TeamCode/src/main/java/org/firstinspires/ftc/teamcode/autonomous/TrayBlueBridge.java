@@ -21,19 +21,28 @@ public class TrayBlueBridge extends AutoBase {
         try {
             strafeLeft(1, 12);
             robot.getGyro().correct();
-//            move(0.9, 3);
-            move(0.9, -30);
+
+
+            moveBackUntil(0.7, 6, 100, true);
+
             robot.getGyro().correct();
+            double tray = robot.getRangetoObstacleBack();
+            telemetry.addData("Tray", tray);
+            telemetry.update();
 
-            robot.getGyro().pivot(90, 0.8);
-            move(1, -16);
 
-            strafeRight(1, 21);
+            robot.hookTray(true, telemetry);
+            sleep(1000);
+            move(0.5, -5);
+            robot.getGyro().pivotBack(-90, 0.8);
+            robot.hookTray(false, telemetry);
             robot.getGyro().fixHeading(0.3);
-            move(0.8, -10);
-            move(0.9, 8);
+            move(1, 10);
+//            moveRightUntil(0.5, 23, true);
+//            move(1, 10);
+            moveBackUntil(0.7, 19, 100, true);
 
-            move(0.9, 30);
+            sleep(20000);
         }
         catch (Exception ex){
             telemetry.addData("Error", ex.getMessage());

@@ -21,21 +21,27 @@ public class TrayRedWall extends AutoBase {
         try {
             strafeRight(1, 12);
             robot.getGyro().correct();
-            move(0.9, 3);
-            move(0.9, -30);
+
+
+            moveBackUntil(0.7, 6, 100, true);
+
             robot.getGyro().correct();
+            double tray = robot.getRangetoObstacleBack();
+            telemetry.addData("Tray", tray);
+            telemetry.update();
 
-            robot.getGyro().pivot(-90, 0.8);
-            move(1, -16);
 
-            strafeLeft(1, 14);
+            robot.hookTray(true, telemetry);
+            sleep(1000);
+            move(0.5, -5);
+            robot.getGyro().pivotBack(90, 0.8);
+            robot.hookTray(false, telemetry);
             robot.getGyro().fixHeading(0.3);
-            move(0.8, -10);
-            strafeRight(1, 22);
-            robot.getGyro().fixHeading(0.3);
-            move(0.9, 8);
+            move(1, 14);
+            moveRightUntil(0.5, 6, true);
+            moveBackUntil(0.7, 19, 100, true);
 
-            move(0.9, 30);
+            sleep(20000);
         }
         catch (Exception ex){
             telemetry.addData("Error", ex.getMessage());

@@ -53,7 +53,7 @@ import org.firstinspires.ftc.teamcode.skills.ColorCheck;
  * @see <a href="http://revrobotics.com">REV Robotics Web Page</a>
  */
 @TeleOp(name = "Color Test", group = "Sensor")
-//@Disabled
+@Disabled
 public class ColorRec extends LinearOpMode {
 
     private DistanceSensor sensorRange;

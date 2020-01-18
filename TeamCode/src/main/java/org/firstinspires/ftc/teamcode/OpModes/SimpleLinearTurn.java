@@ -119,10 +119,19 @@ public class SimpleLinearTurn extends LinearOpMode {
                 boolean leftPivot = gamepad1.dpad_left;
                 boolean rightPivot = gamepad1.dpad_right;
                 if (leftPivot){
-                    robot.pivotLeft(1, telemetry);
+                    robot.pivotLeft(0.3, telemetry);
                 }
                 else if(rightPivot){
-                    robot.pivotRight(1, telemetry);
+                    robot.pivotRight(0.3, telemetry);
+                }
+
+                boolean hook = gamepad1.x;
+                boolean unhook = gamepad1.y;
+                if (hook){
+                    robot.hookTray(hook, telemetry);
+                }
+                else if (unhook){
+                    robot.hookTray(false, telemetry);
                 }
 
 
@@ -132,15 +141,18 @@ public class SimpleLinearTurn extends LinearOpMode {
 
                 //crane
                 double crane = gamepad2.right_stick_y;
-                robot.moveCrane(crane, telemetry);
+                robot.moveCrane(-crane, telemetry);
 
                 //intake
                 float pickup = gamepad2.right_trigger;
-                robot.moveIntake(pickup, telemetry);
-
-                //spit out
-                float spitOut = gamepad2.left_trigger;
-                robot.moveIntakeReverse(-spitOut, telemetry);
+                if (pickup > 0) {
+                    robot.moveIntake(pickup, telemetry);
+                }
+                else {
+                    //spit out
+                    float spitOut = gamepad2.left_trigger;
+                    robot.moveIntakeReverse(spitOut, telemetry);
+                }
 
                 if (gamepad2.right_bumper){
                     robot.toggleStoneLock(true, telemetry);
@@ -157,20 +169,22 @@ public class SimpleLinearTurn extends LinearOpMode {
                     robot.swivelStone(false, telemetry);
                 }
 
-
-                if (gamepad1.x){
-                    robot.dropCapstone(true, telemetry);
+                if (gamepad2.a){
+                    robot.swivelStone90(telemetry);
+                }
+                else if (gamepad2.y) {
+                    robot.swivelStone(false, telemetry);
                 }
 
-                if (gamepad1.y){
-                    robot.dropCapstone(false, telemetry);
+
+                if (gamepad1.a){
+                    robot.positionCapstone(telemetry);
                 }
 
-                telemetry.addData("Front Left", robot.getRangetoObstacleFrontLeft());
-                telemetry.addData("Front Right", robot.getRangetoObstacleFrontRight());
-                telemetry.addData("Left", robot.getRangetoObstacleLeft());
-                telemetry.addData("Right", robot.getRangetoObstacleRight());
-                telemetry.addData("Back", robot.getRangetoObstacleBack());
+                if (gamepad1.b){
+                    robot.resetCapstone(telemetry);
+                }
+
 
 
                 telemetry.update();

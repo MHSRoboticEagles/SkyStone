@@ -31,9 +31,6 @@ public class SimpleBot {
     public DcMotor intakeLeft = null;
     public DcMotor intakeRight = null;
 
-//    public DcMotor intake = null;
-
-    public Servo intakeTemp = null;
 
     public Servo capstone = null;
 
@@ -41,13 +38,15 @@ public class SimpleBot {
 
     public Servo rotateStone = null;
 
+    public Servo hookLeft = null;
+
+    public Servo hookRight = null;
+
     private Gyro gyro = null;
 
     private DistanceSensor rangeBack;
     private DistanceSensor rangeLeft;
     private DistanceSensor rangeRight;
-    private DistanceSensor rangeFrontLeft;
-    private DistanceSensor rangeFrontRight;
 
 
 
@@ -67,6 +66,9 @@ public class SimpleBot {
 
     private static final double MAX_RANGE = 200;
 
+    public static final double ROBOT_LENGTH = 18;
+    public static final double ROBOT_WIDTH = 18;
+
 
 
     //REV
@@ -76,6 +78,12 @@ public class SimpleBot {
     static final double     WHEEL_DIAMETER_INCHES   = 4.05 ;     // For figuring circumference
     static final double     COUNTS_PER_INCH_REV     = (COUNTS_PER_MOTOR_REV * DRIVE_GEAR_REDUCTION) /
             (WHEEL_DIAMETER_INCHES * Math.PI);  //22.64
+
+    private int cranePosition = 0;
+    static final int MAX_CRANE_POS = 1300;
+    static final double     COUNTS_PER_MOTOR_CRANE    = 117 ;
+
+    double capPos = -1;
 
 
     /* local OpMode members. */
@@ -199,13 +207,13 @@ public class SimpleBot {
 
 
         try{
-            capstone = hwMap.get(Servo.class, "capstone_servo");
+            capstone = hwMap.get(Servo.class, "caps");
             if (capstone != null){
-                capstone.setPosition(1);
+                capPos = this.capstone.getPosition();
             }
         }
         catch (Exception ex){
-            throw new Exception("Issues accessing temp intake servo. Check the controller config", ex);
+            throw new Exception("Issues accessing capstone servo. Check the controller config", ex);
         }
 
         try{
@@ -215,7 +223,7 @@ public class SimpleBot {
 //            }
         }
         catch (Exception ex){
-            throw new Exception("Issues accessing temp intake servo. Check the controller config", ex);
+            throw new Exception("Issues accessing lock servo. Check the controller config", ex);
         }
 
         try{
@@ -225,10 +233,30 @@ public class SimpleBot {
 //            }
         }
         catch (Exception ex){
-            throw new Exception("Issues accessing temp intake servo. Check the controller config", ex);
+            throw new Exception("Issues accessing rotate servo. Check the controller config", ex);
         }
 
 
+        try{
+            hookLeft = hwMap.get(Servo.class, "hook_left");
+        }
+        catch (Exception ex){
+            throw new Exception("Issues accessing hook left servo. Check the controller config", ex);
+        }
+
+        try{
+            hookRight = hwMap.get(Servo.class, "hook_right");
+        }
+        catch (Exception ex){
+            throw new Exception("Issues accessing hook right servo. Check the controller config", ex);
+        }
+
+        setGyro(new Gyro());
+        getGyro().init(this, hwMap, telemetry);
+
+    }
+
+    public void initSensors() throws Exception {
         try{
             rangeBack = hwMap.get(DistanceSensor.class, "range_back");
         }
@@ -249,24 +277,6 @@ public class SimpleBot {
         catch (Exception ex){
             throw new Exception("Issues accessing range sensor right. Check the controller config", ex);
         }
-
-        try{
-            rangeFrontLeft = hwMap.get(DistanceSensor.class, "range_frontleft");
-        }
-        catch (Exception ex){
-            throw new Exception("Issues accessing range sensor  front left. Check the controller config", ex);
-        }
-
-        try{
-            rangeFrontRight = hwMap.get(DistanceSensor.class, "range_frontright");
-        }
-        catch (Exception ex){
-            throw new Exception("Issues accessing range sensor front right. Check the controller config", ex);
-        }
-
-        setGyro(new Gyro());
-        getGyro().init(this, hwMap, telemetry);
-
     }
 
     protected void resetEncoders(){
@@ -301,6 +311,10 @@ public class SimpleBot {
         if (leftDriveBack != null && rightDriveBack!= null && leftDriveFront != null && rightDriveFront != null) {
             double rightPower = Range.clip(drive + (turn * 0.85), -1.0, 1.0);
             double leftPower = Range.clip(drive - (turn * 0.85), -1.0, 1.0);
+            if ((drive > 0 && drive <= 4 )|| (turn > 0 && turn <= 4)){
+                rightPower = rightPower * rightPower * rightPower;
+                leftPower = leftPower * leftPower * leftPower;
+            }
             //use cubic modifier
 //        rightPower = rightPower*rightPower*rightPower;
 //        leftPower = leftPower*leftPower*leftPower;
@@ -323,6 +337,7 @@ public class SimpleBot {
     public void strafeLeft(double speed, Telemetry telemetry){
         if (leftDriveBack != null && rightDriveBack!= null && leftDriveFront != null && rightDriveFront != null) {
             double power = Range.clip(speed, -1.0, 1.0);
+            power = power * power * power;
             this.leftDriveBack.setPower(power);
             this.rightDriveBack.setPower(-power);
             this.leftDriveFront.setPower(-power);
@@ -335,6 +350,7 @@ public class SimpleBot {
     public void strafeRight(double speed, Telemetry telemetry){
         if (leftDriveBack != null && rightDriveBack!= null && leftDriveFront != null && rightDriveFront != null) {
             double power = Range.clip(speed, -1.0, 1.0);
+            power = power * power * power;
             this.leftDriveBack.setPower(-power);
             this.rightDriveBack.setPower(power);
             this.leftDriveFront.setPower(power);
@@ -369,6 +385,7 @@ public class SimpleBot {
     public void pivotLeft(double speed, Telemetry telemetry){
         if (leftDriveBack != null && rightDriveBack!= null && leftDriveFront != null && rightDriveFront != null) {
             double power = Range.clip(speed, -1.0, 1.0);
+
             this.leftDriveBack.setPower(-power);
             this.rightDriveBack.setPower(power);
             this.leftDriveFront.setPower(-power);
@@ -381,6 +398,7 @@ public class SimpleBot {
     public void pivotRight(double speed, Telemetry telemetry){
         if (leftDriveBack != null && rightDriveBack!= null && leftDriveFront != null && rightDriveFront != null) {
             double power = Range.clip(speed, -1.0, 1.0);
+
             this.leftDriveBack.setPower(power);
             this.rightDriveBack.setPower(-power);
             this.leftDriveFront.setPower(power);
@@ -723,12 +741,22 @@ public class SimpleBot {
 
 
     public void moveCrane(double drive, Telemetry telemetry){
+        boolean extend = drive >= 0;
         if (craneDrive != null ) {
+            cranePosition = this.craneDrive.getCurrentPosition();
+            if (extend && cranePosition > MAX_CRANE_POS){
+                this.craneDrive.setPower(0);
+                return;
+            }
+//            if (!extend && cranePosition <= 0){
+//                this.craneDrive.setPower(0);
+//                return;
+//            }
             double power = Range.clip(drive, -1.0, 1.0);
 
             this.craneDrive.setPower(power);
 
-            telemetry.addData("Platform", "Speed from %.2f", drive);
+            telemetry.addData("Crane", "Pos %d, Drive: %.2f", this.craneDrive.getCurrentPosition(), drive);
         }
     }
 
@@ -755,37 +783,19 @@ public class SimpleBot {
 //        }
 //    }
 
-    public void pickupTemp(float drive, Telemetry telemetry){
-        if (intakeTemp != null && drive > 0) {
-            this.intakeTemp.setPosition(0);
 
-            telemetry.addData("Intake Temp", "Speed from %.2f", drive);
-        }
-        else{
-            telemetry.addData("Intake Temp", "Not initialized");
-        }
-    }
-
-    public void releaseTemp(double drive, Telemetry telemetry){
-        if (intakeTemp != null && drive > 0 ) {
-            this.intakeTemp.setPosition(1);
-
-            telemetry.addData("Temp Intake", "Speed from %.2f", drive);
-        }
-        else{
-            telemetry.addData("Temp Intake", "Not initialized");
-        }
-    }
-
-    public void dropCapstone(boolean drop, Telemetry telemetry){
+    public void positionCapstone(Telemetry telemetry){
         if (capstone != null) {
-            if (drop) {
-                this.capstone.setPosition(0);
-            }
-            else
-            {
-                this.capstone.setPosition(1);
-            }
+            this.capstone.setPosition(0.7);
+        }
+        else{
+            telemetry.addData("Capstone", "Not initialized");
+        }
+    }
+
+    public void resetCapstone(Telemetry telemetry){
+        if (capstone != null) {
+            this.capstone.setPosition(1);
         }
         else{
             telemetry.addData("Capstone", "Not initialized");
@@ -795,11 +805,11 @@ public class SimpleBot {
     public void toggleStoneLock(boolean lock, Telemetry telemetry){
         if (lockStone != null) {
             if (lock) {
-                this.lockStone.setPosition(0);
+                this.lockStone.setPosition(1);
             }
             else
             {
-                this.lockStone.setPosition(0.95);
+                this.lockStone.setPosition(0);
             }
         }
         else{
@@ -810,11 +820,11 @@ public class SimpleBot {
     public void swivelStone(boolean out, Telemetry telemetry){
         if (rotateStone != null) {
             if (out) {
-                this.rotateStone.setPosition(0);
+                this.rotateStone.setPosition(0.7);
             }
             else
             {
-                this.rotateStone.setPosition(1);
+                this.rotateStone.setPosition(0);
             }
         }
         else{
@@ -822,12 +832,22 @@ public class SimpleBot {
         }
     }
 
+    public void swivelStone90(Telemetry telemetry){
+        if (rotateStone != null) {
+                this.rotateStone.setPosition(0.35);
+        }
+        else{
+            telemetry.addData("rotateStone90", "Not initialized");
+        }
+    }
+
 
 
     public void moveIntake(double drive, Telemetry telemetry){
-
         if (intakeLeft != null && intakeRight != null) {
-            double power = Range.clip(drive, -1.0, 1.0);
+            intakeLeft.setDirection(DcMotor.Direction.REVERSE);
+            intakeRight.setDirection(DcMotor.Direction.FORWARD);
+            double power = Range.clip(drive, 0, 1.0);
             intakeLeft.setPower(power);
             intakeRight.setPower(power);
         }
@@ -835,7 +855,9 @@ public class SimpleBot {
 
     public void moveIntakeReverse(double drive, Telemetry telemetry){
         if (intakeLeft != null && intakeRight != null) {
-            double power = Range.clip(drive, -1.0, 1.0);
+            intakeLeft.setDirection(DcMotor.Direction.FORWARD);
+            intakeRight.setDirection(DcMotor.Direction.REVERSE);
+            double power = Range.clip(drive, 0, 1.0);
             intakeLeft.setPower(power);
             intakeRight.setPower(power);
         }
@@ -874,21 +896,21 @@ public class SimpleBot {
     }
 
 
-    public double getRangetoObstacleFrontLeft(){
-        if (rangeFrontLeft == null) {
-            return 0;
-        }
-        double range = rangeFrontLeft.getDistance(DistanceUnit.INCH);
-        return normalizeRange(range);
-    }
-
-    public double getRangetoObstacleFrontRight(){
-        if (rangeFrontRight == null) {
-            return 0;
-        }
-        double range = rangeFrontRight.getDistance(DistanceUnit.INCH);
-        return normalizeRange(range);
-    }
+//    public double getRangetoObstacleFrontLeft(){
+//        if (rangeFrontLeft == null) {
+//            return 0;
+//        }
+//        double range = rangeFrontLeft.getDistance(DistanceUnit.INCH);
+//        return normalizeRange(range);
+//    }
+//
+//    public double getRangetoObstacleFrontRight(){
+//        if (rangeFrontRight == null) {
+//            return 0;
+//        }
+//        double range = rangeFrontRight.getDistance(DistanceUnit.INCH);
+//        return normalizeRange(range);
+//    }
 
 
 
@@ -900,14 +922,16 @@ public class SimpleBot {
         this.gyro = gyro;
     }
 
-    public void encoderMoveDetect(double speed,
+    public double encoderMoveDetect(double speed,
                               double leftInches, double rightInches,
                               double timeoutS, Telemetry telemetry, DetectionInterface callback) {
 
+        double diff = 0;
         try {
             if (callback == null){
-                return;
+                return diff;
             }
+            int start = this.leftDriveBack.getCurrentPosition();
             // Determine new target position, and pass to motor controller
             int newLeftTarget = this.leftDriveBack.getCurrentPosition() + (int) (leftInches * COUNTS_PER_INCH_REV);
             int newRightTarget = this.rightDriveBack.getCurrentPosition() + (int) (rightInches * COUNTS_PER_INCH_REV);
@@ -941,12 +965,15 @@ public class SimpleBot {
                 boolean timeUp = timeoutS > 0 && runtime.seconds() >= timeoutS;
                 stop = timeUp || detected || ((leftMove && !this.leftDriveBack.isBusy()) || (rightMove && !this.rightDriveBack.isBusy())
                         || (leftMove && !this.leftDriveFront.isBusy()) || (rightMove && !this.rightDriveFront.isBusy()));
-
+                telemetry.addData("Info", "Calling detect");
                 detected = callback.detect();
+                telemetry.update();
 
             }
 
             this.stop();
+            int finish = this.leftDriveBack.getCurrentPosition();
+            diff = (Math.abs(finish) - Math.abs(start))/COUNTS_PER_INCH_REV;
 
 
             // Turn off RUN_TO_POSITION
@@ -959,9 +986,74 @@ public class SimpleBot {
             telemetry.addData("Issues running with encoders to position", ex);
             telemetry.update();
         }
+
+        return diff;
     }
 
 
-    //callbacks
+    public void hookTray(boolean lock, Telemetry telemetry){
+        if (hookRight != null && hookLeft != null) {
+            if (lock) {
+                this.hookRight.setPosition(0);
+                this.hookLeft.setPosition(1);
+            }
+            else
+            {
+                this.hookRight.setPosition(1);
+                this.hookLeft.setPosition(0);
+            }
+        }
+        else{
+            telemetry.addData("hookTray", "Not initialized");
+        }
+    }
+
+    public void encoderCrane(double speed,
+                             double inches,
+                             double timeoutS, Telemetry telemetry) {
+
+        try {
+            // Determine new target position, and pass to motor controller
+            int start = this.craneDrive.getCurrentPosition();
+            int newTarget = start + (int) (inches * COUNTS_PER_MOTOR_CRANE);
+
+
+            this.craneDrive.setTargetPosition(newTarget);
+
+
+            // Turn On RUN_TO_POSITION
+            craneDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+
+            // reset the timeout time and start motion.
+            runtime.reset();
+            this.craneDrive.setPower(Math.abs(speed));
+
+
+            boolean stop = false;
+            boolean move = inches != 0;
+            while (!stop) {
+                boolean timeUp = timeoutS > 0 && runtime.seconds() >= timeoutS;
+                stop = timeUp || move && !this.craneDrive.isBusy();
+
+                telemetry.addData("Motors", "Starting encoder drive. Left: %.2f", inches);
+                telemetry.addData("Motors", "LeftBack from %7d to %7d", leftDriveBack.getCurrentPosition(), newTarget);
+                telemetry.update();
+            }
+
+            telemetry.addData("Motors", "Going to stop");
+            telemetry.update();
+            this.craneDrive.setPower(0);
+            telemetry.addData("Motors", "Stopped");
+            telemetry.update();
+
+            // Turn off RUN_TO_POSITION
+            craneDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        }
+        catch (Exception ex){
+            telemetry.addData("Issues running with encoders to position", ex);
+            telemetry.update();
+        }
+    }
 
 }
