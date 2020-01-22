@@ -13,9 +13,12 @@ public class StoneRed extends AutoBase {
     @Override
     protected void initRobot(){
         super.initRobot();
-        double head =  robot.getGyro().getHeading();
-        telemetry.addData("Head", head);
-        telemetry.update();
+    }
+
+    @Override
+    protected void preStart() {
+        super.preStart();
+        initRec();
     }
 
 
@@ -23,76 +26,208 @@ public class StoneRed extends AutoBase {
     protected void act() {
         super.act();
         try {
-            moveBackUntil(0.4, 6, 24, true);
-            initRec();
-            boolean found = detectStone(2);
-            robot.getGyro().turn(10, 0.4);
-            if (found){
-                skyStoneIndex = 6;
+            int start = 10;
+            int runIncrement = 0;
+            boolean found = detectStone(1);
+            stopStoneDetection();
+            if (!found){
+                skyStoneIndex = 4;
+                runIncrement = 9;
+                robot.getGyro().pivotReverse(25, -0.7);
+                move(1, -24);
+                double moved = intakeStone(0.5,-25);
+                move(0.5, moved);
+
             }
-            else {
+
+            if (found) {
+                move(1, -start);
+                initRec();
                 found = detectStone(2);
-                if (found){
+                if (found) {
+                    skyStoneIndex = 6;
+                } else {
                     skyStoneIndex = 5;
-                    robot.getGyro().turn(20, 0.4);
                 }
-                else{
-                    skyStoneIndex = 4;
-                    robot.getGyro().turn(30, 0.4);
+
+
+                switch (skyStoneIndex){
+                    case 6:
+                        robot.getGyro().turn(10, 0.5);
+                        break;
+                    case 5:
+                        robot.getGyro().turn(20, 0.5);
+                        runIncrement = 2;
+                        break;
+                }
+
+                double moved = intakeStone(0.5,-45);
+                move(1, moved - 22);
+            }
+
+            if (!stoneInside) {
+                stoneInside = robot.isStoneInside(telemetry);
+                if (stoneInside) {
+                    robot.toggleStoneLock(true, telemetry);
+                    robot.moveIntake(0, telemetry);
                 }
             }
 
-//            robot.moveIntake(1, telemetry);
-            moveUntil(0.4, 10, 60, true);
-            move(0.2, -15);
-
-            robot.getGyro().pivot(90, 0.8);
+            robot.getGyro().turn(90, 0.8);
             robot.getGyro().fixHeading(0.3);
-//            robot.moveIntake(0, telemetry);
 
-//            int num = 6;
-//            if (found) {
-//                if (num == 5) {
-//                    moveBackUntil(0.4, 24, 60, true);
-//                    robot.getGyro().correct();
-//                    robot.getGyro().turn(35, 0.4);
-//                }
-//                else { // 6
-//                    moveBackUntil(0.4, 25, 60, true);
-//                    robot.getGyro().correct();
-//                }
-//            }else{
-//                moveBackUntil(0.4, 20, 60, true);
-//                robot.getGyro().correct();
-//                robot.getGyro().turn(35, 0.4);
-//            }
-//            robot.moveIntake(1, telemetry);
-//            move(0.2, -25);
-//            robot.moveIntake(0, telemetry);
+            //todo: check distance to left wall
             double toWall = robot.getRangetoObstacleLeft();
-            double back = robot.getRangetoObstacleBack();
-            double head =  robot.getGyro().getHeading();
             telemetry.addData("Wall", toWall);
-            telemetry.addData("Back", back);
-            telemetry.addData("Found", found);
-            telemetry.addData("Top", stoneTop);
-            telemetry.addData("Left", stoneLeft);
-            telemetry.addData("Head", head);
-            telemetry.addData("Sky Stone", skyStoneIndex);
             telemetry.update();
 
-            //Num 4 = 37
-            //num 5 = 114 - 118
 
-            //angle
-            // 6 = 132 x 188
-            // 5 = 124 x 198, 122x202, 122 x 205
-            // 4 = 129 x 192, 130x 189, 130 x 189
+            robot.getGyro().fixHeading(0.3);
 
-//            moveUntil(0.5, 8, -30, true);
-//            robot.getGyro().turn(45, 0.6);
 
-           sleep(20000);
+            if (toWall > -1) {
+                int longCat = 10;
+                if(toWall < 24){
+                    double catet = 26-toWall;
+                    double travel = Math.sqrt(longCat*longCat + catet * catet);
+                    double t = longCat/catet;
+                    double rads = Math.atan(t);
+                    double degrees = 90 - Math.toDegrees(rads);
+                    robot.getGyro().turn(90 + (int)degrees, 0.5);
+                    move(0.5, travel);
+                    robot.getGyro().turn(90, 0.5);
+                }
+                if (toWall > 28){
+                    double catet = toWall - 26;
+                    double travel = Math.sqrt(longCat*longCat + catet * catet);
+                    double t = longCat/catet;
+                    double rads = Math.atan(t);
+                    double degrees = Math.toDegrees(rads);
+                    robot.getGyro().turn((int)degrees, 0.5);
+                    move(0.5, travel);
+                    robot.getGyro().turn(90, 0.4);
+
+                }
+            }
+
+            toWall = robot.getRangetoObstacleLeft();
+            telemetry.addData("Wall", toWall);
+            telemetry.update();
+
+            sleep(3000);
+
+            robot.getGyro().fixHeading(0.3);
+            move(1, 60 + runIncrement);
+
+            if (!stoneInside) {
+                stoneInside = robot.isStoneInside(telemetry);
+                if (stoneInside) {
+                    robot.toggleStoneLock(true, telemetry);
+                    robot.moveIntake(0, telemetry);
+                }
+            }
+
+            double back = robot.getRangetoObstacleBack();
+            if (back > 12){
+                robot.getGyro().fixHeading(0.3);
+                move(0.7, back - 12);
+            }
+            toWall = robot.getRangetoObstacleLeft();
+            back = robot.getRangetoObstacleBack();
+            robot.getGyro().turnAndExtend(170, 0.8, stoneInside);
+            //last check for stone inside
+            if (!stoneInside) {
+                stoneInside = robot.isStoneInside(telemetry);
+                if (stoneInside) {
+                    robot.toggleStoneLock(true, telemetry);
+                    robot.moveIntake(0, telemetry);
+                    robot.preMoveCrane(1, 10);
+                }
+            }
+
+            back = robot.getRangetoObstacleBack();
+
+            if (back > 1) {
+                move(0.7, back - 1);
+            }
+
+            if (stoneInside){
+
+                while (!robot.craneExtended(telemetry)) {
+
+                }
+                robot.postMoveCrane(telemetry);
+                robot.swivelStone(true, telemetry);
+            }
+
+
+
+            robot.hookTray(true,  telemetry);
+            sleep(500);
+            if (stoneInside) {
+                robot.toggleStoneLock(false, telemetry);
+                robot.swivelStone(false, telemetry);
+                robot.preMoveCrane(1, -10);
+            }
+            else{
+                robot.moveIntakeReverse(1, telemetry);
+            }
+
+            robot.getGyro().pivotBackReverse(150, 0.7);
+
+            move(0.8, -16);
+
+            robot.hookTray(false,  telemetry);
+            strafeLeft(1, 7);
+            if (!stoneInside) {
+                robot.moveIntakeReverse(0, telemetry);
+            }
+
+            back = robot.getRangetoObstacleBack();
+
+            if (back > 1) {
+                move(0.7, back - 1);
+            }
+            robot.hookTraySide(true, true, telemetry);
+            sleep(500);
+
+            robot.getGyro().turnBackReverse(90, 0.5);
+            robot.hookTraySide(false, true, telemetry);
+            robot.postMoveCrane(telemetry);
+            robot.getGyro().fixHeading(0.3);
+
+            move(1, 10);
+            move(0.9, -5);
+            robot.getGyro().fixHeading(0.3);
+            sleep(200);
+            toWall = robot.getRangetoObstacleLeft();
+            double travel = 0;
+            if (toWall > -1) {
+
+                int longCat = 10;
+                if(toWall < 24){
+                    double catet = 26-toWall;
+                    travel = Math.sqrt(longCat*longCat + catet * catet);
+                    double t = longCat/catet;
+                    double rads = Math.atan(t);
+                    double degrees =  Math.toDegrees(rads);
+                    robot.getGyro().turn((int)degrees, 0.5);
+                    move(0.5, -travel);
+                    robot.getGyro().turn(90, 0.4);
+                }
+            }
+
+            robot.getGyro().fixHeading(0.3);
+
+            move(1, -40 + travel);
+
+            telemetry.addData("Wall", toWall);
+            telemetry.addData("Sky Stone", skyStoneIndex);
+            telemetry.addData("Back", back);
+
+            telemetry.update();
+
+            sleep(20000);
 
         }
         catch (Exception ex){

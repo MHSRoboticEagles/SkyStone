@@ -105,6 +105,11 @@ public class Gyro {
         telemetry.addData("Angle to correct", degrees);
         rotate((int)degrees, 0.3);
     }
+    public void correct(double speed){
+        double degrees = checkDirection();
+        telemetry.addData("Angle to correct", degrees);
+        rotate((int)degrees, speed);
+    }
 
     private double checkDirection()
     {
@@ -154,7 +159,165 @@ public class Gyro {
 
     public void turn(int degrees, double power){
         //set to 0 heading first
-        correct();
+//        correct();
+        desiredHeading = degrees;
+        int current = (int)this.getHeading();
+        double  leftPower = 0, rightPower = 0;
+
+        boolean left = false;
+        boolean right = false;
+        double cutOff = 0;
+        if (desiredHeading > current){
+            //turn left
+            left = true;
+            cutOff = desiredHeading - (desiredHeading - current)/5;
+        }
+        else if (desiredHeading < current){
+            right = true;
+            cutOff = desiredHeading + (current - desiredHeading)/5;
+        }
+        else{
+            return;
+        }
+
+        // restart imu movement tracking.
+        resetAngle();
+
+        // getAngle() returns + when rotating counter clockwise (left) and - when rotating
+        // clockwise (right).
+
+        double minLeftSpeed = 0.3;
+        double minRighSpeed = 0.3;
+
+        if (right)
+        {   // turn right.
+            leftPower = -power;
+            rightPower = power;
+            minLeftSpeed = -minLeftSpeed;
+        }
+        else if (left)
+        {   // turn left.
+            leftPower = power;
+            rightPower = -power;
+            minRighSpeed = -minRighSpeed;
+        }
+        else return;
+
+        // set power to rotate.
+        robot.leftDriveBack.setPower(leftPower);
+        robot.leftDriveFront.setPower(leftPower);
+        robot.rightDriveBack.setPower(rightPower);
+        robot.rightDriveFront.setPower(rightPower);
+
+        while (true){
+            current = (int)this.getHeading();
+            telemetry.addData("current", current);
+            telemetry.addData("desired", desiredHeading);
+            telemetry.update();
+            if (current >= cutOff - MAX_TOLERANCE && current <= cutOff + MAX_TOLERANCE){
+                //drop the speed
+                robot.leftDriveBack.setPower(minLeftSpeed);
+                robot.leftDriveFront.setPower(minLeftSpeed);
+                robot.rightDriveBack.setPower(minRighSpeed);
+                robot.rightDriveFront.setPower(minRighSpeed);
+            }
+            if ((right && current <= desiredHeading)
+                    || (left && (current >= desiredHeading || (desiredHeading == 180 && current < 0)))){
+                break;
+            }
+        }
+
+        robot.leftDriveBack.setPower(0);
+        robot.leftDriveFront.setPower(0);
+        robot.rightDriveBack.setPower(0);
+        robot.rightDriveFront.setPower(0);
+    }
+
+    public void turnAndExtend(int degrees, double power, boolean extend){
+        //set to 0 heading first
+//        correct();
+        desiredHeading = degrees;
+        int current = (int)this.getHeading();
+        double  leftPower = 0, rightPower = 0;
+
+        boolean left = false;
+        boolean right = false;
+        double cutOff = 0;
+        if (desiredHeading > current){
+            //turn left
+            left = true;
+            cutOff = desiredHeading - (desiredHeading - current)/5;
+        }
+        else if (desiredHeading < current){
+            right = true;
+            cutOff = desiredHeading + (current - desiredHeading)/5;
+        }
+        else{
+            return;
+        }
+
+        // restart imu movement tracking.
+        resetAngle();
+
+        // getAngle() returns + when rotating counter clockwise (left) and - when rotating
+        // clockwise (right).
+
+        double minLeftSpeed = 0.3;
+        double minRighSpeed = 0.3;
+
+        if (right)
+        {   // turn right.
+            leftPower = -power;
+            rightPower = power;
+            minLeftSpeed = -minLeftSpeed;
+        }
+        else if (left)
+        {   // turn left.
+            leftPower = power;
+            rightPower = -power;
+            minRighSpeed = -minRighSpeed;
+        }
+        else return;
+
+        // set power to rotate.
+        robot.leftDriveBack.setPower(leftPower);
+        robot.leftDriveFront.setPower(leftPower);
+        robot.rightDriveBack.setPower(rightPower);
+        robot.rightDriveFront.setPower(rightPower);
+
+        if (extend) {
+            robot.preMoveCrane(1, 10);
+        }
+
+        boolean turnDone = false;
+
+        while (!turnDone){
+            if (!turnDone) {
+                current = (int) this.getHeading();
+                telemetry.addData("current", current);
+                telemetry.addData("desired", desiredHeading);
+                telemetry.update();
+                if (current >= cutOff - MAX_TOLERANCE && current <= cutOff + MAX_TOLERANCE) {
+                    //drop the speed
+                    robot.leftDriveBack.setPower(minLeftSpeed);
+                    robot.leftDriveFront.setPower(minLeftSpeed);
+                    robot.rightDriveBack.setPower(minRighSpeed);
+                    robot.rightDriveFront.setPower(minRighSpeed);
+                }
+                if ((right && current <= desiredHeading)
+                        || (left && (current >= desiredHeading || (desiredHeading == 180 && current < 0)))) {
+                    turnDone = true;
+                    robot.stop();
+                }
+            }
+        }
+
+        robot.stop();
+    }
+
+    public void turnBackReverse(int degrees, double power){
+        //set to 0 heading first
+//        correct();
         desiredHeading = degrees;
         double  leftPower = 0, rightPower = 0;
 
@@ -166,13 +329,13 @@ public class Gyro {
 
         if (degrees < 0)
         {   // turn right.
-            leftPower = -power;
-            rightPower = power;
+            leftPower = power;
+            rightPower = -power;
         }
         else if (degrees > 0)
         {   // turn left.
-            leftPower = power;
-            rightPower = -power;
+            leftPower = -power;
+            rightPower = power;
         }
         else return;
 
@@ -182,13 +345,14 @@ public class Gyro {
         robot.rightDriveBack.setPower(rightPower);
         robot.rightDriveFront.setPower(rightPower);
 
+
         while (true){
             int current = (int)this.getHeading();
             telemetry.addData("current", current);
             telemetry.addData("desired", desiredHeading);
             telemetry.update();
-            if ((degrees < 0 && current <= desiredHeading)
-                    || (degrees > 0 && current >= desiredHeading)){
+            if ((degrees < 0 && current >= desiredHeading)
+                    || (degrees > 0 && current <= desiredHeading)){
                 break;
             }
         }
@@ -199,8 +363,9 @@ public class Gyro {
         robot.rightDriveFront.setPower(0);
     }
 
+
     public void pivot(int degrees, double power){
-        correct();
+//        correct();
         desiredHeading = degrees;
         double  leftPower = 0, rightPower = 0;
 
@@ -221,6 +386,104 @@ public class Gyro {
             leftPower = power;
             robot.leftDriveBack.setPower(leftPower);
             robot.leftDriveFront.setPower(leftPower);
+        }
+        else return;
+
+        // set power to rotate.
+
+
+
+        while (true){
+            int current = (int)this.getHeading();
+            telemetry.addData("current", current);
+            telemetry.addData("desired", desiredHeading);
+            telemetry.update();
+            if ((degrees < 0 && current <= (int)desiredHeading)
+                    || (degrees > 0 && current >= (int)desiredHeading)){
+                break;
+            }
+        }
+
+
+        robot.leftDriveBack.setPower(0);
+        robot.leftDriveFront.setPower(0);
+        robot.rightDriveBack.setPower(0);
+        robot.rightDriveFront.setPower(0);
+    }
+
+    public void pivotReverse(int degrees, double power){
+//        correct();
+        desiredHeading = degrees;
+        double  leftPower = 0, rightPower = 0;
+
+        // restart imu movement tracking.
+        resetAngle();
+
+        // getAngle() returns + when rotating counter clockwise (left) and - when rotating
+        // clockwise (right).
+
+        if (degrees > 0)
+        {   // turn right.
+            rightPower = power;
+            robot.rightDriveBack.setPower(rightPower);
+            robot.rightDriveFront.setPower(rightPower);
+        }
+        else if (degrees < 0)
+        {   // turn left.
+            leftPower = power;
+            robot.leftDriveBack.setPower(leftPower);
+            robot.leftDriveFront.setPower(leftPower);
+        }
+        else return;
+
+        // set power to rotate.
+
+
+
+        while (true){
+            int current = (int)this.getHeading();
+            telemetry.addData("current", current);
+            telemetry.addData("desired", desiredHeading);
+            telemetry.update();
+            if ((degrees < 0 && current <= (int)desiredHeading)
+                    || (degrees > 0 && current >= (int)desiredHeading)){
+                break;
+            }
+        }
+
+
+        robot.leftDriveBack.setPower(0);
+        robot.leftDriveFront.setPower(0);
+        robot.rightDriveBack.setPower(0);
+        robot.rightDriveFront.setPower(0);
+    }
+
+    public void pivot(int degrees, double power, double subPower){
+//        correct();
+        desiredHeading = degrees;
+        double  leftPower = 0, rightPower = 0;
+
+        // restart imu movement tracking.
+        resetAngle();
+
+        // getAngle() returns + when rotating counter clockwise (left) and - when rotating
+        // clockwise (right).
+
+        if (degrees < 0)
+        {   // turn right.
+            rightPower = power;
+            robot.rightDriveBack.setPower(rightPower);
+            robot.rightDriveFront.setPower(rightPower);
+            robot.leftDriveBack.setPower(subPower);
+            robot.leftDriveFront.setPower(subPower);
+        }
+        else if (degrees > 0)
+        {   // turn left.
+            leftPower = power;
+            robot.leftDriveBack.setPower(leftPower);
+            robot.leftDriveFront.setPower(leftPower);
+            robot.rightDriveBack.setPower(subPower);
+            robot.rightDriveFront.setPower(subPower);
         }
         else return;
 
@@ -247,7 +510,7 @@ public class Gyro {
     }
 
     public void pivotBack(int degrees, double power){
-        correct();
+//        correct();
         desiredHeading = degrees;
         double  leftPower = 0, rightPower = 0;
 
@@ -280,8 +543,8 @@ public class Gyro {
             telemetry.addData("current", current);
             telemetry.addData("desired", desiredHeading);
             telemetry.update();
-            if ((degrees < 0 && current <= (int)desiredHeading)
-                    || (degrees > 0 && current >= (int)desiredHeading)){
+            if (Math.abs(current) >= Math.abs((int)desiredHeading))
+            {
                 break;
             }
         }
@@ -292,6 +555,100 @@ public class Gyro {
         robot.rightDriveBack.setPower(0);
         robot.rightDriveFront.setPower(0);
     }
+
+    public void pivotBackReverse(int degrees, double power){
+//        correct();
+        desiredHeading = degrees;
+        double  leftPower = 0, rightPower = 0;
+
+        // restart imu movement tracking.
+        resetAngle();
+
+        // getAngle() returns + when rotating counter clockwise (left) and - when rotating
+        // clockwise (right).
+
+        if (degrees < 0)
+        {   // turn right.
+            rightPower = -power;
+            robot.rightDriveBack.setPower(rightPower);
+            robot.rightDriveFront.setPower(rightPower);
+        }
+        else if (degrees > 0)
+        {   // turn left.
+            leftPower = -power;
+            robot.leftDriveBack.setPower(leftPower);
+            robot.leftDriveFront.setPower(leftPower);
+        }
+        else return;
+
+        // set power to rotate.
+
+
+
+        while (true){
+            int current = (int)this.getHeading();
+            telemetry.addData("current", current);
+            telemetry.addData("desired", desiredHeading);
+            telemetry.update();
+            if (Math.abs(current) <= Math.abs(desiredHeading))
+            {
+                break;
+            }
+        }
+
+
+        robot.leftDriveBack.setPower(0);
+        robot.leftDriveFront.setPower(0);
+        robot.rightDriveBack.setPower(0);
+        robot.rightDriveFront.setPower(0);
+    }
+
+    public void pivotBackReverseAndWithdraw(int degrees, double power){
+//        correct();
+        desiredHeading = degrees;
+        double  leftPower = 0, rightPower = 0;
+
+        // restart imu movement tracking.
+        resetAngle();
+
+        // getAngle() returns + when rotating counter clockwise (left) and - when rotating
+        // clockwise (right).
+
+        if (degrees < 0)
+        {   // turn right.
+            rightPower = -power;
+            robot.rightDriveBack.setPower(rightPower);
+            robot.rightDriveFront.setPower(rightPower);
+        }
+        else if (degrees > 0)
+        {   // turn left.
+            leftPower = -power;
+            robot.leftDriveBack.setPower(leftPower);
+            robot.leftDriveFront.setPower(leftPower);
+        }
+        else return;
+
+        // set power to rotate.
+        robot.preMoveCrane(1, -10);
+
+        boolean done = false;
+
+        while (!done){
+            if (!done) {
+                int current = (int) this.getHeading();
+                telemetry.addData("current", current);
+                telemetry.addData("desired", desiredHeading);
+                telemetry.update();
+                if (Math.abs(current) <= Math.abs(desiredHeading)) {
+                    done = true;
+                    robot.stop();
+                }
+            }
+        }
+
+        robot.stop();
+    }
+
 
     public void rotate(int degrees, double power)
     {
@@ -323,7 +680,8 @@ public class Gyro {
 
         while (true){
             int current = (int)getAngle();
-            if ( current == globalAngle){
+            double correction = Math.abs(current) - Math.abs(globalAngle);
+            if (correction >= MIN_TOLERANCE && correction <= MAX_TOLERANCE){
                 break;
             }
         }
@@ -349,6 +707,22 @@ public class Gyro {
 
         // reset angle tracking on new heading.
         resetAngle();
+    }
+
+    public boolean isOffCourse(){
+        int current = (int) getHeading();
+
+
+        int absdesired = Math.abs(desiredHeading);
+        int absCurrent = Math.abs(current);
+
+        int correction = absCurrent - absdesired;
+        if (correction >= MIN_TOLERANCE && correction <= MAX_TOLERANCE){
+            return false;
+        }
+        else{
+            return true;
+        }
     }
 
     public void fixHeading(double power)

@@ -8,6 +8,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 import org.firstinspires.ftc.teamcode.bots.SimpleBot;
+import org.firstinspires.ftc.teamcode.skills.ColorCheck;
 import org.firstinspires.ftc.teamcode.skills.DetectionInterface;
 import org.firstinspires.ftc.teamcode.skills.StoneFinder;
 
@@ -23,9 +24,11 @@ public abstract class AutoBase extends LinearOpMode {
     protected SimpleBot robot = new SimpleBot();   // Use our standard robot configuration
     protected ElapsedTime runtime = new ElapsedTime();
     protected boolean stoneDetected = false;
+    protected boolean stoneInside = false;
     protected float stoneLeft = -1;
     protected float stoneWidth = -1;
     protected float stoneTop = -1;
+//    protected  ColorCheck colorChecker = null;
 
     protected int skyStoneIndex = 0; // 1-based
 
@@ -82,14 +85,7 @@ public abstract class AutoBase extends LinearOpMode {
                     telemetry.addData("Error", "This device is not compatible with TFOD");
                 }
 
-                /**
-                 * Activate TensorFlow Object Detection before we wait for the start command.
-                 * Do it here so that the Camera Stream window will have the TensorFlow annotations visible.
-                 **/
-                if (tfod != null) {
-                    tfod.activate();
-                }
-                telemetry.addData("Info", "TF Activated");
+                activateTfod();
             }
             catch (Exception ex){
                 telemetry.addData("Error", "Unable to initialize Tensor Flow");
@@ -98,13 +94,27 @@ public abstract class AutoBase extends LinearOpMode {
         telemetry.update();
     }
 
+    protected void activateTfod(){
+        /**
+         * Activate TensorFlow Object Detection before we wait for the start command.
+         * Do it here so that the Camera Stream window will have the TensorFlow annotations visible.
+         **/
+        if (tfod != null) {
+            tfod.activate();
+        }
+        telemetry.addData("Info", "TF Activated");
+    }
+
     protected void preStart(){
 
     }
 
     protected void initRobot(){
         try{
-        robot.init(hardwareMap, telemetry);
+            robot.init(hardwareMap, telemetry);
+//            colorChecker  = new ColorCheck(telemetry, this);
+//            colorChecker.init(hardwareMap);
+            robot.initSensors();
         }
         catch (Exception ex){
             telemetry.addData("Init", ex.getMessage());
@@ -137,6 +147,7 @@ public abstract class AutoBase extends LinearOpMode {
 
     }
 
+
     protected boolean detectStone(int timeout){
         StoneFinder sf = new StoneFinder(tfod);
         boolean found = sf.detectStone(timeout, telemetry, this);
@@ -154,6 +165,35 @@ public abstract class AutoBase extends LinearOpMode {
         }
     }
 
+    protected double intakeStone(double speed, long until){
+        robot.moveIntake(1, telemetry);
+
+        double moved = robot.encoderMoveDetect(speed, until, until, 0, telemetry, new DetectionInterface() {
+            @Override
+            public boolean detect() {
+                telemetry.addData("Detect", "inside detect");
+                if (!stoneInside) {
+                    telemetry.addData("Detect", "About to call color");
+                    stoneInside = robot.isStoneInside(telemetry);
+                    if (stoneInside){
+                        robot.toggleStoneLock(true, telemetry);
+                        robot.moveIntake(0, telemetry);
+                    }
+                }
+                telemetry.addData("Detect return", stoneInside);
+                return stoneInside;
+            }
+        });
+        if (!stoneInside) {
+            stoneInside = robot.isStoneInside(telemetry);
+            if (stoneInside) {
+                robot.toggleStoneLock(true, telemetry);
+                robot.moveIntake(0, telemetry);
+            }
+        }
+        return moved;
+    }
+
 
     protected void move(double speed, double moveTo){
         telemetry.addData("Auto", "Distance = %.2f", moveTo);
@@ -163,77 +203,46 @@ public abstract class AutoBase extends LinearOpMode {
         robot.stop();
     }
 
-    protected void moveDetect(double speed, double moveTo){
-        final StoneFinder sf = new StoneFinder(tfod);
-        robot.encoderMoveDetect(speed, moveTo, moveTo, 0, telemetry, new DetectionInterface() {
-            @Override
-            public boolean detect() {
-                if (!stoneDetected) {
-                    stoneDetected = sf.detect(telemetry);
-                }
-                return stoneDetected;
-            }
-        });
+//    protected void moveDetect(double speed, double moveTo){
+//        final StoneFinder sf = new StoneFinder(tfod);
+//        robot.encoderMoveDetect(speed, moveTo, moveTo, 0, telemetry, new DetectionInterface() {
+//            @Override
+//            public boolean detect() {
+//                if (!stoneDetected) {
+//                    stoneDetected = sf.detect(telemetry);
+//                }
+//                return stoneDetected;
+//            }
+//        });
+//
+//        robot.stop();
+//    }
 
-        robot.stop();
-    }
 
 
-    protected void moveUntil(double speed, int moveUntil, int max, boolean stop){
-        boolean closer = moveUntil > 0;
-        moveUntil = Math.abs(moveUntil);
+    protected void moveLeftUntil(double speed, int moveUntil, boolean stop){
+        double start = robot.getRangetoObstacleLeft();
+        if (start < 0 || (moveUntil <= start + 2  && moveUntil >= start -2)){
+            return;
+        }
+        boolean closer = moveUntil < start;
         if (closer){
-            speed = -speed;
+            robot.strafeLeft(speed, telemetry);
         }
-        robot.move(speed, 0, telemetry);
-        int pos = robot.rightDriveFront.getCurrentPosition();
-        int target = pos + robot.getDriveIncrement(max);
-
-        while (true){
-            double rangeLeft = robot.getRangetoObstacleFrontLeft();
-            double rangeRight = robot.getRangetoObstacleFrontRight();
-            telemetry.addData("rangeFrontLeft", rangeLeft);
-            telemetry.addData("rangeFrontRight", rangeRight);
-            double range = rangeLeft > 0 && rangeRight > rangeLeft ? rangeLeft : rangeRight;
-            telemetry.update();
-            int current = robot.rightDriveFront.getCurrentPosition();
-            if (closer) {
-                if (range > 0 && (range < moveUntil || Math.abs(current) > Math.abs(target))) {
-                    break;
-                }
-            }
-            else{
-                if (range > 0 && (range > moveUntil || Math.abs(current) > Math.abs(target))) {
-                    break;
-                }
-            }
+        else{
+            robot.strafeRight(speed, telemetry);
         }
-        if (stop) {
-            robot.stop();
-        }
-    }
-
-    protected void moveLeftUntil(double speed, int moveUntil, int max, boolean stop){
-        boolean closer = moveUntil > 0;
-        moveUntil = Math.abs(moveUntil);
-        if (closer){
-            speed = -speed;
-        }
-        robot.move(speed, 0, telemetry);
-        int pos = robot.rightDriveFront.getCurrentPosition();
-        int target = pos + robot.getDriveIncrement(max);
 
         while (true){
             double range = robot.getRangetoObstacleLeft();
             telemetry.addData("rangeLeft", range);
-            int current = robot.rightDriveFront.getCurrentPosition();
             if (closer) {
-                if (range > 0 && (range < moveUntil || Math.abs(current) > Math.abs(target))) {
+                if (range > -1 && (range <= moveUntil )) {
                     break;
                 }
             }
             else{
-                if (range > 0 && (range > moveUntil || Math.abs(current) > Math.abs(target))) {
+                if (range > -1 && (range >= moveUntil )) {
                     break;
                 }
             }
@@ -243,27 +252,30 @@ public abstract class AutoBase extends LinearOpMode {
         }
     }
 
-    protected void moveRightUntil(double speed, int moveUntil, int max, boolean stop){
-        boolean closer = moveUntil > 0;
-        moveUntil = Math.abs(moveUntil);
-        if (closer){
-            speed = -speed;
+    protected void moveRightUntil(double speed, int moveUntil, boolean stop){
+        double start = robot.getRangetoObstacleRight();
+        if (start < 0 || (moveUntil <= start + 2  && moveUntil >= start -2)){
+            return;
         }
-        robot.move(speed, 0, telemetry);
-        int pos = robot.rightDriveFront.getCurrentPosition();
-        int target = pos + robot.getDriveIncrement(max);
+        boolean closer = moveUntil < start;
+        if (closer){
+            robot.strafeRight(speed, telemetry);
+        }
+        else{
+            robot.strafeLeft(speed, telemetry);
+        }
+
 
         while (true){
             double range = robot.getRangetoObstacleRight();
             telemetry.addData("rangeRight", range);
-            int current = robot.rightDriveFront.getCurrentPosition();
             if (closer) {
-                if (range > 0 && (range < moveUntil || Math.abs(current) > Math.abs(target))) {
+                if (range > -1 && (range <= moveUntil )) {
                     break;
                 }
             }
             else{
-                if (range > 0 && (range > moveUntil || Math.abs(current) > Math.abs(target))) {
+                if (range > -1 && (range >= moveUntil )) {
                     break;
                 }
             }
@@ -274,9 +286,13 @@ public abstract class AutoBase extends LinearOpMode {
     }
 
     protected void moveBackUntil(double speed, int moveUntil, int max, boolean stop){
-        boolean away = moveUntil > 0;
-        moveUntil = Math.abs(moveUntil);
-        if (away){
+        double start = robot.getRangetoObstacleBack();
+        if (start < 0 || (moveUntil <= start + 2  && moveUntil >= start -2)){
+            return;
+        }
+        boolean closer = moveUntil < start;
+
+        if (!closer){
             speed = -speed;
         }
         robot.move(speed, 0, telemetry);
@@ -287,13 +303,64 @@ public abstract class AutoBase extends LinearOpMode {
             double range = robot.getRangetoObstacleBack();
             telemetry.addData("rangeBack", range);
             int current = robot.rightDriveFront.getCurrentPosition();
-            if (away) {
-                if (range > 0 && (range > moveUntil || Math.abs(current) > Math.abs(target))) {
+            if (closer) {
+                if (range > -1 && (range <= moveUntil || Math.abs(current) > Math.abs(target))) {
                     break;
                 }
             }
             else{
-                if (range > 0 && (range < moveUntil || Math.abs(current) > Math.abs(target))) {
+                if (range > -1 && (range >= moveUntil || Math.abs(current) > Math.abs(target))) {
+                    break;
+                }
+            }
+        }
+        if (stop) {
+            robot.stop();
+        }
+    }
+
+    protected void moveBackUntilStern(double speed, int moveUntil, int max, boolean stop){
+        double start = robot.getRangetoObstacleBack();
+        telemetry.addData("start back", start);
+        telemetry.addData("moveUntil", moveUntil);
+        telemetry.update();
+        if (start < 0 || (moveUntil <= start + 2  && moveUntil >= start -2)){
+            return;
+        }
+        boolean closer = moveUntil < start;
+
+        if (!closer){
+            speed = -speed;
+        }
+        robot.move(speed, 0, telemetry);
+//        int pos = robot.rightDriveFront.getCurrentPosition();
+//        int target = pos + robot.getDriveIncrement(max);
+
+        while (true){
+            double range = robot.getRangetoObstacleBack();
+            telemetry.addData("rangeBack", range);
+
+//            int current = robot.rightDriveFront.getCurrentPosition();
+//            telemetry.addData("current", current);
+//            telemetry.addData("target", target);
+            telemetry.update();
+//            if (closer) {
+//                if (range > 0 && (range <= moveUntil || Math.abs(current) > Math.abs(target))) {
+//                    break;
+//                }
+//            }
+//            else{
+//                if (range > 0 && (range >= moveUntil || Math.abs(current) > Math.abs(target))) {
+//                    break;
+//                }
+//            }
+            if (closer) {
+                if (range > -1 && range <= moveUntil ) {
+                    break;
+                }
+            }
+            else{
+                if (range > -1 && range >= moveUntil) {
                     break;
                 }
             }
@@ -374,4 +441,12 @@ public abstract class AutoBase extends LinearOpMode {
         robot.stop();
     }
 
+    protected void releaseStone(){
+        this.robot.encoderCrane(1, 8, 5, telemetry);
+        this.robot.swivelStone(true, telemetry);
+        this.robot.encoderCrane(1, 3, 5, telemetry);
+        sleep(2000);
+        this.robot.swivelStone(false, telemetry);
+        this.robot.encoderCrane(1, -11, 5, telemetry);
+    }
 }
