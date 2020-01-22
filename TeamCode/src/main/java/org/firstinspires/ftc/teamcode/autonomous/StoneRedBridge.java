@@ -1,10 +1,11 @@
 package org.firstinspires.ftc.teamcode.autonomous;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 
 @Autonomous(name="Stone Red Bridge", group ="Robot15173")
-
+@Disabled
 public class StoneRedBridge extends AutoBase {
     @Override
     public void runOpMode() throws InterruptedException {
@@ -67,7 +68,7 @@ public class StoneRedBridge extends AutoBase {
             robot.getGyro().pivot(90, 0.8);
 
             if (!stoneInside) {
-                stoneInside = colorChecker.detect();
+                stoneInside = robot.isStoneInside(telemetry);
                 if (stoneInside) {
                     robot.toggleStoneLock(true, telemetry);
                     robot.moveIntake(0, telemetry);

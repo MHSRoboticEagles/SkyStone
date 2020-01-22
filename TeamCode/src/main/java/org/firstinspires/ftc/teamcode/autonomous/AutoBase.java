@@ -28,7 +28,7 @@ public abstract class AutoBase extends LinearOpMode {
     protected float stoneLeft = -1;
     protected float stoneWidth = -1;
     protected float stoneTop = -1;
-    protected  ColorCheck colorChecker = null;
+//    protected  ColorCheck colorChecker = null;
 
     protected int skyStoneIndex = 0; // 1-based
 
@@ -112,8 +112,8 @@ public abstract class AutoBase extends LinearOpMode {
     protected void initRobot(){
         try{
             robot.init(hardwareMap, telemetry);
-            colorChecker  = new ColorCheck(telemetry, this);
-            colorChecker.init(hardwareMap);
+//            colorChecker  = new ColorCheck(telemetry, this);
+//            colorChecker.init(hardwareMap);
             robot.initSensors();
         }
         catch (Exception ex){
@@ -174,7 +174,7 @@ public abstract class AutoBase extends LinearOpMode {
                 telemetry.addData("Detect", "inside detect");
                 if (!stoneInside) {
                     telemetry.addData("Detect", "About to call color");
-                    stoneInside = colorChecker.detect();
+                    stoneInside = robot.isStoneInside(telemetry);
                     if (stoneInside){
                         robot.toggleStoneLock(true, telemetry);
                         robot.moveIntake(0, telemetry);
@@ -185,7 +185,7 @@ public abstract class AutoBase extends LinearOpMode {
             }
         });
         if (!stoneInside) {
-            stoneInside = colorChecker.detect();
+            stoneInside = robot.isStoneInside(telemetry);
             if (stoneInside) {
                 robot.toggleStoneLock(true, telemetry);
                 robot.moveIntake(0, telemetry);
@@ -222,7 +222,7 @@ public abstract class AutoBase extends LinearOpMode {
 
     protected void moveLeftUntil(double speed, int moveUntil, boolean stop){
         double start = robot.getRangetoObstacleLeft();
-        if (moveUntil <= start + 2  && moveUntil >= start -2){
+        if (start < 0 || (moveUntil <= start + 2  && moveUntil >= start -2)){
             return;
         }
         boolean closer = moveUntil < start;
@@ -233,17 +233,16 @@ public abstract class AutoBase extends LinearOpMode {
             robot.strafeRight(speed, telemetry);
         }
 
-
         while (true){
             double range = robot.getRangetoObstacleLeft();
             telemetry.addData("rangeLeft", range);
             if (closer) {
-                if (range > 0 && (range <= moveUntil )) {
+                if (range > -1 && (range <= moveUntil )) {
                     break;
                 }
             }
             else{
-                if (range > 0 && (range >= moveUntil )) {
+                if (range > -1 && (range >= moveUntil )) {
                     break;
                 }
             }
@@ -255,7 +254,7 @@ public abstract class AutoBase extends LinearOpMode {
 
     protected void moveRightUntil(double speed, int moveUntil, boolean stop){
         double start = robot.getRangetoObstacleRight();
-        if (moveUntil <= start + 2  && moveUntil >= start -2){
+        if (start < 0 || (moveUntil <= start + 2  && moveUntil >= start -2)){
             return;
         }
         boolean closer = moveUntil < start;
@@ -271,12 +270,12 @@ public abstract class AutoBase extends LinearOpMode {
             double range = robot.getRangetoObstacleRight();
             telemetry.addData("rangeRight", range);
             if (closer) {
-                if (range > 0 && (range <= moveUntil )) {
+                if (range > -1 && (range <= moveUntil )) {
                     break;
                 }
             }
             else{
-                if (range > 0 && (range >= moveUntil )) {
+                if (range > -1 && (range >= moveUntil )) {
                     break;
                 }
             }
@@ -288,7 +287,7 @@ public abstract class AutoBase extends LinearOpMode {
 
     protected void moveBackUntil(double speed, int moveUntil, int max, boolean stop){
         double start = robot.getRangetoObstacleBack();
-        if (moveUntil <= start + 2  && moveUntil >= start -2){
+        if (start < 0 || (moveUntil <= start + 2  && moveUntil >= start -2)){
             return;
         }
         boolean closer = moveUntil < start;
@@ -305,12 +304,12 @@ public abstract class AutoBase extends LinearOpMode {
             telemetry.addData("rangeBack", range);
             int current = robot.rightDriveFront.getCurrentPosition();
             if (closer) {
-                if (range > 0 && (range <= moveUntil || Math.abs(current) > Math.abs(target))) {
+                if (range > -1 && (range <= moveUntil || Math.abs(current) > Math.abs(target))) {
                     break;
                 }
             }
             else{
-                if (range > 0 && (range >= moveUntil || Math.abs(current) > Math.abs(target))) {
+                if (range > -1 && (range >= moveUntil || Math.abs(current) > Math.abs(target))) {
                     break;
                 }
             }
@@ -325,7 +324,7 @@ public abstract class AutoBase extends LinearOpMode {
         telemetry.addData("start back", start);
         telemetry.addData("moveUntil", moveUntil);
         telemetry.update();
-        if (moveUntil <= start + 2  && moveUntil >= start -2){
+        if (start < 0 || (moveUntil <= start + 2  && moveUntil >= start -2)){
             return;
         }
         boolean closer = moveUntil < start;
@@ -356,12 +355,12 @@ public abstract class AutoBase extends LinearOpMode {
 //                }
 //            }
             if (closer) {
-                if (range > 0 && range <= moveUntil ) {
+                if (range > -1 && range <= moveUntil ) {
                     break;
                 }
             }
             else{
-                if (range > 0 && range >= moveUntil) {
+                if (range > -1 && range >= moveUntil) {
                     break;
                 }
             }
@@ -450,5 +449,4 @@ public abstract class AutoBase extends LinearOpMode {
         this.robot.swivelStone(false, telemetry);
         this.robot.encoderCrane(1, -11, 5, telemetry);
     }
-
 }

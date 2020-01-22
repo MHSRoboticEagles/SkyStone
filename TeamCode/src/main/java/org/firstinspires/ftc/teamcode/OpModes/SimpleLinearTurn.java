@@ -33,6 +33,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.bots.SimpleBot;
 
 
@@ -63,7 +64,7 @@ public class SimpleLinearTurn extends LinearOpMode {
         try {
             try {
                 robot.init(this.hardwareMap, telemetry);
-//                robot.getGyro().recordAcceleration();
+                robot.initStoneSensor();
             }
             catch (Exception ex){
                 telemetry.addData("Init", ex.getMessage());
@@ -128,10 +129,10 @@ public class SimpleLinearTurn extends LinearOpMode {
                 boolean hook = gamepad1.x;
                 boolean unhook = gamepad1.y;
                 if (hook){
-                    robot.hookTray(hook, telemetry);
+                    robot.hookTray(hook,  telemetry);
                 }
                 else if (unhook){
-                    robot.hookTray(false, telemetry);
+                    robot.hookTray(false,  telemetry);
                 }
 
 
@@ -185,7 +186,10 @@ public class SimpleLinearTurn extends LinearOpMode {
                     robot.resetCapstone(telemetry);
                 }
 
-
+                boolean stoneInside = robot.isStoneInside(telemetry);
+                if (stoneInside){
+                    robot.toggleStoneLock(true, telemetry);
+                }
 
                 telemetry.update();
             }
