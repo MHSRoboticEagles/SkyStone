@@ -36,7 +36,6 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.bots.OutreachBot;
 import org.firstinspires.ftc.teamcode.bots.SimpleBot;
 
-
 /**
  * This file contains an minimal example of a Linear "OpMode". An OpMode is a 'program' that runs in either
  * the autonomous or the teleop period of an FTC match. The names of OpModes appear on the menu
@@ -62,9 +61,10 @@ public class OutreachMode extends LinearOpMode{
     public void runOpMode() {
         try {
             try {
-                robot.init(this.hardwareMap);
+                robot.init(this.hardwareMap, telemetry);
             }
             catch (Exception ex){
+                telemetry.addData("Init", ex.getMessage());
             }
 
 
@@ -92,7 +92,6 @@ public class OutreachMode extends LinearOpMode{
                     robot.pivotRight(1);
                 }
 
-
                 telemetry.update();
             }
         }
@@ -100,10 +99,6 @@ public class OutreachMode extends LinearOpMode{
         catch (Exception ex){
             telemetry.addData("Issues with the OpMode", ex.getMessage());
             telemetry.update();
-        }
-        finally {
-            if (robot != null){
-            }
         }
     }
 }

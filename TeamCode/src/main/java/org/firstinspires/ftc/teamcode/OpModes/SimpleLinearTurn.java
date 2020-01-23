@@ -33,7 +33,6 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.bots.SimpleBot;
 
 
@@ -64,7 +63,7 @@ public class SimpleLinearTurn extends LinearOpMode {
         try {
             try {
                 robot.init(this.hardwareMap, telemetry);
-                robot.initStoneSensor();
+//                robot.getGyro().recordAcceleration();
             }
             catch (Exception ex){
                 telemetry.addData("Init", ex.getMessage());
@@ -120,19 +119,10 @@ public class SimpleLinearTurn extends LinearOpMode {
                 boolean leftPivot = gamepad1.dpad_left;
                 boolean rightPivot = gamepad1.dpad_right;
                 if (leftPivot){
-                    robot.pivotLeft(0.3, telemetry);
+                    robot.pivotLeft(1, telemetry);
                 }
                 else if(rightPivot){
-                    robot.pivotRight(0.3, telemetry);
-                }
-
-                boolean hook = gamepad1.x;
-                boolean unhook = gamepad1.y;
-                if (hook){
-                    robot.hookTray(hook,  telemetry);
-                }
-                else if (unhook){
-                    robot.hookTray(false,  telemetry);
+                    robot.pivotRight(1, telemetry);
                 }
 
 
@@ -142,18 +132,15 @@ public class SimpleLinearTurn extends LinearOpMode {
 
                 //crane
                 double crane = gamepad2.right_stick_y;
-                robot.moveCrane(-crane, telemetry);
+                robot.moveCrane(crane, telemetry);
 
                 //intake
                 float pickup = gamepad2.right_trigger;
-                if (pickup > 0) {
-                    robot.moveIntake(pickup, telemetry);
-                }
-                else {
-                    //spit out
-                    float spitOut = gamepad2.left_trigger;
-                    robot.moveIntakeReverse(spitOut, telemetry);
-                }
+                robot.moveIntake(pickup, telemetry);
+
+                //spit out
+                float spitOut = gamepad2.left_trigger;
+                robot.moveIntakeReverse(-spitOut, telemetry);
 
                 if (gamepad2.right_bumper){
                     robot.toggleStoneLock(true, telemetry);
@@ -170,26 +157,29 @@ public class SimpleLinearTurn extends LinearOpMode {
                     robot.swivelStone(false, telemetry);
                 }
 
-                if (gamepad2.a){
-                    robot.swivelStone90(telemetry);
+                if (gamepad1.x) {
+                    robot.dropPlate(true, telemetry);
                 }
-                else if (gamepad2.y) {
-                    robot.swivelStone(false, telemetry);
+
+                if (gamepad1.y) {
+                    robot.dropPlate(false, telemetry);
                 }
 
 
-                if (gamepad1.a){
-                    robot.positionCapstone(telemetry);
+                if (gamepad1.x){
+                    robot.dropCapstone(true, telemetry);
                 }
 
-                if (gamepad1.b){
-                    robot.resetCapstone(telemetry);
+                if (gamepad1.y){
+                    robot.dropCapstone(false, telemetry);
                 }
 
-                boolean stoneInside = robot.isStoneInside(telemetry);
-                if (stoneInside){
-                    robot.toggleStoneLock(true, telemetry);
-                }
+                telemetry.addData("Front Left", robot.getRangetoObstacleFrontLeft());
+                telemetry.addData("Front Right", robot.getRangetoObstacleFrontRight());
+                telemetry.addData("Left", robot.getRangetoObstacleLeft());
+                telemetry.addData("Right", robot.getRangetoObstacleRight());
+                telemetry.addData("Back", robot.getRangetoObstacleBack());
+
 
                 telemetry.update();
             }

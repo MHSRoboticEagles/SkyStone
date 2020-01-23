@@ -13,16 +13,14 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.skills.DetectionInterface;
 import org.firstinspires.ftc.teamcode.skills.Gyro;
 
-/**
- * Created by priya on 12/4/19.
- */
-
 public class OutreachBot {
     public DcMotor leftDrive = null;
     public DcMotor rightDrive = null;
 
+    private ElapsedTime runtime = new ElapsedTime();
+
     /* local OpMode members. */
-    HardwareMap hwMap           =  null;
+    HardwareMap hwMap =  null;
 
     /* Constructor */
     public OutreachBot(){
@@ -30,7 +28,7 @@ public class OutreachBot {
     }
 
     /* Initialize standard Hardware interfaces */
-    public void init(HardwareMap ahwMap) throws Exception {
+    public void init(HardwareMap ahwMap, Telemetry telemetry) throws Exception {
         // Save reference to Hardware map
         hwMap = ahwMap;
 
@@ -39,6 +37,7 @@ public class OutreachBot {
             // Define and Initialize Motors
             leftDrive = hwMap.get(DcMotor.class, "left_drive");
             rightDrive = hwMap.get(DcMotor.class, "right_drive");
+            telemetry.addData("Init", "Drive");
         } catch (Exception ex) {
             //issues accessing drive resources
             throw new Exception("Issues accessing drive resources. Check the controller config", ex);
@@ -54,8 +53,8 @@ public class OutreachBot {
 
         if (leftDrive != null && rightDrive != null) {
 
-            leftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODERS);
-            rightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODERS);
+//            leftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODERS);
+//            rightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODERS);
             // Set all motors to zero power
             leftDrive.setPower(0);
             rightDrive.setPower(0);
@@ -64,7 +63,7 @@ public class OutreachBot {
         this.stop();
     }
 
-    public void intiMode (DcMotor.RunMode mode) {
+    public void initMode (DcMotor.RunMode mode) {
         if (leftDrive != null && rightDrive != null) {
             leftDrive.setMode(mode);
             rightDrive.setMode(mode);
