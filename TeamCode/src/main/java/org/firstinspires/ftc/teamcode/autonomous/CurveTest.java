@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 
 @Autonomous(name="CurveTest", group ="Robot15173")
-//@Disabled
+@Disabled
 public class CurveTest extends AutoBase {
     @Override
     public void runOpMode() throws InterruptedException {
@@ -20,8 +20,8 @@ public class CurveTest extends AutoBase {
     protected void act() {
         super.act();
         try {
-            robot.getGyro().turn(90, 0.5);
-            robot.getGyro().fixHeading(0.3);
+            robot.getGyro().turn(90, 0.5, this);
+            robot.getGyro().fixHeading(0.3, this);
             double toWall = robot.getRangetoObstacleLeft();
 
             String dir = "to bridge";
@@ -36,9 +36,9 @@ public class CurveTest extends AutoBase {
                     double t = longCat/catet;
                     double rads = Math.atan(t);
                     degrees = 90 - Math.toDegrees(rads);
-                    robot.getGyro().turn(90 + (int)degrees, 0.5);
+                    robot.getGyro().turn(90 + (int)degrees, 0.5, this);
                     move(0.5, travel);
-                    robot.getGyro().turn(90, 0.5);
+                    robot.getGyro().turn(90, 0.5, this);
                 }
                 if (toWall > 28){
                     dir = "toWall";
@@ -47,14 +47,14 @@ public class CurveTest extends AutoBase {
                     double t = longCat/catet;
                     double rads = Math.atan(t);
                     degrees = Math.toDegrees(rads);
-                    robot.getGyro().turn((int)degrees, 0.5);
+                    robot.getGyro().turn((int)degrees, 0.5, this);
                     move(0.5, travel);
-                    robot.getGyro().turn(90, 0.4);
+                    robot.getGyro().turn(90, 0.4, this);
 
                 }
             }
 
-            robot.getGyro().fixHeading(0.3);
+            robot.getGyro().fixHeading(0.3, this);
             telemetry.addData(dir, degrees);
 
             telemetry.addData("Wall", toWall);

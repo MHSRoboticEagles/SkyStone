@@ -2,28 +2,23 @@ package org.firstinspires.ftc.teamcode.skills;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.robotcore.external.navigation.Acceleration;
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
-import org.firstinspires.ftc.robotcore.external.navigation.Quaternion;
 import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
 import org.firstinspires.ftc.teamcode.bots.SimpleBot;
 
 public class Gyro {
     BNO055IMU imu;
-    Orientation lastAngles = new Orientation();
     double                  globalAngle = 0, power = .30, correction;
     SimpleBot robot = null;
     Telemetry telemetry;
     Position lastPos = null;
     Velocity lastVelocity = null;
-    int desiredHeading = 0;
+    private int desiredHeading = 0;
     int MIN_TOLERANCE = -2;
     int MAX_TOLERANCE = 2;
 
@@ -35,6 +30,7 @@ public class Gyro {
         parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
         parameters.loggingEnabled      = false;
         parameters.loggingTag          = "IMU";
+        parameters.calibrationDataFile = "BNO055IMUCalibration.json";
         parameters.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
 
 
@@ -157,7 +153,7 @@ public class Gyro {
         return deltaAngle; //globalAngle;
     }
 
-    public void turn(int degrees, double power){
+    public void turn(int degrees, double power, LinearOpMode caller){
         //set to 0 heading first
 //        correct();
         desiredHeading = degrees;
@@ -167,14 +163,14 @@ public class Gyro {
         boolean left = false;
         boolean right = false;
         double cutOff = 0;
-        if (desiredHeading > current){
+        if (getDesiredHeading() > current){
             //turn left
             left = true;
-            cutOff = desiredHeading - (desiredHeading - current)/5;
+            cutOff = getDesiredHeading() - (getDesiredHeading() - current)/5;
         }
-        else if (desiredHeading < current){
+        else if (getDesiredHeading() < current){
             right = true;
-            cutOff = desiredHeading + (current - desiredHeading)/5;
+            cutOff = getDesiredHeading() + (current - getDesiredHeading())/5;
         }
         else{
             return;
@@ -212,7 +208,7 @@ public class Gyro {
         while (true){
             current = (int)this.getHeading();
             telemetry.addData("current", current);
-            telemetry.addData("desired", desiredHeading);
+            telemetry.addData("desired", getDesiredHeading());
             telemetry.update();
             if (current >= cutOff - MAX_TOLERANCE && current <= cutOff + MAX_TOLERANCE){
                 //drop the speed
@@ -221,8 +217,8 @@ public class Gyro {
                 robot.rightDriveBack.setPower(minRighSpeed);
                 robot.rightDriveFront.setPower(minRighSpeed);
             }
-            if ((right && current <= desiredHeading)
-                    || (left && (current >= desiredHeading || (desiredHeading == 180 && current < 0)))){
+            if (!caller.opModeIsActive() || (right && current <= getDesiredHeading())
+                    || (left && (current >= getDesiredHeading() || (getDesiredHeading() == 180 && current < 0)))){
                 break;
             }
         }
@@ -233,7 +229,7 @@ public class Gyro {
         robot.rightDriveFront.setPower(0);
     }
 
-    public void turnAndExtend(int degrees, double power, boolean extend){
+    public void turnAndExtend(int degrees, double power, boolean extend, LinearOpMode caller){
         //set to 0 heading first
 //        correct();
         desiredHeading = degrees;
@@ -243,14 +239,14 @@ public class Gyro {
         boolean left = false;
         boolean right = false;
         double cutOff = 0;
-        if (desiredHeading > current){
+        if (getDesiredHeading() > current){
             //turn left
             left = true;
-            cutOff = desiredHeading - (desiredHeading - current)/5;
+            cutOff = getDesiredHeading() - (getDesiredHeading() - current)/5;
         }
-        else if (desiredHeading < current){
+        else if (getDesiredHeading() < current){
             right = true;
-            cutOff = desiredHeading + (current - desiredHeading)/5;
+            cutOff = getDesiredHeading() + (current - getDesiredHeading())/5;
         }
         else{
             return;
@@ -295,7 +291,7 @@ public class Gyro {
             if (!turnDone) {
                 current = (int) this.getHeading();
                 telemetry.addData("current", current);
-                telemetry.addData("desired", desiredHeading);
+                telemetry.addData("desired", getDesiredHeading());
                 telemetry.update();
                 if (current >= cutOff - MAX_TOLERANCE && current <= cutOff + MAX_TOLERANCE) {
                     //drop the speed
@@ -304,8 +300,8 @@ public class Gyro {
                     robot.rightDriveBack.setPower(minRighSpeed);
                     robot.rightDriveFront.setPower(minRighSpeed);
                 }
-                if ((right && current <= desiredHeading)
-                        || (left && (current >= desiredHeading || (desiredHeading == 180 && current < 0)))) {
+                if (!caller.opModeIsActive() || (right && current <= getDesiredHeading())
+                        || (left && (current >= getDesiredHeading() || (getDesiredHeading() == 180 && current < 0)))) {
                     turnDone = true;
                     robot.stop();
                 }
@@ -315,7 +311,7 @@ public class Gyro {
         robot.stop();
     }
 
-    public void turnBackReverse(int degrees, double power){
+    public void turnBackReverse(int degrees, double power, LinearOpMode caller){
         //set to 0 heading first
 //        correct();
         desiredHeading = degrees;
@@ -349,10 +345,10 @@ public class Gyro {
         while (true){
             int current = (int)this.getHeading();
             telemetry.addData("current", current);
-            telemetry.addData("desired", desiredHeading);
+            telemetry.addData("desired", getDesiredHeading());
             telemetry.update();
-            if ((degrees < 0 && current >= desiredHeading)
-                    || (degrees > 0 && current <= desiredHeading)){
+            if (!caller.opModeIsActive() || (degrees < 0 && current >= getDesiredHeading())
+                    || (degrees > 0 && current <= getDesiredHeading())){
                 break;
             }
         }
@@ -396,10 +392,10 @@ public class Gyro {
         while (true){
             int current = (int)this.getHeading();
             telemetry.addData("current", current);
-            telemetry.addData("desired", desiredHeading);
+            telemetry.addData("desired", getDesiredHeading());
             telemetry.update();
-            if ((degrees < 0 && current <= (int)desiredHeading)
-                    || (degrees > 0 && current >= (int)desiredHeading)){
+            if ((degrees < 0 && current <= (int) getDesiredHeading())
+                    || (degrees > 0 && current >= (int) getDesiredHeading())){
                 break;
             }
         }
@@ -411,7 +407,7 @@ public class Gyro {
         robot.rightDriveFront.setPower(0);
     }
 
-    public void pivotReverse(int degrees, double power){
+    public void pivotReverse(int degrees, double power, LinearOpMode caller){
 //        correct();
         desiredHeading = degrees;
         double  leftPower = 0, rightPower = 0;
@@ -443,10 +439,10 @@ public class Gyro {
         while (true){
             int current = (int)this.getHeading();
             telemetry.addData("current", current);
-            telemetry.addData("desired", desiredHeading);
+            telemetry.addData("desired", getDesiredHeading());
             telemetry.update();
-            if ((degrees < 0 && current <= (int)desiredHeading)
-                    || (degrees > 0 && current >= (int)desiredHeading)){
+            if (!caller.opModeIsActive() || (degrees < 0 && current <= (int) getDesiredHeading())
+                    || (degrees > 0 && current >= (int) getDesiredHeading())){
                 break;
             }
         }
@@ -494,10 +490,10 @@ public class Gyro {
         while (true){
             int current = (int)this.getHeading();
             telemetry.addData("current", current);
-            telemetry.addData("desired", desiredHeading);
+            telemetry.addData("desired", getDesiredHeading());
             telemetry.update();
-            if ((degrees < 0 && current <= (int)desiredHeading)
-                    || (degrees > 0 && current >= (int)desiredHeading)){
+            if ((degrees < 0 && current <= (int) getDesiredHeading())
+                    || (degrees > 0 && current >= (int) getDesiredHeading())){
                 break;
             }
         }
@@ -541,9 +537,9 @@ public class Gyro {
         while (true){
             int current = (int)this.getHeading();
             telemetry.addData("current", current);
-            telemetry.addData("desired", desiredHeading);
+            telemetry.addData("desired", getDesiredHeading());
             telemetry.update();
-            if (Math.abs(current) >= Math.abs((int)desiredHeading))
+            if (Math.abs(current) >= Math.abs((int) getDesiredHeading()))
             {
                 break;
             }
@@ -556,7 +552,7 @@ public class Gyro {
         robot.rightDriveFront.setPower(0);
     }
 
-    public void pivotBackReverse(int degrees, double power){
+    public void pivotBackReverse(int degrees, double power, LinearOpMode caller){
 //        correct();
         desiredHeading = degrees;
         double  leftPower = 0, rightPower = 0;
@@ -588,9 +584,9 @@ public class Gyro {
         while (true){
             int current = (int)this.getHeading();
             telemetry.addData("current", current);
-            telemetry.addData("desired", desiredHeading);
+            telemetry.addData("desired", getDesiredHeading());
             telemetry.update();
-            if (Math.abs(current) <= Math.abs(desiredHeading))
+            if (!caller.opModeIsActive() || (Math.abs(current) <= Math.abs(getDesiredHeading())))
             {
                 break;
             }
@@ -637,9 +633,9 @@ public class Gyro {
             if (!done) {
                 int current = (int) this.getHeading();
                 telemetry.addData("current", current);
-                telemetry.addData("desired", desiredHeading);
+                telemetry.addData("desired", getDesiredHeading());
                 telemetry.update();
-                if (Math.abs(current) <= Math.abs(desiredHeading)) {
+                if (Math.abs(current) <= Math.abs(getDesiredHeading())) {
                     done = true;
                     robot.stop();
                 }
@@ -713,7 +709,7 @@ public class Gyro {
         int current = (int) getHeading();
 
 
-        int absdesired = Math.abs(desiredHeading);
+        int absdesired = Math.abs(getDesiredHeading());
         int absCurrent = Math.abs(current);
 
         int correction = absCurrent - absdesired;
@@ -725,12 +721,12 @@ public class Gyro {
         }
     }
 
-    public void fixHeading(double power)
+    public void fixHeading(double power, LinearOpMode caller)
     {
         int current = (int) getHeading();
         double  leftPower = 0, rightPower = 0;
 
-        int absdesired = Math.abs(desiredHeading);
+        int absdesired = Math.abs(getDesiredHeading());
         int absCurrent = Math.abs(current);
 
         int correction = absCurrent - absdesired;
@@ -738,7 +734,7 @@ public class Gyro {
             return;
         }
 
-        if (current < desiredHeading){
+        if (current < getDesiredHeading()){
             //turn left
             leftPower = power;
             rightPower = -power;
@@ -764,7 +760,7 @@ public class Gyro {
             telemetry.addData("correction", correction);
             telemetry.update();
 
-            if (correction >= MIN_TOLERANCE && correction <= MAX_TOLERANCE){
+            if (!caller.opModeIsActive() || (correction >= MIN_TOLERANCE && correction <= MAX_TOLERANCE)){
                 break;
             }
         }
@@ -791,4 +787,7 @@ public class Gyro {
 //        globalAngle = 0;
     }
 
+    public int getDesiredHeading() {
+        return desiredHeading;
+    }
 }

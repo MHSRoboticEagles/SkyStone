@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.bots;
 
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -251,10 +252,11 @@ public class SimpleBot {
         catch (Exception ex){
             throw new Exception("Issues accessing hook right servo. Check the controller config", ex);
         }
+    }
 
+    public void startGyro(HardwareMap ahwMap, Telemetry telemetry){
         setGyro(new Gyro());
         getGyro().init(this, hwMap, telemetry);
-
     }
 
     public void initSensors() throws Exception {
@@ -440,7 +442,7 @@ public class SimpleBot {
 
     public void encoderDrive(double speed,
                              double leftInches, double rightInches,
-                             double timeoutS, Telemetry telemetry) {
+                             double timeoutS, Telemetry telemetry, LinearOpMode caller) {
 
         try {
             // Determine new target position, and pass to motor controller
@@ -478,7 +480,7 @@ public class SimpleBot {
             boolean rightMove = rightInches != 0;
             while (!stop) {
                 boolean timeUp = timeoutS > 0 && runtime.seconds() >= timeoutS;
-                stop = timeUp || ((leftMove && !this.leftDriveBack.isBusy()) || (rightMove && !this.rightDriveBack.isBusy())
+                stop = !caller.opModeIsActive() || timeUp || ((leftMove && !this.leftDriveBack.isBusy()) || (rightMove && !this.rightDriveBack.isBusy())
                 || (leftMove && !this.leftDriveFront.isBusy()) || (rightMove && !this.rightDriveFront.isBusy()));
 
                 telemetry.addData("Motors", "Starting encoder drive. Left: %.2f, Right:%.2f", leftInches, rightInches);
@@ -509,7 +511,7 @@ public class SimpleBot {
 
     public void encoderDriveGyro(double speed,
                              double leftInches, double rightInches,
-                             double timeoutS, Telemetry telemetry) {
+                             double timeoutS, Telemetry telemetry, LinearOpMode caller) {
 
         try {
             // Determine new target position, and pass to motor controller
@@ -548,7 +550,7 @@ public class SimpleBot {
             boolean resume = false;
             while (!stop) {
                 boolean timeUp = timeoutS > 0 && runtime.seconds() >= timeoutS;
-                stop = timeUp || ((leftMove && !this.leftDriveBack.isBusy()) || (rightMove && !this.rightDriveBack.isBusy())
+                stop = !caller.opModeIsActive() || timeUp || ((leftMove && !this.leftDriveBack.isBusy()) || (rightMove && !this.rightDriveBack.isBusy())
                         || (leftMove && !this.leftDriveFront.isBusy()) || (rightMove && !this.rightDriveFront.isBusy()));
 
                 if(getGyro().isOffCourse()){
@@ -556,7 +558,7 @@ public class SimpleBot {
                     rightDriveBack.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
                     leftDriveFront.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
                     rightDriveFront.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                    getGyro().fixHeading(0.3);
+                    getGyro().fixHeading(0.3, caller);
                     resume = true;
                 }else if (resume){
                     this.leftDriveBack.setTargetPosition(newLeftTarget);
@@ -1054,8 +1056,8 @@ public class SimpleBot {
     }
 
     public double encoderMoveDetect(double speed,
-                              double leftInches, double rightInches,
-                              double timeoutS, Telemetry telemetry, DetectionInterface callback) {
+                                    double leftInches, double rightInches,
+                                    double timeoutS, Telemetry telemetry, LinearOpMode caller, DetectionInterface callback) {
 
         double diff = 0;
         try {
@@ -1094,7 +1096,7 @@ public class SimpleBot {
             boolean detected = false;
             while (!stop) {
                 boolean timeUp = timeoutS > 0 && runtime.seconds() >= timeoutS;
-                stop = timeUp || detected || ((leftMove && !this.leftDriveBack.isBusy()) || (rightMove && !this.rightDriveBack.isBusy())
+                stop = !caller.opModeIsActive() || timeUp || detected || ((leftMove && !this.leftDriveBack.isBusy()) || (rightMove && !this.rightDriveBack.isBusy())
                         || (leftMove && !this.leftDriveFront.isBusy()) || (rightMove && !this.rightDriveFront.isBusy()));
                 telemetry.addData("Info", "Calling detect");
                 detected = callback.detect();
@@ -1227,4 +1229,46 @@ public class SimpleBot {
         return !this.craneDrive.isBusy() || cranePosition >= (MAX_CRANE_POS -200);
     }
 
+    public void align(double toWall, double limit, double longCat, Telemetry telemetry, LinearOpMode caller){
+        if (toWall > 0) {
+            double low = limit -2 ;
+            double high = limit + 2;
+            int head = this.getGyro().getDesiredHeading();
+            boolean redWall = toWall > 0;
+            //wall too close
+            if(toWall < low){
+                double catet = limit - toWall;
+                double travel = Math.sqrt(longCat*longCat + catet * catet);
+                double t = catet/longCat;
+                double rads = Math.atan(t);
+                double degrees = Math.toDegrees(rads);
+                if (redWall){
+                    degrees = head + degrees;
+                }
+                else{
+                    degrees = head - degrees;
+                }
+                this.getGyro().turn((int)degrees, 0.5, caller);
+                this.encoderDrive(0.5, travel, travel,0, telemetry, caller);
+                this.getGyro().turn(head, 0.4, caller);
+            }
+            //wall too far
+            if (toWall > high){
+                double catet = toWall - limit;
+                double travel = Math.sqrt(longCat*longCat + catet * catet);
+                double t = catet/longCat;
+                double rads = Math.atan(t);
+                double degrees = Math.toDegrees(rads);
+                if (redWall){
+                    degrees = head - degrees;
+                }
+                else{
+                    degrees = head + degrees;
+                }
+                this.getGyro().turn((int)degrees, 0.5, caller);
+                this.encoderDrive(0.5, travel, travel,0, telemetry, caller);
+                this.getGyro().turn(head, 0.4, caller);
+            }
+        }
+    }
 }

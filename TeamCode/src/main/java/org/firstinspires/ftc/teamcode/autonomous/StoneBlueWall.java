@@ -1,12 +1,11 @@
 package org.firstinspires.ftc.teamcode.autonomous;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 
-@Autonomous(name="Stone Red Helper", group ="Robot15173")
+@Autonomous(name="Stone Blue Helper", group ="Robot15173")
 //@Disabled
-public class StoneRedWall extends AutoBase {
+public class StoneBlueWall extends AutoBase {
     @Override
     public void runOpMode() throws InterruptedException {
         runAutoMode();
@@ -29,7 +28,7 @@ public class StoneRedWall extends AutoBase {
         try {
 //            sleep(2000);
             move(0.5, -50);
-            robot.getGyro().pivotReverse(-90, -0.7, this);
+            robot.getGyro().pivotReverse(90, -0.7, this);
             double moved = intakeStone(0.5,-30);
             robot.getGyro().fixHeading(0.3, this);
             move(0.5, moved );
@@ -48,10 +47,10 @@ public class StoneRedWall extends AutoBase {
                 move(0.7, back - 3);
             }
 
-            robot.getGyro().turn(-3, 0.5, this);
+            robot.getGyro().turn(3, 0.5, this);
             robot.getGyro().correct(0.3);
             double toWall = robot.getRangetoObstacleLeft();
-            robot.align(toWall, 4, 16, telemetry, this);
+            robot.align(-toWall, 4, 16, telemetry, this);
             robot.getGyro().fixHeading(0.3, this);
 
             if (!stoneInside) {
@@ -64,7 +63,7 @@ public class StoneRedWall extends AutoBase {
             if(stoneInside) {
                 move(0.5, 80);
                 robot.preMoveCrane(1, 10);
-                robot.getGyro().turn(25, 0.5, this);
+                robot.getGyro().turn(-25, 0.5, this);
                 move(0.7, 3);
 //                double moveback = 5;
 //                back = robot.getRangetoObstacleBack();
@@ -81,7 +80,7 @@ public class StoneRedWall extends AutoBase {
                 robot.toggleStoneLock(false, telemetry);
                 robot.swivelStone(false, telemetry);
 //                move(0.5, -moveback);
-                robot.getGyro().turn(5, 0.5, this);
+                robot.getGyro().turn(-5, 0.5, this);
                 robot.preMoveCrane(1, -10);
                 move(0.5, -25);
 

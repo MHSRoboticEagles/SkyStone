@@ -46,13 +46,13 @@ public class StoneRedBridge extends AutoBase {
 
             switch (skyStoneIndex){
                 case 6:
-                    robot.getGyro().turn(10, 0.4);
+                    robot.getGyro().turn(10, 0.4, this);
                     break;
                 case 5:
-                    robot.getGyro().turn(20, 0.4);
+                    robot.getGyro().turn(20, 0.4, this);
                     break;
                 case 4:
-                    robot.getGyro().turn(30, 0.4);
+                    robot.getGyro().turn(30, 0.4, this);
                     break;
             }
 
@@ -77,7 +77,7 @@ public class StoneRedBridge extends AutoBase {
 
             //check distance to right wall
 
-            robot.getGyro().fixHeading(0.4);
+            robot.getGyro().fixHeading(0.4, this);
 
 
             move(1, 40);
@@ -86,7 +86,7 @@ public class StoneRedBridge extends AutoBase {
                 move(1, back - 18);
             }
             //moveBackUntil(0.7, 18, 50, true);
-            robot.getGyro().turn(180, 0.8);
+            robot.getGyro().turn(180, 0.8, this);
 //            robot.getGyro().fixHeading(0.4);
             //check how far from tray first
             back = robot.getRangetoObstacleBack();
@@ -99,10 +99,10 @@ public class StoneRedBridge extends AutoBase {
             sleep(500);
 
 //            move(0.5, -7);
-            robot.getGyro().pivotBackReverse(85, 0.8);
+            robot.getGyro().pivotBackReverse(85, 0.8, this);
 
             robot.hookTray(false, telemetry);
-            robot.getGyro().fixHeading(0.3);
+            robot.getGyro().fixHeading(0.3, this);
 
             move(1, 22);
 
@@ -113,8 +113,8 @@ public class StoneRedBridge extends AutoBase {
 
             move(1, -(48 - (back + 18)));
 
-            robot.getGyro().turn(90, 0.7);
-            robot.getGyro().fixHeading(0.3);
+            robot.getGyro().turn(90, 0.7, this);
+            robot.getGyro().fixHeading(0.3, this);
 
             move(1, -32);
 
