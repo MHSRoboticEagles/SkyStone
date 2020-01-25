@@ -20,9 +20,9 @@ public class CurveTest extends AutoBase {
     protected void act() {
         super.act();
         try {
-            robot.getGyro().turn(90, 0.5, this);
+            robot.getGyro().turn(-87, 0.5, this);
             robot.getGyro().fixHeading(0.3, this);
-            double toWall = robot.getRangetoObstacleLeft();
+            double toWall = robot.getRangetoObstacleRight();
 
             String dir = "to bridge";
             double degrees = 0;
@@ -30,28 +30,7 @@ public class CurveTest extends AutoBase {
 
             if (toWall > -1) {
                 int longCat = 10;
-                if(toWall < 24){
-                    double catet = 26-toWall;
-                    double travel = Math.sqrt(longCat*longCat + catet * catet);
-                    double t = longCat/catet;
-                    double rads = Math.atan(t);
-                    degrees = 90 - Math.toDegrees(rads);
-                    robot.getGyro().turn(90 + (int)degrees, 0.5, this);
-                    move(0.5, travel);
-                    robot.getGyro().turn(90, 0.5, this);
-                }
-                if (toWall > 28){
-                    dir = "toWall";
-                    double catet = toWall - 26;
-                    double travel = Math.sqrt(longCat*longCat + catet * catet);
-                    double t = longCat/catet;
-                    double rads = Math.atan(t);
-                    degrees = Math.toDegrees(rads);
-                    robot.getGyro().turn((int)degrees, 0.5, this);
-                    move(0.5, travel);
-                    robot.getGyro().turn(90, 0.4, this);
-
-                }
+                robot.align(toWall, 25, longCat, false, telemetry, this);
             }
 
             robot.getGyro().fixHeading(0.3, this);

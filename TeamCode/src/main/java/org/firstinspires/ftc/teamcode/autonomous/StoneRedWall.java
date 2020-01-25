@@ -51,7 +51,7 @@ public class StoneRedWall extends AutoBase {
             robot.getGyro().turn(-3, 0.5, this);
             robot.getGyro().correct(0.3);
             double toWall = robot.getRangetoObstacleLeft();
-            robot.align(toWall, 4, 16, telemetry, this);
+            robot.align(toWall, 4, 16, true, telemetry, this);
             robot.getGyro().fixHeading(0.3, this);
 
             if (!stoneInside) {

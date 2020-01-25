@@ -193,6 +193,20 @@ public abstract class AutoBase extends LinearOpMode {
         return moved;
     }
 
+    protected  void intakeStoneNoSensor(double speed, long until){
+        robot.moveIntake(1, telemetry);
+
+        robot.encoderDrive(speed, until, until, 0, telemetry, this);
+        if (!stoneInside) {
+            stoneInside = robot.isStoneInside(telemetry);
+            if (stoneInside) {
+                robot.toggleStoneLock(true, telemetry);
+                robot.moveIntake(0, telemetry);
+            }
+        }
+    }
+
+
 
     protected void move(double speed, double moveTo){
         telemetry.addData("Auto", "Distance = %.2f", moveTo);

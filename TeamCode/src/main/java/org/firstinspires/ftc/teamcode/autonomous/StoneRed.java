@@ -53,10 +53,10 @@ public class StoneRed extends AutoBase {
 
                 switch (skyStoneIndex){
                     case 6:
-                        robot.getGyro().turn(10, 0.5, this);
+                        robot.getGyro().turn(12, 0.5, this);
                         break;
                     case 5:
-                        robot.getGyro().turn(20, 0.5, this);
+                        robot.getGyro().turn(22, 0.5, this);
                         runIncrement = 2;
                         break;
                 }
@@ -86,7 +86,7 @@ public class StoneRed extends AutoBase {
             if (toWall > -1) {
                 int longCat = 10;
 
-                robot.align(toWall, 26, longCat, telemetry, this);
+                robot.align(toWall, 26, longCat, true, telemetry, this);
 //                if(toWall < 24){
 //                    double catet = 26-toWall;
 //                    double travel = Math.sqrt(longCat*longCat + catet * catet);
@@ -141,6 +141,8 @@ public class StoneRed extends AutoBase {
                 }
             }
 
+            sleep(200);
+
             back = robot.getRangetoObstacleBack();
 
             if (back > 1) {
@@ -183,14 +185,13 @@ public class StoneRed extends AutoBase {
                 robot.moveIntakeReverse(0, telemetry);
             }
 
+            sleep(200);
             back = robot.getRangetoObstacleBack();
 
-            if (back > 1 && back < 12) {
+            if (back > 1) {
                 move(0.7, back - 1);
             }
-            else{
-                move(0.7, 8);
-            }
+
             robot.hookTraySide(true, true, telemetry);
             sleep(500);
 

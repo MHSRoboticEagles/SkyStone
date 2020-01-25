@@ -1229,12 +1229,15 @@ public class SimpleBot {
         return !this.craneDrive.isBusy() || cranePosition >= (MAX_CRANE_POS -200);
     }
 
-    public void align(double toWall, double limit, double longCat, Telemetry telemetry, LinearOpMode caller){
+    public void align(double toWall, double limit, double longCat, boolean redWall, Telemetry telemetry, LinearOpMode caller){
         if (toWall > 0) {
-            double low = limit -2 ;
-            double high = limit + 2;
+            double range = 3;
+//            if (redWall){
+//                range = 3;
+//            }
+            double low = limit - range;
+            double high = limit + range;
             int head = this.getGyro().getDesiredHeading();
-            boolean redWall = toWall > 0;
             //wall too close
             if(toWall < low){
                 double catet = limit - toWall;
