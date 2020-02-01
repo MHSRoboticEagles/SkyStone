@@ -50,7 +50,7 @@ public class StoneBlueWall extends AutoBase {
             robot.getGyro().turn(3, 0.5, this);
             robot.getGyro().correct(0.3);
             double toWall = robot.getRangetoObstacleLeft();
-            robot.align(-toWall, 4, 16, false, telemetry, this);
+            robot.align(toWall, 4, 16, false, telemetry, this);
             robot.getGyro().fixHeading(0.3, this);
 
             if (!stoneInside) {
@@ -71,8 +71,11 @@ public class StoneBlueWall extends AutoBase {
 //                    moveback = moveback + (back - 3);
 //                    move(0.5, back - 3);
 //                }
+                runtime.reset();
                 while (!robot.craneExtended(telemetry)) {
-
+                    if(!opModeIsActive() || runtime.seconds() > 6) {
+                        break;
+                    }
                 }
                 robot.postMoveCrane(telemetry);
                 robot.swivelStone(true, telemetry);

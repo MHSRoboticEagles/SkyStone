@@ -50,6 +50,7 @@ public class StoneRedWall extends AutoBase {
 
             robot.getGyro().turn(-3, 0.5, this);
             robot.getGyro().correct(0.3);
+
             double toWall = robot.getRangetoObstacleLeft();
             robot.align(toWall, 4, 16, true, telemetry, this);
             robot.getGyro().fixHeading(0.3, this);
@@ -66,14 +67,12 @@ public class StoneRedWall extends AutoBase {
                 robot.preMoveCrane(1, 10);
                 robot.getGyro().turn(25, 0.5, this);
                 move(0.7, 3);
-//                double moveback = 5;
-//                back = robot.getRangetoObstacleBack();
-//                if (back < 10 && back > 3){
-//                    moveback = moveback + (back - 3);
-//                    move(0.5, back - 3);
-//                }
-                while (!robot.craneExtended(telemetry)) {
 
+                runtime.reset();
+                while (!robot.craneExtended(telemetry)) {
+                    if(!opModeIsActive() || runtime.seconds() > 6) {
+                        break;
+                    }
                 }
                 robot.postMoveCrane(telemetry);
                 robot.swivelStone(true, telemetry);

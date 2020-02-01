@@ -2,8 +2,16 @@ package org.firstinspires.ftc.teamcode.skills;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
+import com.qualcomm.hardware.lynx.LynxEmbeddedIMU;
+import com.qualcomm.hardware.lynx.LynxI2cDeviceSynch;
+import com.qualcomm.hardware.lynx.LynxI2cDeviceSynchV1;
+import com.qualcomm.hardware.lynx.LynxI2cDeviceSynchV2;
+import com.qualcomm.hardware.lynx.LynxModule;
+import com.qualcomm.hardware.lynx.commands.core.LynxFirmwareVersionManager;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.I2cDeviceSynchImplOnSimple;
+import com.qualcomm.robotcore.hardware.I2cDeviceSynchSimple;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
@@ -12,7 +20,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
 import org.firstinspires.ftc.teamcode.bots.SimpleBot;
 
 public class Gyro {
-    BNO055IMU imu;
+    LynxEmbeddedIMU imu;
+//    BNO055IMU imu;
     double                  globalAngle = 0, power = .30, correction;
     SimpleBot robot = null;
     Telemetry telemetry;
@@ -21,6 +30,29 @@ public class Gyro {
     private int desiredHeading = 0;
     int MIN_TOLERANCE = -2;
     int MAX_TOLERANCE = 2;
+
+    private static class SkipWinI2cDeviceSynchImplOnSimple extends I2cDeviceSynchImplOnSimple {
+        private SkipWinI2cDeviceSynchImplOnSimple(I2cDeviceSynchSimple simple, boolean isSimpleOwned) {
+            super(simple, isSimpleOwned);
+        }
+
+        @Override
+        public void setReadWindow(ReadWindow window) {
+            // intentionally do nothing
+        }
+    }
+
+    private int getLynxI2cVersion(LynxModule module,  HardwareMap ahwMap) {
+        LynxI2cDeviceSynch defaultLynxI2cDevice =
+                LynxFirmwareVersionManager.createLynxI2cDeviceSynch(ahwMap.appContext, module, 0);
+        if (defaultLynxI2cDevice instanceof LynxI2cDeviceSynchV1) {
+            return 1;
+        } else if (defaultLynxI2cDevice instanceof LynxI2cDeviceSynchV2) {
+            return 2;
+        } else {
+            return -1;
+        }
+    }
 
     public void init(SimpleBot owner, HardwareMap ahwMap, Telemetry t){
         robot = owner;
@@ -33,9 +65,18 @@ public class Gyro {
         parameters.calibrationDataFile = "BNO055IMUCalibration.json";
         parameters.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
 
+        LynxModule module = ahwMap.get(LynxModule.class, "imu");
+        int i2cVersion = getLynxI2cVersion(module, ahwMap);
+        if (i2cVersion == 1){
+            imu = new LynxEmbeddedIMU(new I2cDeviceSynchImplOnSimple(
+                    new LynxI2cDeviceSynchV1(ahwMap.appContext, module, 0), true));
+        }
+        else if (i2cVersion == 2){
+            new LynxEmbeddedIMU(new I2cDeviceSynchImplOnSimple(
+                    new LynxI2cDeviceSynchV2(ahwMap.appContext, module, 0), true));
+        }
 
-
-        imu = (BNO055IMU) ahwMap.get("imu");
+//        imu = (BNO055IMU) ahwMap.get("imu");
         if (imu != null){
             imu.initialize(parameters);
             telemetry.addData("Info", "Gyro initialized");
