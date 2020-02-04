@@ -37,7 +37,7 @@ public class TrayRedBridge extends AutoBase {
             move(0.5, -5);
             robot.getGyro().pivotBack(90, 0.8);
             robot.hookTray(false, telemetry);
-            robot.getGyro().fixHeading(0.3);
+            robot.getGyro().fixHeading(0.3, this);
             move(1, 10);
             moveLeftUntil(0.5, 23, true);
             move(1, 10);

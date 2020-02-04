@@ -17,7 +17,9 @@ public class StoneFinder {
     private float stoneWidth = -1;
     private float stoneTop = -1;
     private double angle = 0;
+    private double distanceToObject = -1;
     private static final String LABEL_SKYSTONE = "Skystone";
+    private static final double CAMERA_HEIGHT = 10;
 
     public StoneFinder(TFObjectDetector tf) {
         tfod = tf;
@@ -87,7 +89,8 @@ public class StoneFinder {
                             stoneLeft = recognition.getLeft();
                             stoneWidth = recognition.getWidth();
                             stoneTop = recognition.getTop();
-                            angle = recognition.estimateAngleToObject(AngleUnit.DEGREES);
+                            angle = recognition.estimateAngleToObject(AngleUnit.RADIANS);
+                            setDistanceToObject(CAMERA_HEIGHT/Math.atan(angle));
                             break;
                         }
                     }
@@ -122,5 +125,13 @@ public class StoneFinder {
 
     public double getAngle() {
         return angle;
+    }
+
+    public double getDistanceToObject() {
+        return distanceToObject;
+    }
+
+    public void setDistanceToObject(double distanceToObject) {
+        this.distanceToObject = distanceToObject;
     }
 }

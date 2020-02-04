@@ -1,10 +1,11 @@
 package org.firstinspires.ftc.teamcode.autonomous;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 
 @Autonomous(name="CurveTestBack", group ="Robot15173")
-//@Disabled
+@Disabled
 public class CurveTestBack extends AutoBase {
     @Override
     public void runOpMode() throws InterruptedException {
@@ -19,9 +20,9 @@ public class CurveTestBack extends AutoBase {
     protected void act() {
         super.act();
         try {
-            robot.getGyro().turn(90, 0.5);
-            robot.getGyro().fixHeading(0.3);
-            double toWall = robot.getRangetoObstacleLeft();
+            robot.getGyro().turn(-90, 0.5, this);
+            robot.getGyro().fixHeading(0.3, this);
+            double toWall = robot.getRangetoObstacleRight();
 
             String dir = "to bridge";
             double degrees = 0;
@@ -36,14 +37,13 @@ public class CurveTestBack extends AutoBase {
                     double t = longCat/catet;
                     double rads = Math.atan(t);
                     degrees =  Math.toDegrees(rads);
-                    robot.getGyro().turn((int)degrees, 0.5);
+                    robot.getGyro().turn(-(int)degrees, 0.5, this);
                     move(0.5, -travel);
-                    robot.getGyro().turn(90, 0.5);
+                    robot.getGyro().turn(-85, 0.4, this);
                 }
-
             }
 
-            robot.getGyro().fixHeading(0.3);
+            robot.getGyro().fixHeading(0.3, this);
             telemetry.addData(dir, degrees);
 
             telemetry.addData("Wall", toWall);

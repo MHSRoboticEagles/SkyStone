@@ -112,8 +112,7 @@ public abstract class AutoBase extends LinearOpMode {
     protected void initRobot(){
         try{
             robot.init(hardwareMap, telemetry);
-//            colorChecker  = new ColorCheck(telemetry, this);
-//            colorChecker.init(hardwareMap);
+            robot.startGyro(hardwareMap, telemetry);;
             robot.initSensors();
         }
         catch (Exception ex){
@@ -168,7 +167,7 @@ public abstract class AutoBase extends LinearOpMode {
     protected double intakeStone(double speed, long until){
         robot.moveIntake(1, telemetry);
 
-        double moved = robot.encoderMoveDetect(speed, until, until, 0, telemetry, new DetectionInterface() {
+        double moved = robot.encoderMoveDetect(speed, until, until, 0, telemetry, this, new DetectionInterface() {
             @Override
             public boolean detect() {
                 telemetry.addData("Detect", "inside detect");
@@ -194,11 +193,25 @@ public abstract class AutoBase extends LinearOpMode {
         return moved;
     }
 
+    protected  void intakeStoneNoSensor(double speed, long until){
+        robot.moveIntake(1, telemetry);
+
+        robot.encoderDrive(speed, until, until, 0, telemetry, this);
+        if (!stoneInside) {
+            stoneInside = robot.isStoneInside(telemetry);
+            if (stoneInside) {
+                robot.toggleStoneLock(true, telemetry);
+                robot.moveIntake(0, telemetry);
+            }
+        }
+    }
+
+
 
     protected void move(double speed, double moveTo){
         telemetry.addData("Auto", "Distance = %.2f", moveTo);
         telemetry.update();
-        robot.encoderDrive(speed, moveTo, moveTo,0, telemetry);
+        robot.encoderDrive(speed, moveTo, moveTo,0, telemetry, this);
 
         robot.stop();
     }
@@ -400,6 +413,9 @@ public abstract class AutoBase extends LinearOpMode {
         int current = pos;
         robot.strafeRight(speed, telemetry);
         while (current > pos - increment){
+            if (!opModeIsActive()){
+                break;
+            }
             current = robot.leftDriveBack.getCurrentPosition();
             telemetry.addData("Strafe", "Current pos = %d", current);
             telemetry.update();

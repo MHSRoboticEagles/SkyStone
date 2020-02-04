@@ -20,7 +20,7 @@ public class CraneTest extends AutoBase {
     protected void act() {
         super.act();
         try {
-            this.robot.encoderDriveGyro(0.5, 60, 60, 30, telemetry);
+            this.robot.encoderDriveGyro(0.5, 60, 60, 30, telemetry, this);
         }
         catch (Exception ex){
             telemetry.addData("Error", ex.getMessage());

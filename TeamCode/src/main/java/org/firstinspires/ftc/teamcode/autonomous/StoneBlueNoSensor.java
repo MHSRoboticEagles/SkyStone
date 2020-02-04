@@ -1,12 +1,11 @@
 package org.firstinspires.ftc.teamcode.autonomous;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 
-@Autonomous(name="Stone Blue Sensor", group ="Robot15173")
-@Disabled
-public class StoneBlue extends AutoBase {
+@Autonomous(name="Stone Blue", group ="Robot15173")
+//@Disabled
+public class StoneBlueNoSensor extends AutoBase {
     @Override
     public void runOpMode() throws InterruptedException {
         runAutoMode();
@@ -62,8 +61,8 @@ public class StoneBlue extends AutoBase {
                         break;
                 }
 
-                double moved = intakeStone(0.5,-45);
-                move(0.8, moved - 22);
+                intakeStoneNoSensor(0.5,-45);
+                move(0.8, 45 - 22);
             }
 
             if (!stoneInside) {
@@ -87,27 +86,6 @@ public class StoneBlue extends AutoBase {
             if (toWall > -1) {
                 int longCat = 10;
                 robot.align(toWall, 25, longCat, false, telemetry, this);
-//                if(toWall < 25){
-//                    double catet = 26-toWall;
-//                    double travel = Math.sqrt(longCat*longCat + catet * catet);
-//                    double t = longCat/catet;
-//                    double rads = Math.atan(t);
-//                    double degrees = 90 - Math.toDegrees(rads);
-//                    robot.getGyro().turn(-(90 + (int)degrees), 0.5, this);
-//                    move(0.5, travel);
-//                    robot.getGyro().turn(-85, 0.5, this);
-//                }
-//                if (toWall > 27){
-//                    double catet = toWall - 26;
-//                    double travel = Math.sqrt(longCat*longCat + catet * catet);
-//                    double t = longCat/catet;
-//                    double rads = Math.atan(t);
-//                    double degrees = Math.toDegrees(rads);
-//                    robot.getGyro().turn(-(int)degrees, 0.5, this);
-//                    move(0.5, travel);
-//                    robot.getGyro().turn(-85, 0.4, this);
-//
-//                }
             }
 
             robot.getGyro().fixHeading(0.3, this);
@@ -121,7 +99,7 @@ public class StoneBlue extends AutoBase {
                     robot.moveIntake(0, telemetry);
                 }
             }
-            sleep(400);
+            sleep(200);
             double back = robot.getRangetoObstacleBack();
             if (back > 12){
 //                robot.getGyro().fixHeading(0.3, this);
@@ -131,14 +109,12 @@ public class StoneBlue extends AutoBase {
 
             robot.getGyro().turnAndExtend(-170, 0.8, stoneInside, this);
             //last check for stone inside
-            if (!stoneInside) {
-                stoneInside = robot.isStoneInside(telemetry);
-                if (stoneInside) {
-                    robot.toggleStoneLock(true, telemetry);
-                    robot.moveIntake(0, telemetry);
-                    robot.preMoveCrane(1, 10);
-                }
-            }
+
+            robot.toggleStoneLock(true, telemetry);
+            robot.moveIntake(0, telemetry);
+            robot.preMoveCrane(1, 10);
+
+            sleep(200);
 
             back = robot.getRangetoObstacleBack();
 
@@ -146,40 +122,38 @@ public class StoneBlue extends AutoBase {
                 move(0.7, back - 1);
             }
 
-            if (stoneInside){
-
-                while (!robot.craneExtended(telemetry)) {
-
+            runtime.reset();
+            while (!robot.craneExtended(telemetry)) {
+                if(!opModeIsActive() || runtime.seconds() > 6) {
+                    break;
                 }
-                robot.postMoveCrane(telemetry);
-                robot.swivelStone(true, telemetry);
             }
 
+            robot.postMoveCrane(telemetry);
+            robot.swivelStone(true, telemetry);
 
 
             robot.hookTray(true,  telemetry);
             sleep(500);
-            if (stoneInside) {
-                robot.toggleStoneLock(false, telemetry);
-                robot.swivelStone(false, telemetry);
 
-            }
-            else{
-                robot.moveIntakeReverse(1, telemetry);
-            }
+            robot.toggleStoneLock(false, telemetry);
+            robot.swivelStone(false, telemetry);
+
+
+            robot.moveIntakeReverse(1, telemetry);
+
 
             robot.getGyro().pivotBackReverse(-150, 0.7, this);
 
-            move(0.8, -18);
+            move(0.8, -8);
 
             robot.hookTray(false,  telemetry);
-            strafeRight(1, 9);
-            if (stoneInside) {
-                robot.preMoveCrane(1, -10);
-            }
-            if (!stoneInside) {
-                robot.moveIntakeReverse(0, telemetry);
-            }
+            strafeRight(1, 7);
+
+            robot.preMoveCrane(1, -10);
+
+            robot.moveIntakeReverse(0, telemetry);
+
 
             back = robot.getRangetoObstacleBack();
 
@@ -197,7 +171,7 @@ public class StoneBlue extends AutoBase {
             robot.postMoveCrane(telemetry);
             robot.getGyro().fixHeading(0.3, this);
 
-            move(1, 19);
+            move(0.7, 9);
             //            move(0.9, -5);
             robot.getGyro().fixHeading(0.3, this);
             sleep(200);
@@ -229,7 +203,6 @@ public class StoneBlue extends AutoBase {
 
             telemetry.update();
 
-            sleep(20000);
 
         }
         catch (Exception ex){
