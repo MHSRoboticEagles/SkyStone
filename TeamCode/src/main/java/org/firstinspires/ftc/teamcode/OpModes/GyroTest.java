@@ -10,7 +10,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
-import org.firstinspires.ftc.teamcode.bots.RevDoubleBot;
+import org.firstinspires.ftc.teamcode.bots.TieBot;
 
 @TeleOp(name = "Gyro IMU test", group = "Sensor")
 @Disabled
@@ -18,7 +18,7 @@ public class GyroTest extends LinearOpMode {
     BNO055IMU imu;
     Orientation             lastAngles = new Orientation();
     double                  globalAngle, power = .30, correction;
-    RevDoubleBot robot   = new RevDoubleBot();
+    TieBot robot   = new TieBot();
 
     private void initIMU(){
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
@@ -34,20 +34,26 @@ public class GyroTest extends LinearOpMode {
 
     @Override
     public void runOpMode() throws InterruptedException {
-        initIMU();
-        robot.init(this.hardwareMap);
-        waitForStart();
-        while (opModeIsActive()) {
-            double angle = imu.getAngularOrientation().firstAngle;
-            double x = imu.getPosition().x;
-            double y = imu.getPosition().y;
-            telemetry.addData("1 imu heading", angle);
-            telemetry.addData("2 global heading", globalAngle);
-            telemetry.addData("3 correction", correction);
-            telemetry.addData("X", x);
-            telemetry.addData("Y", y);
-            telemetry.update();
+        try {
+            initIMU();
+            robot.init(this.hardwareMap, telemetry);
+            waitForStart();
+            while (opModeIsActive()) {
+                double angle = imu.getAngularOrientation().firstAngle;
+                double x = imu.getPosition().x;
+                double y = imu.getPosition().y;
+                telemetry.addData("1 imu heading", angle);
+                telemetry.addData("2 global heading", globalAngle);
+                telemetry.addData("3 correction", correction);
+                telemetry.addData("X", x);
+                telemetry.addData("Y", y);
+                telemetry.update();
 
+            }
+        }
+        catch (Exception ex){
+            telemetry.addData("Issues when initializing GyroTest", ex);
+            telemetry.update();
         }
     }
 

@@ -1,10 +1,11 @@
 package org.firstinspires.ftc.teamcode.autonomous;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 
 @Autonomous(name="Stone Blue Helper", group ="Robot15173")
-//@Disabled
+@Disabled
 public class StoneBlueWall extends AutoBase {
     @Override
     public void runOpMode() throws InterruptedException {
@@ -34,12 +35,12 @@ public class StoneBlueWall extends AutoBase {
             move(0.5, moved );
 
             if (!stoneInside) {
-                stoneInside = robot.isStoneInside(telemetry);
+                stoneInside = robot.isStoneInside();
                 if (stoneInside) {
-                    robot.toggleStoneLock(true, telemetry);
+                    robot.toggleStoneLock(true);
                 }
             }
-            robot.moveIntake(0, telemetry);
+            robot.moveIntake(0);
 
             double back = robot.getRangetoObstacleBack();
             if (back > 3){
@@ -50,13 +51,13 @@ public class StoneBlueWall extends AutoBase {
             robot.getGyro().turn(3, 0.5, this);
             robot.getGyro().correct(0.3);
             double toWall = robot.getRangetoObstacleLeft();
-            robot.align(toWall, 4, 16, false, telemetry, this);
+            robot.align(toWall, 4, 16, false, this);
             robot.getGyro().fixHeading(0.3, this);
 
             if (!stoneInside) {
-                stoneInside = robot.isStoneInside(telemetry);
+                stoneInside = robot.isStoneInside();
                 if (stoneInside) {
-                    robot.toggleStoneLock(true, telemetry);
+                    robot.toggleStoneLock(true);
                 }
             }
 
@@ -72,16 +73,16 @@ public class StoneBlueWall extends AutoBase {
 //                    move(0.5, back - 3);
 //                }
                 runtime.reset();
-                while (!robot.craneExtended(telemetry)) {
+                while (!robot.craneExtended()) {
                     if(!opModeIsActive() || runtime.seconds() > 6) {
                         break;
                     }
                 }
-                robot.postMoveCrane(telemetry);
-                robot.swivelStone(true, telemetry);
+                robot.postMoveCrane();
+                robot.swivelStone(true);
                 sleep(500);
-                robot.toggleStoneLock(false, telemetry);
-                robot.swivelStone(false, telemetry);
+                robot.toggleStoneLock(false);
+                robot.swivelStone(false);
 //                move(0.5, -moveback);
                 robot.getGyro().turn(-5, 0.5, this);
                 robot.preMoveCrane(1, -10);

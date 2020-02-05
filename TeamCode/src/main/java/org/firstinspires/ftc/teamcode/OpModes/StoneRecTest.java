@@ -37,7 +37,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
-import org.firstinspires.ftc.teamcode.bots.SimpleBot;
+import org.firstinspires.ftc.teamcode.bots.TieBot;
 import org.firstinspires.ftc.teamcode.skills.StoneFinder;
 
 
@@ -55,11 +55,11 @@ import org.firstinspires.ftc.teamcode.skills.StoneFinder;
  */
 
 @TeleOp(name="Stone Rec", group="Robot15173")
-@Disabled
+//@Disabled
 public class StoneRecTest extends LinearOpMode {
 
     // Declare OpMode members.
-    SimpleBot robot   = new SimpleBot();
+    TieBot robot   = new TieBot();
     private ElapsedTime     runtime = new ElapsedTime();
 
     private static final String TFOD_MODEL_ASSET = "Skystone.tflite";

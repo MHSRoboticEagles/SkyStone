@@ -65,13 +65,13 @@ public class StoneRedBridge extends AutoBase {
             telemetry.addData("Wall", toWall);
 
 
-            robot.getGyro().pivot(90, 0.8);
+            robot.getGyro().pivot(90, 0.8, this);
 
             if (!stoneInside) {
-                stoneInside = robot.isStoneInside(telemetry);
+                stoneInside = robot.isStoneInside();
                 if (stoneInside) {
-                    robot.toggleStoneLock(true, telemetry);
-                    robot.moveIntake(0, telemetry);
+                    robot.toggleStoneLock(true);
+                    robot.moveIntake(0);
                 }
             }
 
@@ -95,13 +95,13 @@ public class StoneRedBridge extends AutoBase {
                 move(0.7, back - 2);
             }
 
-            robot.hookTray(true, telemetry);
+            robot.hookTray(true);
             sleep(500);
 
 //            move(0.5, -7);
             robot.getGyro().pivotBackReverse(85, 0.8, this);
 
-            robot.hookTray(false, telemetry);
+            robot.hookTray(false);
             robot.getGyro().fixHeading(0.3, this);
 
             move(1, 22);

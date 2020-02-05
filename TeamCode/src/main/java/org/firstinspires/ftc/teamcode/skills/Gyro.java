@@ -2,13 +2,13 @@ package org.firstinspires.ftc.teamcode.skills;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
-import com.qualcomm.hardware.lynx.LynxEmbeddedIMU;
 import com.qualcomm.hardware.lynx.LynxI2cDeviceSynch;
 import com.qualcomm.hardware.lynx.LynxI2cDeviceSynchV1;
 import com.qualcomm.hardware.lynx.LynxI2cDeviceSynchV2;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.hardware.lynx.commands.core.LynxFirmwareVersionManager;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.I2cDeviceSynchImplOnSimple;
 import com.qualcomm.robotcore.hardware.I2cDeviceSynchSimple;
@@ -17,13 +17,13 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
-import org.firstinspires.ftc.teamcode.bots.SimpleBot;
+import org.firstinspires.ftc.teamcode.bots.TieBot;
 
 public class Gyro {
-    LynxEmbeddedIMU imu;
-//    BNO055IMU imu;
+//    LynxEmbeddedIMU imu;
+    BNO055IMU imu;
     double                  globalAngle = 0, power = .30, correction;
-    SimpleBot robot = null;
+    TieBot robot = null;
     Telemetry telemetry;
     Position lastPos = null;
     Velocity lastVelocity = null;
@@ -54,10 +54,11 @@ public class Gyro {
         }
     }
 
-    public void init(SimpleBot owner, HardwareMap ahwMap, Telemetry t){
+    public void init(TieBot owner, HardwareMap ahwMap, Telemetry t){
         robot = owner;
         telemetry = t;
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.mode = BNO055IMU.SensorMode.IMU;
         parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
         parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
         parameters.loggingEnabled      = false;
@@ -65,20 +66,22 @@ public class Gyro {
         parameters.calibrationDataFile = "BNO055IMUCalibration.json";
         parameters.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
 
-        LynxModule module = ahwMap.get(LynxModule.class, "imu");
-        int i2cVersion = getLynxI2cVersion(module, ahwMap);
-        if (i2cVersion == 1){
-            imu = new LynxEmbeddedIMU(new I2cDeviceSynchImplOnSimple(
-                    new LynxI2cDeviceSynchV1(ahwMap.appContext, module, 0), true));
-        }
-        else if (i2cVersion == 2){
-            new LynxEmbeddedIMU(new I2cDeviceSynchImplOnSimple(
-                    new LynxI2cDeviceSynchV2(ahwMap.appContext, module, 0), true));
-        }
+//        LynxModule module = ahwMap.get(LynxModule.class, "imu");
+//        int i2cVersion = getLynxI2cVersion(module, ahwMap);
+//        if (i2cVersion == 1){
+//            imu = new LynxEmbeddedIMU(new I2cDeviceSynchImplOnSimple(
+//                    new LynxI2cDeviceSynchV1(ahwMap.appContext, module, 0), true));
+//        }
+//        else if (i2cVersion == 2){
+//            new LynxEmbeddedIMU(new I2cDeviceSynchImplOnSimple(
+//                    new LynxI2cDeviceSynchV2(ahwMap.appContext, module, 0), true));
+//        }
 
-//        imu = (BNO055IMU) ahwMap.get("imu");
+        imu = (BNO055IMU) ahwMap.get("imu");
         if (imu != null){
             imu.initialize(parameters);
+            // Start the logging of measured acceleration
+//            imu.startAccelerationIntegration(new Position(), new Velocity(), 1000);
             telemetry.addData("Info", "Gyro initialized");
         }
         else{
@@ -197,8 +200,9 @@ public class Gyro {
     public void turn(int degrees, double power, LinearOpMode caller){
         //set to 0 heading first
 //        correct();
+        int lastDesiredHeading = desiredHeading;
         desiredHeading = degrees;
-        int current = (int)this.getHeading();
+        int current = lastDesiredHeading; //(int)this.getHeading();
         double  leftPower = 0, rightPower = 0;
 
         boolean left = false;
@@ -248,6 +252,9 @@ public class Gyro {
 
         while (true){
             current = (int)this.getHeading();
+            if (lastDesiredHeading > 0 && current < 0){
+                continue;
+            }
             telemetry.addData("current", current);
             telemetry.addData("desired", getDesiredHeading());
             telemetry.update();
@@ -401,7 +408,7 @@ public class Gyro {
     }
 
 
-    public void pivot(int degrees, double power){
+    public void pivot(int degrees, double power, LinearOpMode caller){
 //        correct();
         desiredHeading = degrees;
         double  leftPower = 0, rightPower = 0;
@@ -435,8 +442,8 @@ public class Gyro {
             telemetry.addData("current", current);
             telemetry.addData("desired", getDesiredHeading());
             telemetry.update();
-            if ((degrees < 0 && current <= (int) getDesiredHeading())
-                    || (degrees > 0 && current >= (int) getDesiredHeading())){
+            if (!caller.opModeIsActive() || (degrees < 0 && current <= getDesiredHeading())
+                    || (degrees > 0 && current >= getDesiredHeading())){
                 break;
             }
         }
@@ -447,6 +454,61 @@ public class Gyro {
         robot.rightDriveBack.setPower(0);
         robot.rightDriveFront.setPower(0);
     }
+
+    public void pivotForward(int degrees, double power, LinearOpMode caller){
+//        correct();
+        desiredHeading = degrees;
+        double  leftPower = 0, rightPower = 0;
+
+        int current = (int)this.getHeading();
+
+        boolean left = false;
+        boolean right = false;
+        double cutOff = 0;
+        if (getDesiredHeading() > current){
+            //turn left
+            right = true;
+
+        }
+        else if (getDesiredHeading() < current){
+            left = true;
+        }
+        else{
+            return;
+        }
+
+
+        if (right)
+        {   // turn right.
+            rightPower = power;
+            robot.rightDriveBack.setPower(rightPower);
+            robot.rightDriveFront.setPower(rightPower);
+        }
+        else if (left)
+        {   // turn left.
+            leftPower = power;
+            robot.leftDriveBack.setPower(leftPower);
+            robot.leftDriveFront.setPower(leftPower);
+        }
+        else return;
+
+        // set power to rotate.
+
+
+
+        while (true){
+            current = (int)this.getHeading();
+            telemetry.addData("current", current);
+            telemetry.addData("desired", getDesiredHeading());
+            telemetry.update();
+            if (!caller.opModeIsActive() || (left && current <= getDesiredHeading())
+                    || (right && current >= getDesiredHeading())){
+                break;
+            }
+        }
+
+    }
+
 
     public void pivotReverse(int degrees, double power, LinearOpMode caller){
 //        correct();
@@ -482,8 +544,59 @@ public class Gyro {
             telemetry.addData("current", current);
             telemetry.addData("desired", getDesiredHeading());
             telemetry.update();
-            if (!caller.opModeIsActive() || (degrees < 0 && current <= (int) getDesiredHeading())
-                    || (degrees > 0 && current >= (int) getDesiredHeading())){
+            if (!caller.opModeIsActive() || (degrees < 0 && current <= getDesiredHeading())
+                    || (degrees > 0 && current >=  getDesiredHeading())){
+                break;
+            }
+        }
+
+    }
+
+    public void pivotReverse(int degrees, double power, double subpower, LinearOpMode caller){
+//        correct();
+        desiredHeading = degrees;
+        double  leftPower = 0, rightPower = 0;
+
+        // restart imu movement tracking.
+        resetAngle();
+
+        if (power > 0){
+            subpower = -subpower;
+        }
+
+        if (degrees > 0)
+        {   // turn right.
+            rightPower = power;
+
+            robot.rightDriveBack.setPower(rightPower);
+            robot.rightDriveFront.setPower(rightPower);
+
+            robot.leftDriveBack.setPower(subpower);
+            robot.leftDriveFront.setPower(subpower);
+        }
+        else if (degrees < 0)
+        {   // turn left.
+            leftPower = power;
+
+            robot.leftDriveBack.setPower(leftPower);
+            robot.leftDriveFront.setPower(leftPower);
+
+            robot.rightDriveBack.setPower(subpower);
+            robot.rightDriveFront.setPower(subpower);
+        }
+        else return;
+
+        // set power to rotate.
+
+
+
+        while (true){
+            int current = (int)this.getHeading();
+            telemetry.addData("current", current);
+            telemetry.addData("desired", getDesiredHeading());
+            telemetry.update();
+            if (!caller.opModeIsActive() || (degrees < 0 && current <= getDesiredHeading())
+                    || (degrees > 0 && current >=  getDesiredHeading())){
                 break;
             }
         }
@@ -495,7 +608,7 @@ public class Gyro {
         robot.rightDriveFront.setPower(0);
     }
 
-    public void pivot(int degrees, double power, double subPower){
+    public void pivot(int degrees, double power, double subPower, LinearOpMode caller){
 //        correct();
         desiredHeading = degrees;
         double  leftPower = 0, rightPower = 0;
@@ -533,8 +646,8 @@ public class Gyro {
             telemetry.addData("current", current);
             telemetry.addData("desired", getDesiredHeading());
             telemetry.update();
-            if ((degrees < 0 && current <= (int) getDesiredHeading())
-                    || (degrees > 0 && current >= (int) getDesiredHeading())){
+            if (!caller.opModeIsActive() || (degrees < 0 && current <= getDesiredHeading())
+                    || (degrees > 0 && current >= getDesiredHeading())){
                 break;
             }
         }

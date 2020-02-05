@@ -33,7 +33,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.bots.SimpleBot;
+import org.firstinspires.ftc.teamcode.bots.TieBot;
 
 
 /**
@@ -49,12 +49,12 @@ import org.firstinspires.ftc.teamcode.bots.SimpleBot;
  * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list
  */
 
-@TeleOp(name="SimpleDriveTurn", group="Robot15173")
+@TeleOp(name="TeleOp", group="Robot15173")
 //@Disabled
 public class SimpleLinearTurn extends LinearOpMode {
 
     // Declare OpMode members.
-    SimpleBot robot   = new SimpleBot();
+    TieBot robot   = new TieBot();
     private ElapsedTime     runtime = new ElapsedTime();
 
 
@@ -63,7 +63,7 @@ public class SimpleLinearTurn extends LinearOpMode {
         try {
             try {
                 robot.init(this.hardwareMap, telemetry);
-//                robot.getGyro().recordAcceleration();
+                robot.initStoneSensor();
             }
             catch (Exception ex){
                 telemetry.addData("Init", ex.getMessage());
@@ -98,12 +98,12 @@ public class SimpleLinearTurn extends LinearOpMode {
                     telemetry.addData("Strafing", "Left: %2f", strafe);
                     telemetry.update();
                     if (strafe < 0) {
-                        robot.strafeRight(Math.abs(strafe), telemetry);
+                        robot.strafeRight(Math.abs(strafe));
                     } else {
-                        robot.strafeLeft(Math.abs(strafe), telemetry);
+                        robot.strafeLeft(Math.abs(strafe));
                     }
                 } else {
-                    robot.move(drive, turn, telemetry);
+                    robot.move(drive, turn);
                 }
 
 //                //diag
@@ -119,67 +119,73 @@ public class SimpleLinearTurn extends LinearOpMode {
                 boolean leftPivot = gamepad1.dpad_left;
                 boolean rightPivot = gamepad1.dpad_right;
                 if (leftPivot){
-                    robot.pivotLeft(1, telemetry);
+                    robot.pivotLeft(0.3);
                 }
                 else if(rightPivot){
-                    robot.pivotRight(1, telemetry);
+                    robot.pivotRight(0.3);
+                }
+
+                boolean hook = gamepad1.x;
+                boolean unhook = gamepad1.y;
+                if (hook){
+                    robot.hookTray(hook);
+                }
+                else if (unhook){
+                    robot.hookTray(false);
                 }
 
 
                 //tower
                 double tower = gamepad2.left_stick_y;
-                robot.moveTower(tower, telemetry);
+                robot.moveTower(tower);
 
                 //crane
                 double crane = gamepad2.right_stick_y;
-                robot.moveCrane(crane, telemetry);
+                robot.moveCrane(-crane);
 
                 //intake
                 float pickup = gamepad2.right_trigger;
-                robot.moveIntake(pickup, telemetry);
-
-                //spit out
-                float spitOut = gamepad2.left_trigger;
-                robot.moveIntakeReverse(-spitOut, telemetry);
+                if (pickup > 0) {
+                    robot.moveIntake(pickup);
+                }
+                else {
+                    //spit out
+                    float spitOut = gamepad2.left_trigger;
+                    robot.moveIntakeReverse(spitOut);
+                }
 
                 if (gamepad2.right_bumper){
-                    robot.toggleStoneLock(true, telemetry);
+                    robot.toggleStoneLock(true);
                 }
 
                 if (gamepad2.left_bumper){
-                    robot.toggleStoneLock(false, telemetry);
+                    robot.toggleStoneLock(false);
                 }
 
                 if (gamepad2.x){
-                    robot.swivelStone(true, telemetry);
+                    robot.swivelStone(true);
                 }
                 else if (gamepad2.y) {
-                    robot.swivelStone(false, telemetry);
+                    robot.swivelStone(false);
                 }
 
-                if (gamepad1.x) {
-                    robot.dropPlate(true, telemetry);
+                if (gamepad2.a){
+                    robot.swivelStone90();
+                }
+                else if (gamepad2.y) {
+                    robot.swivelStone(false);
                 }
 
-                if (gamepad1.y) {
-                    robot.dropPlate(false, telemetry);
+
+                if (gamepad1.a){
+                    robot.positionCapstone();
                 }
 
-
-                if (gamepad1.x){
-                    robot.dropCapstone(true, telemetry);
+                if (gamepad1.b){
+                    robot.resetCapstone();
                 }
 
-                if (gamepad1.y){
-                    robot.dropCapstone(false, telemetry);
-                }
-
-                telemetry.addData("Front Left", robot.getRangetoObstacleFrontLeft());
-                telemetry.addData("Front Right", robot.getRangetoObstacleFrontRight());
-                telemetry.addData("Left", robot.getRangetoObstacleLeft());
-                telemetry.addData("Right", robot.getRangetoObstacleRight());
-                telemetry.addData("Back", robot.getRangetoObstacleBack());
-
+                robot.autoLockStone();
 
                 telemetry.update();
             }

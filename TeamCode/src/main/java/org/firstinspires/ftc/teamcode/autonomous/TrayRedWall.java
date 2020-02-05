@@ -32,11 +32,11 @@ public class TrayRedWall extends AutoBase {
             telemetry.update();
 
 
-            robot.hookTray(true, telemetry);
+            robot.hookTray(true);
             sleep(1000);
             move(0.5, -5);
             robot.getGyro().pivotBack(90, 0.8);
-            robot.hookTray(false, telemetry);
+            robot.hookTray(false);
             robot.getGyro().fixHeading(0.3, this);
             move(1, 14);
             moveRightUntil(0.5, 6, true);
