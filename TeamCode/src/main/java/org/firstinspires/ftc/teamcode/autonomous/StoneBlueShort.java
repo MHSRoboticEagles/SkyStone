@@ -1,10 +1,11 @@
 package org.firstinspires.ftc.teamcode.autonomous;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 
 @Autonomous(name="Stone Blue Short", group ="Robot15173")
-//@Disabled
+@Disabled
 public class StoneBlueShort extends AutoBase {
     @Override
     public void runOpMode() throws InterruptedException {
@@ -66,10 +67,10 @@ public class StoneBlueShort extends AutoBase {
             }
 
             if (!stoneInside) {
-                stoneInside = robot.isStoneInside(telemetry);
+                stoneInside = robot.isStoneInside();
                 if (stoneInside) {
-                    robot.toggleStoneLock(true, telemetry);
-                    robot.moveIntake(0, telemetry);
+                    robot.toggleStoneLock(true);
+                    robot.moveIntake(0);
                 }
             }
 
@@ -85,7 +86,7 @@ public class StoneBlueShort extends AutoBase {
 
             if (toWall > -1) {
                 int longCat = 10;
-                robot.align(toWall, 25, longCat, false, telemetry, this);
+                robot.align(toWall, 25, longCat, false, this);
             }
 
             robot.getGyro().fixHeading(0.3, this);
@@ -93,24 +94,24 @@ public class StoneBlueShort extends AutoBase {
             move(0.8, 30 + runIncrement);
 
 
-            robot.toggleStoneLock(true, telemetry);
-            robot.moveIntake(0, telemetry);
+            robot.toggleStoneLock(true);
+            robot.moveIntake(0);
             robot.preMoveCrane(1, 10);
 
 
             runtime.reset();
-            while (!robot.craneExtended(telemetry)) {
+            while (!robot.craneExtended()) {
                 if(!opModeIsActive() || runtime.seconds() > 6) {
                     break;
                 }
             }
 
-            robot.postMoveCrane(telemetry);
-            robot.swivelStone(true, telemetry);
+            robot.postMoveCrane();
+            robot.swivelStone(true);
 
 
-            robot.toggleStoneLock(false, telemetry);
-            robot.swivelStone(false, telemetry);
+            robot.toggleStoneLock(false);
+            robot.swivelStone(false);
 
 
             move(0.7, -10);
@@ -124,7 +125,7 @@ public class StoneBlueShort extends AutoBase {
                 }
             }
 
-            robot.postMoveCrane(telemetry);
+            robot.postMoveCrane();
         }
         catch (Exception ex){
             telemetry.addData("Error", ex.getMessage());

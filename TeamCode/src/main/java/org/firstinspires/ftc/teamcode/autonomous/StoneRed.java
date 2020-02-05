@@ -67,10 +67,10 @@ public class StoneRed extends AutoBase {
             }
 
             if (!stoneInside) {
-                stoneInside = robot.isStoneInside(telemetry);
+                stoneInside = robot.isStoneInside();
                 if (stoneInside) {
-                    robot.toggleStoneLock(true, telemetry);
-                    robot.moveIntake(0, telemetry);
+                    robot.toggleStoneLock(true);
+                    robot.moveIntake(0);
                 }
             }
 
@@ -87,7 +87,7 @@ public class StoneRed extends AutoBase {
             if (toWall > -1) {
                 int longCat = 10;
 
-                robot.align(toWall, 26, longCat, true, telemetry, this);
+                robot.align(toWall, 26, longCat, true, this);
 //                if(toWall < 24){
 //                    double catet = 26-toWall;
 //                    double travel = Math.sqrt(longCat*longCat + catet * catet);
@@ -117,10 +117,10 @@ public class StoneRed extends AutoBase {
             move(1, 60 + runIncrement);
 
             if (!stoneInside) {
-                stoneInside = robot.isStoneInside(telemetry);
+                stoneInside = robot.isStoneInside();
                 if (stoneInside) {
-                    robot.toggleStoneLock(true, telemetry);
-                    robot.moveIntake(0, telemetry);
+                    robot.toggleStoneLock(true);
+                    robot.moveIntake(0);
                 }
             }
 
@@ -134,10 +134,10 @@ public class StoneRed extends AutoBase {
             robot.getGyro().turnAndExtend(170, 0.8, stoneInside, this);
             //last check for stone inside
             if (!stoneInside) {
-                stoneInside = robot.isStoneInside(telemetry);
+                stoneInside = robot.isStoneInside();
                 if (stoneInside) {
-                    robot.toggleStoneLock(true, telemetry);
-                    robot.moveIntake(0, telemetry);
+                    robot.toggleStoneLock(true);
+                    robot.moveIntake(0);
                     robot.preMoveCrane(1, 10);
                 }
             }
@@ -151,39 +151,39 @@ public class StoneRed extends AutoBase {
             }
 
             if (stoneInside){
-                while (!robot.craneExtended(telemetry)) {
+                while (!robot.craneExtended()) {
                     if(!opModeIsActive()) {
                         break;
                     }
                 }
-                robot.postMoveCrane(telemetry);
-                robot.swivelStone(true, telemetry);
+                robot.postMoveCrane();
+                robot.swivelStone(true);
             }
 
 
 
-            robot.hookTray(true,  telemetry);
+            robot.hookTray(true);
             sleep(500);
             if (stoneInside) {
-                robot.toggleStoneLock(false, telemetry);
-                robot.swivelStone(false, telemetry);
+                robot.toggleStoneLock(false);
+                robot.swivelStone(false);
 
             }
             else{
-                robot.moveIntakeReverse(1, telemetry);
+                robot.moveIntakeReverse(1);
             }
 
             robot.getGyro().pivotBackReverse(150, 0.7, this);
 
             move(0.8, -16);
 
-            robot.hookTray(false,  telemetry);
+            robot.hookTray(false);
             strafeLeft(1, 7);
             if (stoneInside) {
                 robot.preMoveCrane(1, -10);
             }
             if (!stoneInside) {
-                robot.moveIntakeReverse(0, telemetry);
+                robot.moveIntakeReverse(0);
             }
 
             sleep(200);
@@ -193,13 +193,13 @@ public class StoneRed extends AutoBase {
                 move(0.7, back - 1);
             }
 
-            robot.hookTraySide(true, true, telemetry);
+            robot.hookTraySide(true, true);
             sleep(500);
 
             robot.getGyro().turnBackReverse(90, 0.5, this);
-            robot.hookTraySide(false, true, telemetry);
+            robot.hookTraySide(false, true);
 
-            robot.postMoveCrane(telemetry);
+            robot.postMoveCrane();
 
             robot.getGyro().fixHeading(0.3, this);
 

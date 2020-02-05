@@ -29,14 +29,13 @@
 
 package org.firstinspires.ftc.teamcode.OpModes;
 
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.bots.RevDoubleBot;
-import org.firstinspires.ftc.teamcode.skills.ColorCracker;
-import org.firstinspires.ftc.teamcode.skills.DetectedColor;
+import org.firstinspires.ftc.teamcode.bots.TieBot;
+import org.firstinspires.ftc.teamcode.skills.SoundEffect;
+import org.firstinspires.ftc.teamcode.skills.StoneFinder;
 
 
 /**
@@ -52,113 +51,68 @@ import org.firstinspires.ftc.teamcode.skills.DetectedColor;
  * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list
  */
 
-@TeleOp(name="Game", group="Robot15173")
-@Disabled
+@TeleOp(name="Diagonal", group="Robot15173")
+//@Disabled
 public class BasicLinearMode extends LinearOpMode {
 
     // Declare OpMode members.
-    RevDoubleBot robot   = new RevDoubleBot();
+    TieBot robot   = new TieBot();
     private ElapsedTime     runtime = new ElapsedTime();
+    StoneFinder finder;
 
 
     @Override
     public void runOpMode() {
         try {
-            robot.init(this.hardwareMap);
-//            telemetry.addData("Status", "Initialized");
-////            jewelHunter.init(hardwareMap);
-//
-//            telemetry.update();
-
-            // Wait for the game to start (driver presses PLAY)
+            robot.init(this.hardwareMap, telemetry);
+            SoundEffect soundEffect = new SoundEffect(this.hardwareMap);
+            soundEffect.playTieFighter();
+            finder = new StoneFinder(hardwareMap, telemetry);
+            finder.initRec();
             waitForStart();
             runtime.reset();
 
             // run until the end of the match (driver presses STOP)
             while (opModeIsActive()) {
-
-                // POV Mode uses left stick to go forward, and right stick to turn.
-                // - This uses basic math to combine motions and is easier to drive straight.
-                double drive = -gamepad1.left_stick_y;
-                double turn = -gamepad1.left_stick_x;
-
-                double strafe = -gamepad1.right_stick_x;
-
-
-                if (Math.abs(strafe) > 0) {
-                    telemetry.addData("Strafing", "Left: %2f", strafe);
-                    telemetry.update();
-                    if (strafe < 0) {
-                        robot.strafeRight(Math.abs(strafe), telemetry);
-                    } else {
-                        robot.strafeLeft(Math.abs(strafe), telemetry);
-                    }
-                } else {
-                    robot.move(drive, turn, telemetry);
+                double drive = gamepad1.left_stick_x;
+                if (drive < 0) {
+                    robot.diagLeft(drive);
                 }
-
-                ///pivot
-                boolean leftPivot = gamepad1.dpad_left;
-                boolean rightPivot = gamepad1.dpad_right;
-                if (leftPivot){
-                    robot.pivotLeft(1, telemetry);
-                }
-                else if(rightPivot){
-                    robot.pivotRight(1, telemetry);
-                }
-
-                ///ht
-                boolean leftHT = gamepad1.dpad_up;
-                boolean rightHt = gamepad1.dpad_down;
-                if (leftHT){
-                    robot.htLeft(1, telemetry);
-                }
-                else if(rightHt){
-                    robot.htRight(1, telemetry);
-                }
-
-                double armVal = gamepad2.left_stick_y;
-                robot.moveArm(-armVal, telemetry);
-
-                //expand
-                double extrudeVal = gamepad2.left_stick_x;
-                robot.extrudeArm(extrudeVal, telemetry);
-
-                double intake = gamepad2.left_trigger;
-                if (intake > 0) {
-                    robot.intake(1, telemetry);
-                }
-
-                double drop = gamepad2.right_trigger/2;
-                robot.dropMinerals(drop, telemetry);
-
-                double scoop = gamepad2.right_stick_x;
-                if (scoop >= 0){
-                    robot.intake(scoop, telemetry);
+                else if (drive > 0){
+                    robot.diagRight(drive);
                 }
                 else{
-                    robot.dropMinerals(-scoop, telemetry);
+                    robot.stop();
+                }
+                double dist = finder.getDistanceToObject();
+                double angle = finder.getAngle();
+                double left = finder.getStoneLeft();
+                double center = finder.getStoneCenter();
+                boolean detect = gamepad1.x;
+                if (detect){
+                    finder.detectStone(1, telemetry, this);
+                    dist = finder.getDistanceToObject();
+                    angle = finder.getAngle();
+                    left = finder.getStoneLeft();
+                    center = finder.getStoneCenter();
                 }
 
-
-                double liftVal = gamepad2.right_stick_y;
-                robot.moveLift(-liftVal, telemetry);
+                telemetry.addData("Left", left);
+                telemetry.addData("Distance", dist);
+                telemetry.addData("Angle", angle);
+                telemetry.addData("Center", center);
                 telemetry.update();
 
-                boolean dropMarker = gamepad2.x;
-                if(dropMarker){
-                    robot.dropMarker();
-                }
-
-                boolean initMarker = gamepad2.y;
-                if(initMarker){
-                    robot.initMarker();
-                }
             }
         }
         catch (Exception ex){
             telemetry.addData("Issues with the OpMode", ex.getMessage());
             telemetry.update();
+        }
+        finally {
+            if (finder != null){
+                finder.stopStoneDetection();
+            }
         }
     }
 }

@@ -4,9 +4,9 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 
-@Autonomous(name="GyroTest", group ="Robot15173")
-@Disabled
-public class CraneTest extends AutoBase {
+@Autonomous(name="MoveTest", group ="Robot15173")
+//@Disabled
+public class MoveTest extends AutoBase {
     @Override
     public void runOpMode() throws InterruptedException {
         runAutoMode();
@@ -20,7 +20,12 @@ public class CraneTest extends AutoBase {
     protected void act() {
         super.act();
         try {
-            this.robot.encoderDriveGyro(0.5, 60, 60, 30, this);
+            runtime.reset();
+            move(0.8, 60);
+            double sec = runtime.seconds();
+            telemetry.addData("Secs", sec);
+            telemetry.update();
+            sleep(20000);
         }
         catch (Exception ex){
             telemetry.addData("Error", ex.getMessage());
