@@ -27,7 +27,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-// Priya Commit Test
 package org.firstinspires.ftc.teamcode.OpModes;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -49,7 +48,7 @@ import org.firstinspires.ftc.teamcode.bots.OutreachBot;
  * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list
  */
 
-@TeleOp(name="OutreachTwoWheel", group="Robot15173")
+@TeleOp(name="SecondBot", group="Robot15173")
 //@Disabled
 public class OutreachMode extends LinearOpMode{
 
@@ -83,13 +82,29 @@ public class OutreachMode extends LinearOpMode{
                 }
 
                 ///pivot
-                boolean leftPivot = gamepad1.dpad_left;
-                boolean rightPivot = gamepad1.dpad_right;
+                boolean leftPivot = gamepad1.left_bumper;
+                boolean rightPivot = gamepad1.right_bumper;
                 if (leftPivot){
                     robot.pivotLeft(1);
                 }
                 else if(rightPivot){
                     robot.pivotRight(1);
+                }
+
+                // arm move
+                double arms = gamepad1.right_stick_y;
+                if (Math.abs(arms) > 0) {
+                    robot.moveArm(arms);
+                }
+
+                //lock grabber
+                boolean grab = gamepad1.left_stick_button;
+                boolean letgo = gamepad1.right_stick_button;
+                if (grab){
+                    robot.lock();
+                }
+                else if(letgo){
+                    robot.unlock();
                 }
 
                 telemetry.update();
