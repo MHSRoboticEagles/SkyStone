@@ -114,6 +114,7 @@ public class StoneRecTest extends LinearOpMode {
                 telemetry.addData("Rec", "Width: %2f", sf.getStoneWidth());
                 telemetry.addData("Rec", "Top: %2f", sf.getStoneTop());
                 telemetry.addData("Rec", "Angle: %2f", sf.getAngle());
+                telemetry.addData("Rec", "Distance: %2f", sf.getDistanceToObject());
                 telemetry.update();
             }
         }

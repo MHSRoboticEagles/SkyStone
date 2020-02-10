@@ -12,6 +12,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.I2cDeviceSynchImplOnSimple;
 import com.qualcomm.robotcore.hardware.I2cDeviceSynchSimple;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
@@ -30,6 +31,7 @@ public class Gyro {
     private int desiredHeading = 0;
     int MIN_TOLERANCE = -2;
     int MAX_TOLERANCE = 2;
+    private ElapsedTime runtime = new ElapsedTime();
 
     private static class SkipWinI2cDeviceSynchImplOnSimple extends I2cDeviceSynchImplOnSimple {
         private SkipWinI2cDeviceSynchImplOnSimple(I2cDeviceSynchSimple simple, boolean isSimpleOwned) {
@@ -197,7 +199,12 @@ public class Gyro {
         return deltaAngle; //globalAngle;
     }
 
-    public void turn(int degrees, double power, LinearOpMode caller){
+    public void turn(int degrees, double power, LinearOpMode caller) {
+        turn(degrees, power, 0, caller);
+    }
+
+    public void turn(int degrees, double power, int timeoutMS, LinearOpMode caller){
+
         //set to 0 heading first
 //        correct();
         int lastDesiredHeading = desiredHeading;
@@ -250,6 +257,8 @@ public class Gyro {
         robot.rightDriveBack.setPower(rightPower);
         robot.rightDriveFront.setPower(rightPower);
 
+        runtime.reset();
+
         while (true){
             current = (int)this.getHeading();
             if (lastDesiredHeading > 0 && current < 0){
@@ -264,6 +273,9 @@ public class Gyro {
                 robot.leftDriveFront.setPower(minLeftSpeed);
                 robot.rightDriveBack.setPower(minRighSpeed);
                 robot.rightDriveFront.setPower(minRighSpeed);
+            }
+            if (timeoutMS > 0 && timeoutMS <= runtime.milliseconds()){
+                break;
             }
             if (!caller.opModeIsActive() || (right && current <= getDesiredHeading())
                     || (left && (current >= getDesiredHeading() || (getDesiredHeading() == 180 && current < 0)))){
@@ -303,8 +315,6 @@ public class Gyro {
         // restart imu movement tracking.
         resetAngle();
 
-        // getAngle() returns + when rotating counter clockwise (left) and - when rotating
-        // clockwise (right).
 
         double minLeftSpeed = 0.3;
         double minRighSpeed = 0.3;
@@ -424,12 +434,18 @@ public class Gyro {
             rightPower = power;
             robot.rightDriveBack.setPower(rightPower);
             robot.rightDriveFront.setPower(rightPower);
+
+            robot.leftDriveBack.setPower(leftPower);
+            robot.leftDriveFront.setPower(leftPower);
         }
         else if (degrees > 0)
         {   // turn left.
             leftPower = power;
             robot.leftDriveBack.setPower(leftPower);
             robot.leftDriveFront.setPower(leftPower);
+
+            robot.rightDriveBack.setPower(rightPower);
+            robot.rightDriveFront.setPower(rightPower);
         }
         else return;
 
@@ -943,5 +959,9 @@ public class Gyro {
 
     public int getDesiredHeading() {
         return desiredHeading;
+    }
+
+    public void setDesiredHeading(int desired) {
+        desiredHeading = desired;
     }
 }

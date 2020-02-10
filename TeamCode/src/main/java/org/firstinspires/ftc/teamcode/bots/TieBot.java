@@ -12,6 +12,7 @@ import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.teamcode.gamefield.GameStats;
 import org.firstinspires.ftc.teamcode.skills.DetectionInterface;
 import org.firstinspires.ftc.teamcode.skills.Gyro;
 
@@ -450,7 +451,7 @@ public class TieBot {
 
     public void encoderDrive(double speed,
                              double leftInches, double rightInches,
-                             double timeoutS, LinearOpMode caller) {
+                             double timeoutMS, LinearOpMode caller) {
 
         try {
             // Determine new target position, and pass to motor controller
@@ -487,7 +488,7 @@ public class TieBot {
             boolean leftMove = leftInches != 0;
             boolean rightMove = rightInches != 0;
             while (!stop) {
-                boolean timeUp = timeoutS > 0 && runtime.seconds() >= timeoutS;
+                boolean timeUp = timeoutMS > 0 && runtime.milliseconds() >= timeoutMS;
                 stop = !caller.opModeIsActive() || timeUp || ((leftMove && !this.leftDriveBack.isBusy()) || (rightMove && !this.rightDriveBack.isBusy())
                 || (leftMove && !this.leftDriveFront.isBusy()) || (rightMove && !this.rightDriveFront.isBusy()));
 
@@ -968,7 +969,7 @@ public class TieBot {
         if (intakeLeft != null && intakeRight != null) {
             intakeLeft.setDirection(DcMotor.Direction.REVERSE);
             intakeRight.setDirection(DcMotor.Direction.FORWARD);
-            double power = Range.clip(drive, 0, 1.0);
+            double power = Range.clip(drive, 0, 0.5);
             intakeLeft.setPower(power);
             intakeRight.setPower(power);
         }
@@ -978,7 +979,7 @@ public class TieBot {
         if (intakeLeft != null && intakeRight != null) {
             intakeLeft.setDirection(DcMotor.Direction.FORWARD);
             intakeRight.setDirection(DcMotor.Direction.REVERSE);
-            double power = Range.clip(drive, 0, 1.0);
+            double power = Range.clip(drive, 0, 0.5);
             intakeLeft.setPower(power);
             intakeRight.setPower(power);
         }
@@ -1139,8 +1140,8 @@ public class TieBot {
     public void hookTray(boolean lock){
         if (hookRight != null && hookLeft != null) {
             if (lock) {
-                this.hookRight.setPosition(0);
-                this.hookLeft.setPosition(1);
+                this.hookRight.setPosition(0.2);
+                this.hookLeft.setPosition(0.8);
             }
             else
             {
@@ -1283,5 +1284,43 @@ public class TieBot {
                 this.getGyro().turn(head, 0.4, caller);
             }
         }
+    }
+
+    public double curveToPath(int far, int close, double toWall, LinearOpMode caller, boolean dryrun){
+        double travel = -1;
+        int head = this.getGyro().getDesiredHeading();
+        double longCat = GameStats.TILE_WIDTH;
+        if(toWall > far){
+            double catet = toWall - far;
+            travel = Math.sqrt(longCat*longCat + catet * catet);
+            double t = catet/longCat;
+            double rads = Math.atan(t);
+            double degrees =  Math.toDegrees(rads);
+            if (!dryrun) {
+                this.getGyro().pivotReverse((int)(degrees + head), -0.7, caller);
+                stop();
+                move(0.7, -travel / 2);
+                this.getGyro().pivotForward(head + 2, -0.8, caller);
+            }
+            this.stop();
+
+        }
+        else if (toWall < close){
+            double catet = close - toWall;
+            travel = Math.sqrt(longCat*longCat + catet * catet);
+            double t = catet/longCat;
+            double rads = Math.atan(t);
+            double degrees =  Math.toDegrees(rads);
+
+            if (!dryrun) {
+                this.getGyro().pivotForward((int)(head - degrees), -0.8, caller);
+                stop();
+                move(0.7, -travel / 2);
+                this.getGyro().pivotReverse(head, -0.8, caller);
+            }
+            this.stop();
+
+        }
+        return travel;
     }
 }

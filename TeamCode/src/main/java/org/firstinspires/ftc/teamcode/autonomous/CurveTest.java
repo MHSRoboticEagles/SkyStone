@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 
 @Autonomous(name="CurveTest", group ="Robot15173")
-//@Disabled
+@Disabled
 public class CurveTest extends AutoBase {
     @Override
     public void runOpMode() throws InterruptedException {
@@ -23,26 +23,8 @@ public class CurveTest extends AutoBase {
             robot.getGyro().turn(87, 0.8, this);
             sleep(200);
             double toWall = robot.getRangetoObstacleLeft();
-            double currentHead = 0;
-            double back = 0;
-            if(toWall > 26){
-                double longCat = 24;
-                double catet = toWall - 26;
-                double travel = Math.sqrt(longCat*longCat + catet * catet);
-                double t = catet/longCat;
-                double rads = Math.atan(t);
-                double degrees =  Math.toDegrees(rads);
-                robot.getGyro().pivotReverse((int)(degrees + 90), -0.7, this);
-                move(0.7, -travel/2);
-                currentHead = robot.getGyro().getHeading();
-                robot.getGyro().pivotForward(92, -0.8, this);
-                robot.stop();
-                back = robot.getRangetoObstacleBack();
-            }
-
-            telemetry.addData("CurrentHead", currentHead);
+            curveToPath(26, 20, toWall);
             telemetry.addData("Wall", toWall);
-            telemetry.addData("back", back);
             telemetry.update();
 
             sleep(20000);
@@ -53,6 +35,33 @@ public class CurveTest extends AutoBase {
         }
         finally {
             stopStoneDetection();
+        }
+    }
+
+    public void curveToPath(int far, int close, double toWall){
+        int head = robot.getGyro().getDesiredHeading();
+        double longCat = 24;
+        if(toWall > far){
+            double catet = toWall - far;
+            double travel = Math.sqrt(longCat*longCat + catet * catet);
+            double t = catet/longCat;
+            double rads = Math.atan(t);
+            double degrees =  Math.toDegrees(rads);
+            robot.getGyro().pivotReverse((int)(degrees + head), -0.7, this);
+            move(0.7, -travel/2);
+            robot.getGyro().pivotForward(head + 2, -0.8, this);
+            robot.stop();
+        }
+        else if (toWall < close){
+            double catet = close - toWall;
+            double travel = Math.sqrt(longCat*longCat + catet * catet);
+            double t = catet/longCat;
+            double rads = Math.atan(t);
+            double degrees =  Math.toDegrees(rads);
+            robot.getGyro().pivotForward((int)(head - degrees), -0.8, this);
+            move(0.7, -travel/2);
+            robot.getGyro().pivotReverse(head, -0.8, this);
+            robot.stop();
         }
     }
 

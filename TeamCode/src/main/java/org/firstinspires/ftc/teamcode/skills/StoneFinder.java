@@ -23,7 +23,7 @@ public class StoneFinder {
     private float stoneTop = -1;
     private double angle = 0;
     private double distanceToObject = -1;
-    private double realWidth = 8;
+    public static final double STONE_WIDTH = 8;
     private double focalength = 999;
     private static final String LABEL_SKYSTONE = "Skystone";
     private static final double CAMERA_HEIGHT = 11;
@@ -82,7 +82,7 @@ public class StoneFinder {
                             stoneWidth = recognition.getWidth();
                             stoneTop = recognition.getTop();
                             angle = recognition.estimateAngleToObject(AngleUnit.RADIANS);
-                            setDistanceToObject(focalength * realWidth / stoneWidth);
+                            setDistanceToObject(focalength * STONE_WIDTH / stoneWidth);
                             break;
                         }
                     }
@@ -96,6 +96,48 @@ public class StoneFinder {
 
         return found;
     }
+
+    public boolean detectStoneContinous(Telemetry telemetry, LinearOpMode caller){
+        boolean found = false;
+
+
+
+        if (tfod != null) {
+            // getUpdatedRecognitions() will return null if no new information is available since
+            // the last time that call was made.
+            List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
+            if (updatedRecognitions != null) {
+                telemetry.addData("# Object Detected", updatedRecognitions.size());
+
+                // step through the list of recognitions and display boundary info.
+                int i = 0;
+                for (Recognition recognition : updatedRecognitions) {
+                    telemetry.addData(String.format("label (%d)", i), recognition.getLabel());
+                    telemetry.addData(String.format("  left,top (%d)", i), "%.03f , %.03f",
+                            recognition.getLeft(), recognition.getTop());
+                    telemetry.addData(String.format("  right,bottom (%d)", i), "%.03f , %.03f",
+                            recognition.getRight(), recognition.getBottom());
+                    telemetry.addData(String.format("  Width/height (%d)", i), "%.03f , %.03f, %d , %d",
+                            recognition.getWidth(), recognition.getHeight(), recognition.getImageWidth(), recognition.getImageHeight());
+                    if (recognition.getLabel().contentEquals(LABEL_SKYSTONE)) {
+                        found = true;
+                        telemetry.addData("Found", found);
+                        stoneLeft = recognition.getLeft();
+                        stoneWidth = recognition.getWidth();
+                        stoneTop = recognition.getTop();
+                        angle = recognition.estimateAngleToObject(AngleUnit.RADIANS);
+                        setDistanceToObject(focalength * STONE_WIDTH / stoneWidth);
+                        break;
+                    }
+                }
+                telemetry.update();
+            }
+        }
+
+
+        return found;
+    }
+
 
 
     public float getStoneLeft() {

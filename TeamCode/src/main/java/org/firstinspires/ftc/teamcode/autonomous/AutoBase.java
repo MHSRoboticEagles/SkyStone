@@ -205,9 +205,13 @@ public abstract class AutoBase extends LinearOpMode {
 
 
     protected void move(double speed, double moveTo){
+       move(speed, moveTo, 0);
+    }
+
+    protected void move(double speed, double moveTo, int timeoutMS){
         telemetry.addData("Auto", "Distance = %.2f", moveTo);
         telemetry.update();
-        robot.encoderDrive(speed, moveTo, moveTo,0, this);
+        robot.encoderDrive(speed, moveTo, moveTo, timeoutMS, this);
     }
 
 //    protected void moveDetect(double speed, double moveTo){
@@ -294,7 +298,7 @@ public abstract class AutoBase extends LinearOpMode {
 
     protected double moveBackUntil(double speed, int moveUntil, int max, boolean stop){
         double start = robot.getRangetoObstacleBack();
-        if (start < 0 || (moveUntil <= start + 2  && moveUntil >= start -2)){
+        if (start < 0 || (moveUntil <= start + 1  && moveUntil >= start - 1)){
             return 0;
         }
         boolean closer = moveUntil < start;
@@ -332,56 +336,6 @@ public abstract class AutoBase extends LinearOpMode {
         return diff;
     }
 
-    protected void moveBackUntilStern(double speed, int moveUntil, int max, boolean stop){
-        double start = robot.getRangetoObstacleBack();
-        telemetry.addData("start back", start);
-        telemetry.addData("moveUntil", moveUntil);
-        telemetry.update();
-        if (start < 0 || (moveUntil <= start + 2  && moveUntil >= start -2)){
-            return;
-        }
-        boolean closer = moveUntil < start;
-
-        if (!closer){
-            speed = -speed;
-        }
-        robot.move(speed, 0);
-//        int pos = robot.rightDriveFront.getCurrentPosition();
-//        int target = pos + robot.getDriveIncrement(max);
-
-        while (true){
-            double range = robot.getRangetoObstacleBack();
-            telemetry.addData("rangeBack", range);
-
-//            int current = robot.rightDriveFront.getCurrentPosition();
-//            telemetry.addData("current", current);
-//            telemetry.addData("target", target);
-            telemetry.update();
-//            if (closer) {
-//                if (range > 0 && (range <= moveUntil || Math.abs(current) > Math.abs(target))) {
-//                    break;
-//                }
-//            }
-//            else{
-//                if (range > 0 && (range >= moveUntil || Math.abs(current) > Math.abs(target))) {
-//                    break;
-//                }
-//            }
-            if (closer) {
-                if (range > -1 && range <= moveUntil ) {
-                    break;
-                }
-            }
-            else{
-                if (range > -1 && range >= moveUntil) {
-                    break;
-                }
-            }
-        }
-        if (stop) {
-            robot.stop();
-        }
-    }
 
     protected void strafe(double speed, double moveTo){
         telemetry.addData("Auto", "Distance = %.2f", moveTo);
@@ -465,4 +419,66 @@ public abstract class AutoBase extends LinearOpMode {
         this.robot.swivelStone(false);
         this.robot.encoderCrane(1, -11, 5);
     }
+
+    public void aimAtStone(double power){
+
+        StoneFinder sf = new StoneFinder(tfod);
+        boolean found = sf.detectStoneContinous(telemetry, this);
+        if (!found){
+            return;
+        }
+
+        double degrees = sf.getAngle();
+
+        double  leftPower = 0, rightPower = 0;
+
+
+        boolean left = false;
+        boolean right = false;
+        if (degrees > 0){
+            //turn left
+            right = true;
+
+        }
+        else if (degrees < 0){
+            left = true;
+        }
+        else{
+            return;
+        }
+
+
+        if (right)
+        {   // turn right.
+            rightPower = power;
+            robot.rightDriveBack.setPower(rightPower);
+            robot.rightDriveFront.setPower(rightPower);
+
+            robot.leftDriveBack.setPower(-rightPower);
+            robot.leftDriveFront.setPower(-rightPower);
+        }
+        else if (left)
+        {   // turn left.
+            leftPower = power;
+            robot.leftDriveBack.setPower(leftPower);
+            robot.leftDriveFront.setPower(leftPower);
+
+            robot.rightDriveBack.setPower(-leftPower);
+            robot.rightDriveFront.setPower(-leftPower);
+        }
+        else return;
+
+
+
+        while (true){
+            sf.detectStoneContinous(telemetry, this);
+            degrees = sf.getAngle();
+            if (!opModeIsActive() || (left && degrees >=0)
+                    || (right && degrees <= 0)){
+                break;
+            }
+        }
+
+    }
+
 }
