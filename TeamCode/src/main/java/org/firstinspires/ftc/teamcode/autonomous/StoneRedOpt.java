@@ -8,7 +8,7 @@ import org.firstinspires.ftc.teamcode.skills.StoneFinder;
 
 
 @Autonomous(name = "Stone Red", group = "Robot15173")
-//@Disabled
+@Disabled
 public class StoneRedOpt extends AutoBase {
     @Override
     public void runOpMode() throws InterruptedException {
@@ -76,6 +76,7 @@ public class StoneRedOpt extends AutoBase {
 
             //get close to the stone
             move(0.8, approach);
+            robot.moveIntake(1);
             //turn intake on and move forward
             move(0.5, -20);
 
@@ -95,17 +96,16 @@ public class StoneRedOpt extends AutoBase {
             //approach the wall
             sleep(100);
             moveBackUntil(0.7, 18, 18, true);
-            double toWall = robot.getRangetoObstacleLeft();
 
             //turn toward the tray
             robot.getGyro().turnAndExtend(170, 0.8, false, this);
             robot.toggleStoneLock(true);
-//            robot.moveIntake(0);
+            robot.moveIntake(0);
 
             //move the linear extrusion out
             robot.preMoveCrane(1, 10);
 
-            //aproach the tray
+            //approach the tray
             sleep(200);
             double pushed = moveBackUntil(0.7, 1, 20, true);
 
@@ -154,7 +154,7 @@ public class StoneRedOpt extends AutoBase {
 
             //measure distance to the red alliance wall
             sleep(200);
-            toWall = robot.getRangetoObstacleLeft();
+            double toWall = robot.getRangetoObstacleLeft();
 
             // swerve back on course if needed
             double traveled = -1;
@@ -196,8 +196,10 @@ public class StoneRedOpt extends AutoBase {
 //            }
 
             move(0.9, -retreat);
+            robot.moveIntake(1);
 
             robot.getGyro().pivotBackReverse(55, 0.6, this);
+            robot.moveIntake(0);
 
             robot.getGyro().pivot(88, 0.7, this);
             move(0.9, retreat - 45);

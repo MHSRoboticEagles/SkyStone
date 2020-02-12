@@ -105,17 +105,18 @@ public class StoneRecTest extends LinearOpMode {
             StoneFinder sf = new StoneFinder(tfod);
             // run until the end of the match (driver presses STOP)
             while (opModeIsActive()) {
-                if (!skyFound) {
 
-                    skyFound = sf.detectStone(2, telemetry, this);
 
+                skyFound = sf.detectStoneContinous(telemetry, this);
+                if(skyFound) {
+
+                    telemetry.addData("Rec", "Left: %2f", sf.getStoneLeft());
+                    telemetry.addData("Rec", "Width: %2f", sf.getStoneWidth());
+                    telemetry.addData("Rec", "Top: %2f", sf.getStoneTop());
+                    telemetry.addData("Rec", "Angle: %2f", sf.getAngle());
+                    telemetry.addData("Rec", "Distance: %2f", sf.getDistanceToObject());
+                    telemetry.update();
                 }
-                telemetry.addData("Rec", "Left: %2f", sf.getStoneLeft());
-                telemetry.addData("Rec", "Width: %2f", sf.getStoneWidth());
-                telemetry.addData("Rec", "Top: %2f", sf.getStoneTop());
-                telemetry.addData("Rec", "Angle: %2f", sf.getAngle());
-                telemetry.addData("Rec", "Distance: %2f", sf.getDistanceToObject());
-                telemetry.update();
             }
         }
         catch (Exception ex){

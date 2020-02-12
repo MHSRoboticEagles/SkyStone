@@ -62,6 +62,7 @@ public class RangeTest extends LinearOpMode {
     public void runOpMode() {
         try {
             robot.init(hardwareMap, telemetry);
+            robot.initSensors();
 
             waitForStart();
             while (opModeIsActive()) {

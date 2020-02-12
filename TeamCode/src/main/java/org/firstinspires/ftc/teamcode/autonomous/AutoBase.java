@@ -7,6 +7,7 @@ import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 import org.firstinspires.ftc.teamcode.bots.TieBot;
+import org.firstinspires.ftc.teamcode.gamefield.GameStats;
 import org.firstinspires.ftc.teamcode.skills.DetectionInterface;
 import org.firstinspires.ftc.teamcode.skills.StoneFinder;
 
@@ -315,7 +316,7 @@ public abstract class AutoBase extends LinearOpMode {
             telemetry.addData("rangeBack", range);
             int current = robot.rightDriveFront.getCurrentPosition();
             if (closer) {
-                if (range > -1 && (range <= moveUntil || Math.abs(current) > Math.abs(target))) {
+                if (range > -1 && (range <= moveUntil + 0.5 || Math.abs(current) > Math.abs(target))) {
                     break;
                 }
             }
@@ -478,6 +479,9 @@ public abstract class AutoBase extends LinearOpMode {
                 break;
             }
         }
+        robot.stop();
+        double distance = sf.getDistanceToObject();
+        move(0.5, distance + GameStats.TILE_WIDTH/12);
 
     }
 

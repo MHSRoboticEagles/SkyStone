@@ -1288,10 +1288,11 @@ public class TieBot {
 
     public double curveToPath(int far, int close, double toWall, LinearOpMode caller, boolean dryrun){
         double travel = -1;
+        int middle = far - close;
         int head = this.getGyro().getDesiredHeading();
         double longCat = GameStats.TILE_WIDTH;
         if(toWall > far){
-            double catet = toWall - far;
+            double catet = toWall - middle;
             travel = Math.sqrt(longCat*longCat + catet * catet);
             double t = catet/longCat;
             double rads = Math.atan(t);
@@ -1306,7 +1307,7 @@ public class TieBot {
 
         }
         else if (toWall < close){
-            double catet = close - toWall;
+            double catet = middle - toWall;
             travel = Math.sqrt(longCat*longCat + catet * catet);
             double t = catet/longCat;
             double rads = Math.atan(t);

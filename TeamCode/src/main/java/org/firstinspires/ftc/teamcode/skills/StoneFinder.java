@@ -125,7 +125,7 @@ public class StoneFinder {
                         stoneLeft = recognition.getLeft();
                         stoneWidth = recognition.getWidth();
                         stoneTop = recognition.getTop();
-                        angle = recognition.estimateAngleToObject(AngleUnit.RADIANS);
+                        angle = recognition.estimateAngleToObject(AngleUnit.DEGREES);
                         setDistanceToObject(focalength * STONE_WIDTH / stoneWidth);
                         break;
                     }
