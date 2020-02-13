@@ -28,6 +28,7 @@ public class StoneRed extends AutoBase {
 
     @Override
     protected void act() {
+        runtime.reset();
         super.act();
         try {
             int start = 10;
@@ -61,7 +62,7 @@ public class StoneRed extends AutoBase {
                     case 6:
                         robot.getGyro().pivotReverse(12, -0.7, this);
                         approach = -15;
-                        backUp = 12;
+                        backUp = 14;
                         runToZone = 64;
                         break;
                     case 5:
@@ -189,55 +190,64 @@ public class StoneRed extends AutoBase {
             else if (skyStoneIndex == 4){
                 retreat += StoneFinder.STONE_WIDTH * 2;
             }
-            double elapsed = getRuntime();
 
-            move(0.9, -retreat);
-
-            toWall = robot.getRangetoObstacleLeft();
-            robot.moveIntake(1);
-
-            robot.getGyro().pivotBackReverse(62, 0.8, this);
-            move(0.6, -15);
-            move(0.8, 10);
-
-            robot.moveIntake(0);
-
-
-            robot.getGyro().pivot(85, 0.7, this);
-            robot.autoLockStone();
-
-            move(0.9, retreat - 45);
-            //move the linear extrusion out
-            robot.preMoveCrane(1, 10);
-
-            move(0.9, 30);
-
-            //stop the crane
-            robot.postMoveCrane();
-
-            //position the stone
-            robot.swivelStone(true);
-            move(0.9, 10);
-            robot.toggleStoneLock(false);
-            robot.swivelStone(false);
-            move(0.9, -10);
-            // start removing the crane
-            robot.preMoveCrane(1, -10);
-            move(0.9, 30);
-            robot.postMoveCrane();
-
-
-
-            telemetry.addData("elapsed", elapsed);
+            //// pause start
+            telemetry.addData("Elapsed (ms)", runtime.milliseconds());
             telemetry.addData("Retreat", retreat);
             telemetry.addData("traveled", traveled);
             telemetry.addData("Wall", toWall);
             telemetry.addData("Sky Stone", skyStoneIndex);
-//            telemetry.addData("Back", back);
+            telemetry.addData("Back", back);
 
             telemetry.update();
-
             sleep(20000);
+
+            //// ens pause
+
+            move(0.9, -retreat);
+
+            sleep(100);
+            toWall = robot.getRangetoObstacleLeft();
+            StoneFinder sf  = getStoneLocation();
+            if (sf != null){
+
+            }
+//            robot.moveIntake(1);
+//
+//            robot.getGyro().pivotBackReverse(62, 0.8, this);
+//            move(0.6, -15);
+//            move(0.8, 10);
+//
+//            robot.moveIntake(0);
+//
+//
+//            robot.getGyro().pivot(85, 0.7, this);
+//            robot.autoLockStone();
+//
+//            move(0.9, retreat - 45);
+//            //move the linear extrusion out
+//            robot.preMoveCrane(1, 10);
+//
+//            move(0.9, 30);
+//
+//            //stop the crane
+//            robot.postMoveCrane();
+//
+//            //position the stone
+//            robot.swivelStone(true);
+//            move(0.9, 10);
+//            robot.toggleStoneLock(false);
+//            robot.swivelStone(false);
+//            move(0.9, -10);
+//            // start removing the crane
+//            robot.preMoveCrane(1, -10);
+//            move(0.9, 30);
+//            robot.postMoveCrane();
+
+
+
+
+
 
         }
         catch (Exception ex){

@@ -449,6 +449,12 @@ public class TieBot {
         }
     }
 
+    public boolean motorsBusy(){
+        return this.leftDriveBack.isBusy() && this.rightDriveBack.isBusy()
+                && this.leftDriveFront.isBusy() && this.rightDriveFront.isBusy();
+
+    }
+
     public void encoderDrive(double speed,
                              double leftInches, double rightInches,
                              double timeoutMS, LinearOpMode caller) {
@@ -507,6 +513,59 @@ public class TieBot {
             telemetry.addData("Issues running with encoders to position", ex);
             telemetry.update();
         }
+    }
+
+    public void encoderStartMove(double speed,
+                             double leftInches, double rightInches,
+                             double timeoutMS, LinearOpMode caller) {
+
+        try {
+            // Determine new target position, and pass to motor controller
+            int newLeftTarget = this.leftDriveBack.getCurrentPosition() + (int) (leftInches * COUNTS_PER_INCH_REV);
+            int newRightTarget = this.rightDriveBack.getCurrentPosition() + (int) (rightInches * COUNTS_PER_INCH_REV);
+            int newLeftFrontTarget = this.leftDriveFront.getCurrentPosition() + (int) (leftInches * COUNTS_PER_INCH_REV);
+            int newRightFrontTarget = this.rightDriveFront.getCurrentPosition() + (int) (rightInches * COUNTS_PER_INCH_REV);
+
+            this.leftDriveBack.setTargetPosition(newLeftTarget);
+            this.rightDriveBack.setTargetPosition(newRightTarget);
+            this.leftDriveFront.setTargetPosition(newLeftFrontTarget);
+            this.rightDriveFront.setTargetPosition(newRightFrontTarget);
+
+
+            // Turn On RUN_TO_POSITION
+            leftDriveBack.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            rightDriveBack.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            leftDriveFront.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            rightDriveFront.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+            ((DcMotorEx)(this.leftDriveBack)).setTargetPositionTolerance((int)COUNTS_PER_INCH_REV);
+            ((DcMotorEx)(this.rightDriveBack)).setTargetPositionTolerance((int)COUNTS_PER_INCH_REV);
+            ((DcMotorEx)(this.leftDriveFront)).setTargetPositionTolerance((int)COUNTS_PER_INCH_REV);
+            ((DcMotorEx)(this.rightDriveFront)).setTargetPositionTolerance((int)COUNTS_PER_INCH_REV);
+
+            // reset the timeout time and start motion.
+            runtime.reset();
+            this.leftDriveBack.setPower(Math.abs(speed));
+            this.rightDriveBack.setPower(Math.abs(speed));
+            this.leftDriveFront.setPower(Math.abs(speed));
+            this.rightDriveFront.setPower(Math.abs(speed));
+        }
+        catch (Exception ex){
+            telemetry.addData("Issues running with encoders to position", ex);
+            telemetry.update();
+        }
+    }
+
+    public void encoderStopMove(){
+
+        this.stop();
+
+
+        // Turn off RUN_TO_POSITION
+        leftDriveBack.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightDriveBack.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        leftDriveFront.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightDriveFront.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
 
     public void encoderDriveGyro(double speed,
@@ -1109,12 +1168,12 @@ public class TieBot {
             boolean detected = false;
             while (!stop) {
                 boolean timeUp = timeoutS > 0 && runtime.seconds() >= timeoutS;
-                stop = !caller.opModeIsActive() || timeUp || detected || ((leftMove && !this.leftDriveBack.isBusy()) || (rightMove && !this.rightDriveBack.isBusy())
+                stop = !caller.opModeIsActive() || timeUp || ((leftMove && !this.leftDriveBack.isBusy()) || (rightMove && !this.rightDriveBack.isBusy())
                         || (leftMove && !this.leftDriveFront.isBusy()) || (rightMove && !this.rightDriveFront.isBusy()));
-                telemetry.addData("Info", "Calling detect");
                 detected = callback.detect();
-                telemetry.update();
-
+                if (detected){
+                    break;
+                }
             }
 
             this.stop();
@@ -1288,8 +1347,10 @@ public class TieBot {
 
     public double curveToPath(int far, int close, double toWall, LinearOpMode caller, boolean dryrun){
         double travel = -1;
-        int middle = far - close;
+        int middle = close + (far - close)/2;
         int head = this.getGyro().getDesiredHeading();
+        double distanceReductionClose  = GameStats.ROBOT_SIDE*2/3;
+        double distanceReductionFar = GameStats.ROBOT_SIDE;
         double longCat = GameStats.TILE_WIDTH;
         if(toWall > far){
             double catet = toWall - middle;
@@ -1298,10 +1359,10 @@ public class TieBot {
             double rads = Math.atan(t);
             double degrees =  Math.toDegrees(rads);
             if (!dryrun) {
-                this.getGyro().pivotReverse((int)(degrees + head), -0.7, caller);
+                this.getGyro().pivotForward((int)(degrees + head), -0.8, caller);
                 stop();
-                move(0.7, -travel / 2);
-                this.getGyro().pivotForward(head + 2, -0.8, caller);
+                encoderDrive(-0.8, -(travel - distanceReductionFar), -(travel - distanceReductionFar), 0, caller);
+                this.getGyro().pivotForward(head + 5, -0.8, caller);
             }
             this.stop();
 
@@ -1316,12 +1377,63 @@ public class TieBot {
             if (!dryrun) {
                 this.getGyro().pivotForward((int)(head - degrees), -0.8, caller);
                 stop();
-                move(0.7, -travel / 2);
-                this.getGyro().pivotReverse(head, -0.8, caller);
+                telemetry.addData("Current", getGyro().getHeading());
+                telemetry.addData("Desired", head);
+                encoderDrive(-0.8, -(travel - distanceReductionClose), -(travel - distanceReductionClose), 0, caller);
+                this.getGyro().pivotForward(head - 5 , -0.8, caller);
             }
             this.stop();
 
         }
+        telemetry.addData("Travel", travel);
+        telemetry.addData("Middle", middle);
+        telemetry.update();
+        return travel;
+    }
+
+    public double curveToPathReverse(int far, int close, double toWall, LinearOpMode caller, boolean dryrun){
+        double travel = -1;
+        int middle = close + (far - close)/2;
+        int head = this.getGyro().getDesiredHeading();
+        double distanceReduction  = GameStats.ROBOT_SIDE*2/3;
+        double longCat = GameStats.TILE_WIDTH;
+        if(toWall > far){
+            double catet = toWall - middle;
+            travel = Math.sqrt(longCat*longCat + catet * catet);
+            double t = catet/longCat;
+            double rads = Math.atan(t);
+            double degrees =  Math.toDegrees(rads);
+
+            if (!dryrun) {
+                this.getGyro().pivot((int)(head - degrees), -0.8, caller);
+                stop();
+                telemetry.addData("Current", getGyro().getHeading());
+                telemetry.addData("Desired", head);
+                encoderDrive(-0.7, -(travel - distanceReduction), -(travel - distanceReduction), 0, caller);
+                this.getGyro().pivot(head, -0.8, caller);
+            }
+            this.stop();
+
+        }
+        else if (toWall < close){
+            double catet = middle - toWall;
+            travel = Math.sqrt(longCat*longCat + catet * catet);
+            double t = catet/longCat;
+            double rads = Math.atan(t);
+            double degrees =  Math.toDegrees(rads);
+            if (!dryrun) {
+                this.getGyro().pivot((int)(degrees + head), -0.7, caller);
+                stop();
+                encoderDrive(-0.7, -(travel - distanceReduction), -(travel - distanceReduction), 0, caller);
+                this.getGyro().pivot(head, -0.8, caller);
+            }
+
+            this.stop();
+
+        }
+        telemetry.addData("Travel", travel);
+        telemetry.addData("Middle", middle);
+        telemetry.update();
         return travel;
     }
 }

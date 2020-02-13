@@ -1,12 +1,11 @@
 package org.firstinspires.ftc.teamcode.autonomous;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 
-@Autonomous(name="CurveTestForward", group ="Robot15173")
+@Autonomous(name="CurveTestBack", group ="Robot15173")
 //@Disabled
-public class CurveTestBack extends AutoBase {
+public class CurveTestReverse extends AutoBase {
     @Override
     public void runOpMode() throws InterruptedException {
         runAutoMode();
@@ -21,7 +20,8 @@ public class CurveTestBack extends AutoBase {
         super.act();
         try {
             double towall = robot.getRangetoObstacleLeft();
-            robot.curveToPath(26, 21, towall, this, false);
+            robot.curveToPathReverse(26, 21, towall, this, false);
+            robot.getGyro().fixHeading(0.3, this);
             sleep(20000);
         }
         catch (Exception ex){

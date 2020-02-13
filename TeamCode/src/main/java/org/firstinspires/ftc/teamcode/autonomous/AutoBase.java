@@ -25,6 +25,8 @@ public abstract class AutoBase extends LinearOpMode {
     protected float stoneLeft = -1;
     protected float stoneWidth = -1;
     protected float stoneTop = -1;
+    protected double stoneAngle = -999;
+    protected double stoneDistance = -1;
 //    protected  ColorCheck colorChecker = null;
 
     protected int skyStoneIndex = 0; // 1-based
@@ -155,6 +157,36 @@ public abstract class AutoBase extends LinearOpMode {
         return found;
     }
 
+    protected boolean detectStoneMove(double power, double moveTo){
+        robot.encoderStartMove(power, moveTo, moveTo, 0, this);
+        StoneFinder sf = new StoneFinder(tfod);
+        boolean found = false;
+        while (robot.motorsBusy()) {
+            found = sf.detectStoneContinous(telemetry, this);
+            if (found) {
+                stoneAngle = sf.getAngle();
+                stoneDistance = sf.getDistanceToObject();
+                break;
+            }
+        }
+        robot.encoderStopMove();
+        return found;
+    }
+
+
+    protected StoneFinder getStoneLocation(){
+        StoneFinder sf = new StoneFinder(tfod);
+        boolean found = sf.detectStoneContinous(telemetry, this);
+        if (found){
+            stoneLeft = sf.getStoneLeft();
+            stoneWidth = sf.getStoneWidth();
+            stoneTop = sf.getStoneTop();
+            return sf;
+        }
+        return  null;
+
+    }
+
     protected void stopStoneDetection(){
         if (tfod != null) {
             tfod.shutdown();
@@ -215,20 +247,24 @@ public abstract class AutoBase extends LinearOpMode {
         robot.encoderDrive(speed, moveTo, moveTo, timeoutMS, this);
     }
 
-//    protected void moveDetect(double speed, double moveTo){
-//        final StoneFinder sf = new StoneFinder(tfod);
-//        robot.encoderMoveDetect(speed, moveTo, moveTo, 0, telemetry, new DetectionInterface() {
-//            @Override
-//            public boolean detect() {
-//                if (!stoneDetected) {
-//                    stoneDetected = sf.detect(telemetry);
-//                }
-//                return stoneDetected;
-//            }
-//        });
-//
-//        robot.stop();
-//    }
+    protected boolean moveDetect(double speed, double moveTo){
+        stoneDetected = false;
+        final StoneFinder sf = new StoneFinder(tfod);
+        final LinearOpMode caller = this;
+        robot.encoderMoveDetect(speed, moveTo, moveTo, 0, this, new DetectionInterface() {
+            @Override
+            public boolean detect() {
+                telemetry.addData("Info", "Calling detect");
+                stoneDetected = sf.detectStoneContinous(telemetry, caller);
+                telemetry.addData("Found", stoneDetected);
+                telemetry.update();
+                return stoneDetected;
+            }
+        });
+
+        robot.stop();
+        return stoneDetected;
+    }
 
 
 
@@ -421,15 +457,12 @@ public abstract class AutoBase extends LinearOpMode {
         this.robot.encoderCrane(1, -11, 5);
     }
 
-    public void aimAtStone(double power){
+    public void aimAtStone(double power, double angle, double distance){
 
-        StoneFinder sf = new StoneFinder(tfod);
-        boolean found = sf.detectStoneContinous(telemetry, this);
-        if (!found){
-            return;
-        }
+        double degrees = angle;
 
-        double degrees = sf.getAngle();
+        double head = robot.getGyro().getHeading();
+        double targetHead = head;
 
         double  leftPower = 0, rightPower = 0;
 
@@ -439,10 +472,11 @@ public abstract class AutoBase extends LinearOpMode {
         if (degrees > 0){
             //turn left
             right = true;
-
+            targetHead = head - Math.abs(degrees);
         }
         else if (degrees < 0){
             left = true;
+            targetHead = head + Math.abs(degrees);
         }
         else{
             return;
@@ -470,19 +504,13 @@ public abstract class AutoBase extends LinearOpMode {
         else return;
 
 
-
         while (true){
-            sf.detectStoneContinous(telemetry, this);
-            degrees = sf.getAngle();
-            if (!opModeIsActive() || (left && degrees >=0)
-                    || (right && degrees <= 0)){
+            head = robot.getGyro().getHeading();
+            if (!opModeIsActive() || (left && head >= targetHead)
+                    || (right && head <= targetHead)){
                 break;
             }
         }
         robot.stop();
-        double distance = sf.getDistanceToObject();
-        move(0.5, distance + GameStats.TILE_WIDTH/12);
-
     }
-
 }

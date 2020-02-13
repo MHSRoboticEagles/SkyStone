@@ -480,9 +480,8 @@ public class Gyro {
 
         boolean left = false;
         boolean right = false;
-        double cutOff = 0;
+
         if (getDesiredHeading() > current){
-            //turn left
             right = true;
 
         }
@@ -530,20 +529,30 @@ public class Gyro {
 //        correct();
         desiredHeading = degrees;
         double  leftPower = 0, rightPower = 0;
+        int current = (int)this.getHeading();
 
-        // restart imu movement tracking.
-        resetAngle();
+        boolean left = false;
+        boolean right = false;
 
-        // getAngle() returns + when rotating counter clockwise (left) and - when rotating
-        // clockwise (right).
+        if (getDesiredHeading() > current){
+            right = true;
 
-        if (degrees > 0)
+        }
+        else if (getDesiredHeading() < current){
+            left = true;
+        }
+        else{
+            return;
+        }
+
+
+        if (right)
         {   // turn right.
             rightPower = power;
             robot.rightDriveBack.setPower(rightPower);
             robot.rightDriveFront.setPower(rightPower);
         }
-        else if (degrees < 0)
+        else if (left)
         {   // turn left.
             leftPower = power;
             robot.leftDriveBack.setPower(leftPower);
@@ -556,12 +565,12 @@ public class Gyro {
 
 
         while (true){
-            int current = (int)this.getHeading();
+            current = (int)this.getHeading();
             telemetry.addData("current", current);
             telemetry.addData("desired", getDesiredHeading());
             telemetry.update();
-            if (!caller.opModeIsActive() || (degrees < 0 && current <= getDesiredHeading())
-                    || (degrees > 0 && current >=  getDesiredHeading())){
+            if (!caller.opModeIsActive() || (left && current <= getDesiredHeading())
+                    || (right && current >=  getDesiredHeading())){
                 break;
             }
         }
@@ -727,11 +736,6 @@ public class Gyro {
         desiredHeading = degrees;
         double  leftPower = 0, rightPower = 0;
 
-        // restart imu movement tracking.
-        resetAngle();
-
-        // getAngle() returns + when rotating counter clockwise (left) and - when rotating
-        // clockwise (right).
 
         if (degrees < 0)
         {   // turn right.
