@@ -422,14 +422,21 @@ public class Gyro {
 //        correct();
         desiredHeading = degrees;
         double  leftPower = 0, rightPower = 0;
+        int current = (int)this.getHeading();
+        boolean left = false;
+        boolean right = false;
 
-        // restart imu movement tracking.
-        resetAngle();
+        if (desiredHeading < current){
+            right= true;
+        } else if(desiredHeading >current){
+            left = true;
 
-        // getAngle() returns + when rotating counter clockwise (left) and - when rotating
-        // clockwise (right).
+        } else {
+            return;
+        }
 
-        if (degrees < 0)
+
+        if (right)
         {   // turn right.
             rightPower = power;
             robot.rightDriveBack.setPower(rightPower);
@@ -438,7 +445,7 @@ public class Gyro {
             robot.leftDriveBack.setPower(leftPower);
             robot.leftDriveFront.setPower(leftPower);
         }
-        else if (degrees > 0)
+        else if (left)
         {   // turn left.
             leftPower = power;
             robot.leftDriveBack.setPower(leftPower);
@@ -454,21 +461,18 @@ public class Gyro {
 
 
         while (true){
-            int current = (int)this.getHeading();
+            current = (int)this.getHeading();
             telemetry.addData("current", current);
             telemetry.addData("desired", getDesiredHeading());
             telemetry.update();
-            if (!caller.opModeIsActive() || (degrees < 0 && current <= getDesiredHeading())
-                    || (degrees > 0 && current >= getDesiredHeading())){
+            if (!caller.opModeIsActive() || (right && current <= getDesiredHeading())
+                    || (left && current >= getDesiredHeading())){
                 break;
             }
         }
+        robot.stop();
 
 
-        robot.leftDriveBack.setPower(0);
-        robot.leftDriveFront.setPower(0);
-        robot.rightDriveBack.setPower(0);
-        robot.rightDriveFront.setPower(0);
     }
 
     public void pivotForward(int degrees, double power, LinearOpMode caller){

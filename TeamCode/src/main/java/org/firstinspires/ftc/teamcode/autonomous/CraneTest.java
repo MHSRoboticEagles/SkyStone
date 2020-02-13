@@ -27,7 +27,9 @@ public class CraneTest extends AutoBase {
         super.act();
         detectStoneMove(0.9, -75);
         robot.getGyro().pivotForward(-28, -0.8, this);
-        robot.getGyro().pivot(85, 0.8, this);
+        robot.stop();
+        sleep(1000);
+        robot.getGyro().pivot(0, 0.8, this);
     }
 
 }
