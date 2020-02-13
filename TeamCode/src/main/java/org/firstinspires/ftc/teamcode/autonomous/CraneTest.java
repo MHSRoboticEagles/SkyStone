@@ -25,8 +25,9 @@ public class CraneTest extends AutoBase {
     @Override
     protected void act() {
         super.act();
-        detectStoneMove(0.9, -72);
+        detectStoneMove(0.9, -75);
         robot.getGyro().pivotForward(-28, -0.8, this);
+        robot.getGyro().pivot(85, 0.8, this);
     }
 
 }
