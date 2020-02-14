@@ -47,7 +47,7 @@ public class CurveTest extends AutoBase {
             double t = catet/longCat;
             double rads = Math.atan(t);
             double degrees =  Math.toDegrees(rads);
-            robot.getGyro().pivotReverse((int)(degrees + head), -0.7, this);
+            robot.getGyro().pivotForward((int)(degrees + head), -0.7, this);
             move(0.7, -travel/2);
             robot.getGyro().pivotForward(head + 2, -0.8, this);
             robot.stop();
@@ -60,7 +60,7 @@ public class CurveTest extends AutoBase {
             double degrees =  Math.toDegrees(rads);
             robot.getGyro().pivotForward((int)(head - degrees), -0.8, this);
             move(0.7, -travel/2);
-            robot.getGyro().pivotReverse(head, -0.8, this);
+            robot.getGyro().pivotForward(head, -0.8, this);
             robot.stop();
         }
     }

@@ -41,7 +41,7 @@ public class StoneRedOpt extends AutoBase {
             stopStoneDetection();
             if (!found) {
                 skyStoneIndex = 4;
-                robot.getGyro().pivotReverse(30, -0.7, this);
+                robot.getGyro().pivotForward(30, -0.7, this);
                 approach = -27;
                 backUp = 5;
                 runToZone = 59;
@@ -60,13 +60,13 @@ public class StoneRedOpt extends AutoBase {
                 stopStoneDetection();
                 switch (skyStoneIndex) {
                     case 6:
-                        robot.getGyro().pivotReverse(12, -0.7, this);
+                        robot.getGyro().pivotForward(12, -0.7, this);
                         approach = -15;
                         backUp = 1;
                         runToZone = 43;
                         break;
                     case 5:
-                        robot.getGyro().pivotReverse(26, -0.7, this);
+                        robot.getGyro().pivotForward(26, -0.7, this);
                         approach = -15;
                         backUp = 7;
                         runToZone = 48;

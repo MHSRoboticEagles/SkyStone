@@ -419,7 +419,6 @@ public class Gyro {
 
 
     public void pivot(int degrees, double power, LinearOpMode caller){
-//        correct();
         desiredHeading = degrees;
         double  leftPower = 0, rightPower = 0;
         int current = (int)this.getHeading();
@@ -475,6 +474,67 @@ public class Gyro {
 
     }
 
+    public boolean pivot(int degrees, double power, LinearOpMode caller, DetectionInterface callback){
+        desiredHeading = degrees;
+        double  leftPower = 0, rightPower = 0;
+        int current = (int)this.getHeading();
+        boolean left = false;
+        boolean right = false;
+
+        if (desiredHeading < current){
+            right= true;
+        } else if(desiredHeading >current){
+            left = true;
+
+        } else {
+            return false;
+        }
+
+
+        if (right)
+        {   // turn right.
+            rightPower = power;
+            robot.rightDriveBack.setPower(rightPower);
+            robot.rightDriveFront.setPower(rightPower);
+
+            robot.leftDriveBack.setPower(leftPower);
+            robot.leftDriveFront.setPower(leftPower);
+        }
+        else if (left)
+        {   // turn left.
+            leftPower = power;
+            robot.leftDriveBack.setPower(leftPower);
+            robot.leftDriveFront.setPower(leftPower);
+
+            robot.rightDriveBack.setPower(rightPower);
+            robot.rightDriveFront.setPower(rightPower);
+        }
+        else {
+            return false;
+        }
+
+        // set power to rotate.
+
+        boolean detected = false;
+
+        while (true){
+            current = (int)this.getHeading();
+            if (callback != null && !detected){
+                detected = callback.detect();
+            }
+            telemetry.addData("current", current);
+            telemetry.addData("desired", getDesiredHeading());
+            telemetry.update();
+            if (!caller.opModeIsActive() || (right && current <= getDesiredHeading())
+                    || (left && current >= getDesiredHeading())){
+                break;
+            }
+        }
+        robot.stop();
+
+        return detected;
+    }
+
     public void pivotForward(int degrees, double power, LinearOpMode caller){
 //        correct();
         desiredHeading = degrees;
@@ -528,212 +588,6 @@ public class Gyro {
 
     }
 
-
-    public void pivotReverse(int degrees, double power, LinearOpMode caller){
-//        correct();
-        desiredHeading = degrees;
-        double  leftPower = 0, rightPower = 0;
-        int current = (int)this.getHeading();
-
-        boolean left = false;
-        boolean right = false;
-
-        if (getDesiredHeading() > current){
-            right = true;
-
-        }
-        else if (getDesiredHeading() < current){
-            left = true;
-        }
-        else{
-            return;
-        }
-
-
-        if (right)
-        {   // turn right.
-            rightPower = power;
-            robot.rightDriveBack.setPower(rightPower);
-            robot.rightDriveFront.setPower(rightPower);
-        }
-        else if (left)
-        {   // turn left.
-            leftPower = power;
-            robot.leftDriveBack.setPower(leftPower);
-            robot.leftDriveFront.setPower(leftPower);
-        }
-        else return;
-
-        // set power to rotate.
-
-
-
-        while (true){
-            current = (int)this.getHeading();
-            telemetry.addData("current", current);
-            telemetry.addData("desired", getDesiredHeading());
-            telemetry.update();
-            if (!caller.opModeIsActive() || (left && current <= getDesiredHeading())
-                    || (right && current >=  getDesiredHeading())){
-                break;
-            }
-        }
-
-    }
-
-    public void pivotReverse(int degrees, double power, double subpower, LinearOpMode caller){
-//        correct();
-        desiredHeading = degrees;
-        double  leftPower = 0, rightPower = 0;
-
-        // restart imu movement tracking.
-        resetAngle();
-
-        if (power > 0){
-            subpower = -subpower;
-        }
-
-        if (degrees > 0)
-        {   // turn right.
-            rightPower = power;
-
-            robot.rightDriveBack.setPower(rightPower);
-            robot.rightDriveFront.setPower(rightPower);
-
-            robot.leftDriveBack.setPower(subpower);
-            robot.leftDriveFront.setPower(subpower);
-        }
-        else if (degrees < 0)
-        {   // turn left.
-            leftPower = power;
-
-            robot.leftDriveBack.setPower(leftPower);
-            robot.leftDriveFront.setPower(leftPower);
-
-            robot.rightDriveBack.setPower(subpower);
-            robot.rightDriveFront.setPower(subpower);
-        }
-        else return;
-
-        // set power to rotate.
-
-
-
-        while (true){
-            int current = (int)this.getHeading();
-            telemetry.addData("current", current);
-            telemetry.addData("desired", getDesiredHeading());
-            telemetry.update();
-            if (!caller.opModeIsActive() || (degrees < 0 && current <= getDesiredHeading())
-                    || (degrees > 0 && current >=  getDesiredHeading())){
-                break;
-            }
-        }
-
-
-        robot.leftDriveBack.setPower(0);
-        robot.leftDriveFront.setPower(0);
-        robot.rightDriveBack.setPower(0);
-        robot.rightDriveFront.setPower(0);
-    }
-
-    public void pivot(int degrees, double power, double subPower, LinearOpMode caller){
-//        correct();
-        desiredHeading = degrees;
-        double  leftPower = 0, rightPower = 0;
-
-        // restart imu movement tracking.
-        resetAngle();
-
-        // getAngle() returns + when rotating counter clockwise (left) and - when rotating
-        // clockwise (right).
-
-        if (degrees < 0)
-        {   // turn right.
-            rightPower = power;
-            robot.rightDriveBack.setPower(rightPower);
-            robot.rightDriveFront.setPower(rightPower);
-            robot.leftDriveBack.setPower(subPower);
-            robot.leftDriveFront.setPower(subPower);
-        }
-        else if (degrees > 0)
-        {   // turn left.
-            leftPower = power;
-            robot.leftDriveBack.setPower(leftPower);
-            robot.leftDriveFront.setPower(leftPower);
-            robot.rightDriveBack.setPower(subPower);
-            robot.rightDriveFront.setPower(subPower);
-        }
-        else return;
-
-        // set power to rotate.
-
-
-
-        while (true){
-            int current = (int)this.getHeading();
-            telemetry.addData("current", current);
-            telemetry.addData("desired", getDesiredHeading());
-            telemetry.update();
-            if (!caller.opModeIsActive() || (degrees < 0 && current <= getDesiredHeading())
-                    || (degrees > 0 && current >= getDesiredHeading())){
-                break;
-            }
-        }
-
-
-        robot.leftDriveBack.setPower(0);
-        robot.leftDriveFront.setPower(0);
-        robot.rightDriveBack.setPower(0);
-        robot.rightDriveFront.setPower(0);
-    }
-
-    public void pivotBack(int degrees, double power){
-//        correct();
-        desiredHeading = degrees;
-        double  leftPower = 0, rightPower = 0;
-
-        // restart imu movement tracking.
-        resetAngle();
-
-        // getAngle() returns + when rotating counter clockwise (left) and - when rotating
-        // clockwise (right).
-
-        if (degrees < 0)
-        {   // turn right.
-            rightPower = -power;
-            robot.rightDriveBack.setPower(rightPower);
-            robot.rightDriveFront.setPower(rightPower);
-        }
-        else if (degrees > 0)
-        {   // turn left.
-            leftPower = -power;
-            robot.leftDriveBack.setPower(leftPower);
-            robot.leftDriveFront.setPower(leftPower);
-        }
-        else return;
-
-        // set power to rotate.
-
-
-
-        while (true){
-            int current = (int)this.getHeading();
-            telemetry.addData("current", current);
-            telemetry.addData("desired", getDesiredHeading());
-            telemetry.update();
-            if (Math.abs(current) >= Math.abs((int) getDesiredHeading()))
-            {
-                break;
-            }
-        }
-
-
-        robot.leftDriveBack.setPower(0);
-        robot.leftDriveFront.setPower(0);
-        robot.rightDriveBack.setPower(0);
-        robot.rightDriveFront.setPower(0);
-    }
 
     public void pivotBackReverse(int degrees, double power, LinearOpMode caller){
 //        correct();

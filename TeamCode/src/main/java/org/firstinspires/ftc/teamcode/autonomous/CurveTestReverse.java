@@ -20,7 +20,7 @@ public class CurveTestReverse extends AutoBase {
         super.act();
         try {
             double towall = robot.getRangetoObstacleLeft();
-            robot.curveToPathReverse(26, 21, towall, this, false);
+            robot.curveToPathReverse(31, 24, towall, this, false);
             robot.getGyro().fixHeading(0.3, this);
             sleep(20000);
         }

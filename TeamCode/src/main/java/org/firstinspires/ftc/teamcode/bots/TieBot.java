@@ -1346,7 +1346,7 @@ public class TieBot {
     }
 
     public double curveToPath(int far, int close, double toWall, LinearOpMode caller, boolean dryrun){
-        double travel = -1;
+        double travel = 0;
         int middle = close + (far - close)/2;
         int head = this.getGyro().getDesiredHeading();
         double distanceReductionClose  = GameStats.ROBOT_SIDE*2/3;
@@ -1392,10 +1392,11 @@ public class TieBot {
     }
 
     public double curveToPathReverse(int far, int close, double toWall, LinearOpMode caller, boolean dryrun){
-        double travel = -1;
+        double travel = 0;
         int middle = close + (far - close)/2;
         int head = this.getGyro().getDesiredHeading();
         double distanceReduction  = GameStats.ROBOT_SIDE*2/3;
+        double distanceReductionFar = GameStats.ROBOT_SIDE + 1;
         double longCat = GameStats.TILE_WIDTH;
         if(toWall > far){
             double catet = toWall - middle;
@@ -1405,12 +1406,12 @@ public class TieBot {
             double degrees =  Math.toDegrees(rads);
 
             if (!dryrun) {
-                this.getGyro().pivot((int)(head - degrees), -0.8, caller);
+                this.getGyro().pivot((int)(head - degrees), 0.8, caller);
                 stop();
                 telemetry.addData("Current", getGyro().getHeading());
                 telemetry.addData("Desired", head);
-                encoderDrive(-0.7, -(travel - distanceReduction), -(travel - distanceReduction), 0, caller);
-                this.getGyro().pivot(head, -0.8, caller);
+                encoderDrive(-0.7, (travel - distanceReductionFar), (travel - distanceReductionFar), 0, caller);
+                this.getGyro().pivot(head - 5, 0.8, caller);
             }
             this.stop();
 
@@ -1422,10 +1423,10 @@ public class TieBot {
             double rads = Math.atan(t);
             double degrees =  Math.toDegrees(rads);
             if (!dryrun) {
-                this.getGyro().pivot((int)(degrees + head), -0.7, caller);
+                this.getGyro().pivot((int)(degrees + head), 0.7, caller);
                 stop();
-                encoderDrive(-0.7, -(travel - distanceReduction), -(travel - distanceReduction), 0, caller);
-                this.getGyro().pivot(head, -0.8, caller);
+                encoderDrive(-0.7, (travel - distanceReduction), (travel - distanceReduction), 0, caller);
+                this.getGyro().pivot(head + 5, 0.8, caller);
             }
 
             this.stop();

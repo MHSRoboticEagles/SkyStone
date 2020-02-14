@@ -29,7 +29,7 @@ public class StoneRedWall extends AutoBase {
         try {
 //            sleep(2000);
             move(0.5, -50);
-            robot.getGyro().pivotReverse(-90, -0.7, this);
+            robot.getGyro().pivotForward(-90, -0.7, this);
             double moved = intakeStone(0.5,-30);
             robot.getGyro().fixHeading(0.3, this);
             move(0.5, moved );

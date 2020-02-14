@@ -34,7 +34,7 @@ public class StoneRedNoSensor extends AutoBase {
             if (!found){
                 skyStoneIndex = 4;
                 runIncrement = 9;
-                robot.getGyro().pivotReverse(25, -0.7, this);
+                robot.getGyro().pivotForward(25, -0.7, this);
                 move(1, -24);
                 double moved = intakeStone(0.5,-25);
                 move(0.5, moved);
