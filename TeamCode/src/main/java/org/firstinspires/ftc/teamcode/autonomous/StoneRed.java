@@ -29,10 +29,11 @@ public class StoneRed extends AutoBase {
 
     @Override
     protected void act() {
+        int elapsedtime = 0;
         runtime.reset();
         super.act();
         try {
-            int start = 10;
+            int start = 11;
             int approach = 0;
             int backUp = 0;
 
@@ -122,10 +123,10 @@ public class StoneRed extends AutoBase {
             //approach the tray
             sleep(200);
             moveBackUntil(0.7, 1, 20, true);
-
             robot.hookTray(true);
 
             //make sure the crane is fully extended
+            elapsedtime = (int)runtime.milliseconds();
             runtime.reset();
             while (!robot.craneExtended()) {
                 if(!opModeIsActive() || runtime.seconds() > 6) {
@@ -133,6 +134,8 @@ public class StoneRed extends AutoBase {
                 }
             }
 
+            elapsedtime += runtime.milliseconds();
+            runtime.reset();
             //stop the crane
             robot.postMoveCrane();
 
@@ -225,17 +228,21 @@ public class StoneRed extends AutoBase {
             if (toBridge > 0) {
                 move(0.8, toBridge);
             }
-            if (robot.isStoneInside()){
+            elapsedtime += runtime.milliseconds();
+            if (elapsedtime <= 25000 && robot.isStoneInside()){
                 robot.toggleStoneLock(true);
                 robot.preMoveCrane(1, 9);
                 move(0.8, 40);
                 robot.swivelStone(true);
+
                 runtime.reset();
+
                 while (!robot.craneExtended()) {
                     if(!opModeIsActive() || runtime.seconds() > 6) {
                         break;
                     }
                 }
+
                 robot.postMoveCrane();
                 robot.toggleStoneLock(false);
                 robot.swivelStone(false);
@@ -247,7 +254,7 @@ public class StoneRed extends AutoBase {
 
 
             //// pause start
-            telemetry.addData("Elapsed (ms)", runtime.milliseconds());
+            telemetry.addData("Elapsed (ms)", elapsedtime);
             telemetry.addData("Retreat", retreat);
             telemetry.addData("traveled", traveled);
             telemetry.addData("Wall", toWall);

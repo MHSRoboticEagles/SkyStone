@@ -289,6 +289,95 @@ public class Gyro {
         robot.rightDriveFront.setPower(0);
     }
 
+    public void turn(int degrees, double power, int timeoutMS, LinearOpMode caller, DetectionInterface callback){
+
+        //set to 0 heading first
+//        correct();
+        int lastDesiredHeading = desiredHeading;
+        desiredHeading = degrees;
+        int current = lastDesiredHeading; //(int)this.getHeading();
+        double  leftPower = 0, rightPower = 0;
+
+        boolean left = false;
+        boolean right = false;
+        double cutOff = 0;
+        if (getDesiredHeading() > current){
+            //turn left
+            left = true;
+            cutOff = getDesiredHeading() - (getDesiredHeading() - current)/5;
+        }
+        else if (getDesiredHeading() < current){
+            right = true;
+            cutOff = getDesiredHeading() + (current - getDesiredHeading())/5;
+        }
+        else{
+            return;
+        }
+
+        // restart imu movement tracking.
+        resetAngle();
+
+        // getAngle() returns + when rotating counter clockwise (left) and - when rotating
+        // clockwise (right).
+
+        double minLeftSpeed = 0.3;
+        double minRighSpeed = 0.3;
+
+        if (right)
+        {   // turn right.
+            leftPower = -power;
+            rightPower = power;
+            minLeftSpeed = -minLeftSpeed;
+        }
+        else if (left)
+        {   // turn left.
+            leftPower = power;
+            rightPower = -power;
+            minRighSpeed = -minRighSpeed;
+        }
+        else return;
+
+        // set power to rotate.
+        robot.leftDriveBack.setPower(leftPower);
+        robot.leftDriveFront.setPower(leftPower);
+        robot.rightDriveBack.setPower(rightPower);
+        robot.rightDriveFront.setPower(rightPower);
+
+        runtime.reset();
+        boolean detected = false;
+        while (true){
+            current = (int)this.getHeading();
+            if (lastDesiredHeading > 0 && current < 0){
+                continue;
+            }
+            if (callback != null && !detected){
+                detected = callback.detect();
+            }
+            telemetry.addData("current", current);
+            telemetry.addData("desired", getDesiredHeading());
+            telemetry.update();
+            if (current >= cutOff - MAX_TOLERANCE && current <= cutOff + MAX_TOLERANCE){
+                //drop the speed
+                robot.leftDriveBack.setPower(minLeftSpeed);
+                robot.leftDriveFront.setPower(minLeftSpeed);
+                robot.rightDriveBack.setPower(minRighSpeed);
+                robot.rightDriveFront.setPower(minRighSpeed);
+            }
+            if (timeoutMS > 0 && timeoutMS <= runtime.milliseconds()){
+                break;
+            }
+            if (!caller.opModeIsActive() || (right && current <= getDesiredHeading())
+                    || (left && (current >= getDesiredHeading() || (getDesiredHeading() == 180 && current < 0)))){
+                break;
+            }
+        }
+
+        robot.leftDriveBack.setPower(0);
+        robot.leftDriveFront.setPower(0);
+        robot.rightDriveBack.setPower(0);
+        robot.rightDriveFront.setPower(0);
+    }
+
     public void turnAndExtend(int degrees, double power, boolean extend, LinearOpMode caller){
         //set to 0 heading first
 //        correct();
