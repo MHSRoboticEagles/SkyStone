@@ -73,6 +73,8 @@ public class TieBot {
     public static final double ROBOT_LENGTH = 18;
     public static final double ROBOT_WIDTH = 18;
 
+    private boolean reset = false;
+
 
 
     //REV
@@ -93,6 +95,7 @@ public class TieBot {
     /* local OpMode members. */
     HardwareMap hwMap           =  null;
     private ElapsedTime period  = new ElapsedTime();
+    private int craneAdjustment = 0;
 
     /* Constructor */
     public TieBot(){
@@ -914,7 +917,19 @@ public class TieBot {
     public void moveCrane(double drive){
         boolean extend = drive >= 0;
         if (craneDrive != null ) {
-            cranePosition = this.craneDrive.getCurrentPosition();
+            if (extend && reset){
+                //when reset is required and we are extending, we assume that we are at the true 0 position
+                reset = false;
+                //this is the value by which we need to adjust the motor position
+                craneAdjustment = Math.abs(this.craneDrive.getCurrentPosition());
+            }
+            cranePosition = this.craneDrive.getCurrentPosition() + craneAdjustment;
+            if (!extend && cranePosition < 0 && craneAdjustment == 0){
+                // the crane has not started fully inside. need to find out the difference with true 0 position
+                //we will set the flag to measure the adjustment once the crane starts extending next time
+                reset = true;
+            }
+
             if (extend && cranePosition > MAX_CRANE_POS){
                 this.craneDrive.setPower(0);
                 return;
@@ -926,10 +941,7 @@ public class TieBot {
                 this.toggleStoneLock(false);
                 this.swivelStone(false);
             }
-//            if (!extend && cranePosition <= 0){
-//                this.craneDrive.setPower(0);
-//                return;
-//            }
+
             double power = Range.clip(drive, -1.0, 1.0);
 
             this.craneDrive.setPower(power);
