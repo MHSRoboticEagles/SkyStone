@@ -82,6 +82,7 @@ public class StoneRecTest extends LinearOpMode {
     private TFObjectDetector tfod;
 
     private boolean skyFound = false;
+    private StoneFinder sf = null;
 
 
     @Override
@@ -89,9 +90,8 @@ public class StoneRecTest extends LinearOpMode {
         try {
             try {
                 robot.init(this.hardwareMap, telemetry);
-//                robot.getGyro().recordAcceleration();
-                initVuforia();
-                initRec();
+                sf = new StoneFinder(this.hardwareMap, telemetry);
+                sf.initVueRec();
             }
             catch (Exception ex){
                 telemetry.addData("Init", ex.getMessage());
@@ -102,19 +102,14 @@ public class StoneRecTest extends LinearOpMode {
             // Wait for the game to start (driver presses PLAY)
             waitForStart();
             runtime.reset();
-            StoneFinder sf = new StoneFinder(tfod);
             // run until the end of the match (driver presses STOP)
             while (opModeIsActive()) {
 
 
-                skyFound = sf.detectStoneContinous(telemetry, this);
+                skyFound = sf.detectVue(30, this);
                 if(skyFound) {
 
-                    telemetry.addData("Rec", "Left: %2f", sf.getStoneLeft());
-                    telemetry.addData("Rec", "Width: %2f", sf.getStoneWidth());
-                    telemetry.addData("Rec", "Top: %2f", sf.getStoneTop());
-                    telemetry.addData("Rec", "Angle: %2f", sf.getAngle());
-                    telemetry.addData("Rec", "Distance: %2f", sf.getDistanceToObject());
+                    telemetry.addData("Rec", "Vue Left: %2f", sf.getStoneVueLeft());
                     telemetry.update();
                 }
             }

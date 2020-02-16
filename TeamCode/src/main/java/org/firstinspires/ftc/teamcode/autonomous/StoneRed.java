@@ -64,7 +64,7 @@ public class StoneRed extends AutoBase {
                     case 6:
                         robot.getGyro().pivotForward(12, -0.7, this);
                         approach = -15;
-                        backUp = 14;
+                        backUp = 16;
                         runToZone = 64;
                         break;
                     case 5:
@@ -152,11 +152,13 @@ public class StoneRed extends AutoBase {
             // start removing the crane
             robot.preMoveCrane(1, -10);
 
+            //turn the tray
+            robot.getGyro().turn(165, 0.9, this);
+            move(0.8, -5);
             //grab the tray by ine side
             robot.hookTraySide(false, false);
 
-            //turn the tray
-            robot.getGyro().turn(90, 0.9, 2500, this);
+            robot.getGyro().turn(90, 0.9, this);
             //stop the motor of the linear extrusion
             robot.postMoveCrane();
 
@@ -176,7 +178,7 @@ public class StoneRed extends AutoBase {
             double traveled = 0;
 
             if (toWall > -1) {
-                traveled = robot.curveToPath(26, 21, toWall, this, false);
+                traveled = robot.curveToPath(26, 18, toWall, this, false);
             }
 
             //fix the original heading of 90 degrees
@@ -223,13 +225,13 @@ public class StoneRed extends AutoBase {
 
             double walldistance = robot.getRangetoObstacleLeft();
             double backCurve = 0;
-            backCurve = robot.curveToPathReverse(29, 24, walldistance, this, false);
+            backCurve = robot.curveToPathReverse(29, 18, walldistance, this, false);
             double toBridge = retreat - 40 - backCurve;
             if (toBridge > 0) {
                 move(0.8, toBridge);
             }
             elapsedtime += runtime.milliseconds();
-            if (elapsedtime <= 25000 && robot.isStoneInside()){
+            if (elapsedtime <= 26500 && robot.isStoneInside()){
                 robot.toggleStoneLock(true);
                 robot.preMoveCrane(1, 9);
                 move(0.8, 40);
