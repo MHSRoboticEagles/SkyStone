@@ -62,7 +62,7 @@ public class StoneBlue extends AutoBase {
                     case 6:
                         robot.getGyro().pivotForward(-5, -0.7, this);
                         approach = -15;
-                        backUp = 14;
+                        backUp = 10;
                         runToZone = 64;
                         break;
                     case 5:
@@ -76,7 +76,7 @@ public class StoneBlue extends AutoBase {
 
             //get close to the stone
             move(0.8, approach);
-//            robot.moveIntake(1);
+            robot.moveIntake(1);
             //turn intake on and move forward
             move(0.5, -10);
 
@@ -94,10 +94,92 @@ public class StoneBlue extends AutoBase {
                 });
 
             if (robot.autoLockStone()) {
-//                robot.moveIntake(0);
+                robot.moveIntake(0);
             }
 
             robot.getGyro().fixHeading(0.3, this);
+
+            //run to the building zone
+            move(0.9, runToZone - 18);
+            //lock just in case
+            robot.toggleStoneLock(true);
+            robot.moveIntake(0);
+
+            //approach the wall
+            sleep(200);
+            moveBackUntil(0.75, 18, 18, true);
+
+            //turn toward the tray
+            robot.getGyro().turnAndExtend(-170, 0.8, false, this);
+
+            //move the linear extrusion out
+            robot.preMoveCrane(1, 10);
+
+            //approach the tray
+            sleep(200);
+            moveBackUntil(0.7, 1, 20, true);
+            move(0.3, 3);
+
+            // grab tray
+            robot.hookTray(true);
+            sleep(600);
+
+            //make sure the crane is fully extended
+            elapsedtime = (int)runtime.milliseconds();
+            runtime.reset();
+            while (!robot.craneExtended()) {
+                if(!opModeIsActive() || runtime.seconds() > 6) {
+                    break;
+                }
+            }
+
+            elapsedtime += runtime.milliseconds();
+            runtime.reset();
+            //stop the crane
+            robot.postMoveCrane();
+
+            //position the stone
+            robot.swivelStone(true);
+
+            //pull the tray back
+            robot.getGyro().pivotBackReverse(-165, .7, this);
+            move(0.8, -14);
+
+            //release the stone and turn the holder inward
+            robot.toggleStoneLock(false);
+            robot.swivelStone(false);
+
+            robot.hookTraySide(false, true);
+            // start removing the crane
+            robot.preMoveCrane(1, -10);
+
+            //turn the tray
+            robot.getGyro().turn(-85, .7, 2000,this);
+            //unhook the tray
+            robot.hookTray(false);
+
+            //push the tray forward to the wall
+            move(0.8, 7, 600);
+
+            //measure distance to the red alliance wall
+            sleep(200);
+            double toWall = robot.getRangetoObstacleRight();
+
+            // stop crane move
+            robot.postMoveCrane();
+
+            // swerve back on course if needed
+            double traveled = 0;
+
+            if (toWall > -1) {
+                traveled = robot.curveToPath(26, 18, toWall, this, false);
+            }
+
+            //fix the original heading of 90 degrees
+            robot.getGyro().fixHeading(0.3, this);
+
+            move(0.4, -30);
+
 
             telemetry.addData("Elapsed (ms)", elapsedtime);
 //            telemetry.addData("Retreat", retreat);
@@ -108,79 +190,6 @@ public class StoneBlue extends AutoBase {
 
             telemetry.update();
             sleep(25000);
-
-
-            //run to the building zone
-            move(0.9, runToZone - 18);
-            //lock just in case
-//            robot.toggleStoneLock(true);
-//            robot.moveIntake(0);
-
-            //approach the wall
-            sleep(100);
-            moveBackUntil(0.75, 18, 18, true);
-
-            //turn toward the tray
-            robot.getGyro().turnAndExtend(-170, 0.8, false, this);
-
-            //move the linear extrusion out
-//            robot.preMoveCrane(1, 10);
-
-            //approach the tray
-            sleep(200);
-            moveBackUntil(0.7, 1, 20, true);
-            robot.hookTray(true);
-
-
-            //make sure the crane is fully int
-            elapsedtime = (int)runtime.milliseconds();
-            runtime.reset();
-            while (!robot.craneExtended()) {
-                if(!opModeIsActive() || runtime.seconds() > 6) {
-                    break;
-                }
-            }
-
-            elapsedtime += (int)runtime.milliseconds();
-            runtime.reset();
-            //stop the crane
-//            robot.postMoveCrane();
-
-            //position the stone
-//            robot.swivelStone(true);
-
-            //pull the tray back
-            move(0.8, -20);
-
-            //release the stone and turn the holder inward
-//            robot.toggleStoneLock(false);
-//            robot.swivelStone(false);
-
-            // start removing the crane
-//            robot.preMoveCrane(1, -10);
-
-            //grab the tray by ine side
-            robot.hookTraySide(false, false);
-
-            //turn the tray
-            robot.getGyro().turn(90, 0.9, 2500, this);
-            //stop the motor of the linear extrusion
-//            robot.postMoveCrane();
-
-            //unhook the tray
-            robot.hookTray(false);
-
-            //push the tray forward to the wall
-            move(0.8, 5, 300);
-
-            move(0.8, -1);
-
-            //measure distance to the blue alliance wall
-            sleep(200);
-            double toWall = robot.getRangetoObstacleRight();
-
-
-
 
 
 

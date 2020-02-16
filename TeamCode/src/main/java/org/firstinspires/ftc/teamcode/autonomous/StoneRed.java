@@ -143,36 +143,34 @@ public class StoneRed extends AutoBase {
             robot.swivelStone(true);
 
             //pull the tray back
-            move(0.8, -20);
+            robot.getGyro().pivotBackReverse(165, 1, this);
+            move(0.8, -14);
 
             //release the stone and turn the holder inward
             robot.toggleStoneLock(false);
             robot.swivelStone(false);
 
             // start removing the crane
+            robot.hookTraySide(false, false);
             robot.preMoveCrane(1, -10);
 
             //turn the tray
-            robot.getGyro().turn(165, 0.9, this);
-            move(0.8, -5);
-            //grab the tray by ine side
-            robot.hookTraySide(false, false);
-
-            robot.getGyro().turn(90, 0.9, this);
-            //stop the motor of the linear extrusion
-            robot.postMoveCrane();
-
+            robot.getGyro().turn(90, 1, 1500,this);
             //unhook the tray
             robot.hookTray(false);
 
             //push the tray forward to the wall
-            move(0.8, 5, 300);
+            move(0.8, 7, 600);
 
-            move(0.8, -1);
+
+//            move(0.8, -1);
 
             //measure distance to the red alliance wall
             sleep(200);
             double toWall = robot.getRangetoObstacleLeft();
+
+            // stop crane move
+            robot.postMoveCrane();
 
             // swerve back on course if needed
             double traveled = 0;
@@ -187,7 +185,7 @@ public class StoneRed extends AutoBase {
             //measure the distance to the tray wall and calculate how far to go back
             sleep(200);
             double back = robot.getRangetoObstacleBack();
-            double retreat = 68;
+            double retreat = 65;
             if (back > -1){
                 retreat = retreat - back;
             }
@@ -204,51 +202,73 @@ public class StoneRed extends AutoBase {
                 retreat += StoneFinder.STONE_WIDTH * 2;
             }
 
-
+            // we move back for second stone
             move(0.9, -retreat);
 
-
+            // start intake
             robot.moveIntake(1);
-
+            // turn into stone
             robot.getGyro().pivotForward(62, -0.8, this);
+            // approach stone
             move(.55, -18);
-            move(.8, 5);
+            // move away from stone
+            move(.8, 8);
+            // turn back into lane
             robot.getGyro().pivot(90, 0.8, this, new DetectionInterface() {
                 @Override
+                // checks stone to lock
                 public boolean detect() {
                     return robot.autoLockStone();
                 }
             });
+            // stop intake
+            robot.moveIntake(0);
+            // align
             robot.getGyro().fixHeading(0.3, this);
 
-            robot.moveIntake(0);
+            // measure wall distance to insure in path
 
+            sleep(200);
             double walldistance = robot.getRangetoObstacleLeft();
+
+            // check if adjustment needed
             double backCurve = 0;
-            backCurve = robot.curveToPathReverse(29, 18, walldistance, this, false);
+
+//            backCurve = robot.curveToPathReverse(29, 18, walldistance, this, false);
+
+            // calculate disance to bridge and go
             double toBridge = retreat - 40 - backCurve;
             if (toBridge > 0) {
                 move(0.8, toBridge);
             }
+
+            // check if have stone and enough time left
             elapsedtime += runtime.milliseconds();
             if (elapsedtime <= 26500 && robot.isStoneInside()){
+                // lock stone again
                 robot.toggleStoneLock(true);
+                // extract crane
                 robot.preMoveCrane(1, 9);
+                // start moving while crane extends
                 move(0.8, 40);
                 robot.swivelStone(true);
 
                 runtime.reset();
 
+                // makes sure crane is extended
                 while (!robot.craneExtended()) {
                     if(!opModeIsActive() || runtime.seconds() > 6) {
                         break;
                     }
                 }
-
+                // stop crane motors
                 robot.postMoveCrane();
+                // unlock stone
                 robot.toggleStoneLock(false);
                 robot.swivelStone(false);
+                // start retracting crane
                 robot.preMoveCrane(1, -9);
+                // rush back to bridge
                 move(0.9, -35);
                 robot.postMoveCrane();
             }
