@@ -8,7 +8,7 @@ import org.firstinspires.ftc.teamcode.skills.DetectionInterface;
 import org.firstinspires.ftc.teamcode.skills.StoneFinder;
 
 
-@Autonomous(name="Stone Red", group ="Robot15173")
+@Autonomous(name="2Stone Red", group ="Robot15173")
 //@Disabled
 public class StoneRed extends AutoBase {
     @Override
@@ -162,8 +162,6 @@ public class StoneRed extends AutoBase {
             //push the tray forward to the wall
             move(0.8, 7, 600);
 
-
-//            move(0.8, -1);
 
             //measure distance to the red alliance wall
             sleep(200);

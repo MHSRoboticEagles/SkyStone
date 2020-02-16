@@ -8,7 +8,7 @@ import org.firstinspires.ftc.teamcode.skills.DetectionInterface;
 
 
 @Autonomous(name="Aim", group ="Robot15173")
-//@Disabled
+@Disabled
 public class CraneTest extends AutoBase {
     @Override
     public void runOpMode() throws InterruptedException {
