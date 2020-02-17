@@ -20,6 +20,7 @@ public class CrawlWall extends AutoBase {
     protected void act() {
         super.act();
         try {
+            sleep(5000);
             move(0.5, -20);
         }
         catch (Exception ex){
