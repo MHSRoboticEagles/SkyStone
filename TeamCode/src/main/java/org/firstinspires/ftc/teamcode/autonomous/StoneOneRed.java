@@ -103,7 +103,7 @@ public class StoneOneRed extends AutoBase {
             }
 
             //run to the building zone
-            move(0.9, runToZone - 18);
+            move(0.9, runToZone - 10);
             //lock just in case
             robot.toggleStoneLock(true);
             robot.moveIntake(0);
@@ -119,7 +119,7 @@ public class StoneOneRed extends AutoBase {
             robot.preMoveCrane(1, 10);
 
             //approach the tray
-            sleep(200);
+            sleep(400);
             moveBackUntil(0.7, 1, 20, true);
             robot.hookTray(true);
 

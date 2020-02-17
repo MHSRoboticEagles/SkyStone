@@ -105,13 +105,13 @@ public class StoneRed extends AutoBase {
             }
 
             //run to the building zone
-            move(0.9, runToZone - 18);
+            move(0.9, runToZone - 3);
             //lock just in case
             robot.toggleStoneLock(true);
             robot.moveIntake(0);
             
             //approach the wall
-            sleep(100);
+            sleep(400);
             moveBackUntil(0.75, 18, 18, true);
 
             //turn toward the tray
@@ -144,7 +144,9 @@ public class StoneRed extends AutoBase {
 
             //pull the tray back
             robot.getGyro().pivotBackReverse(165, 1, this);
-            move(0.8, -14);
+            move(1, -5);
+            robot.getGyro().pivotBackReverse(150, 1, this);
+            move(1, -12);
 
             //release the stone and turn the holder inward
             robot.toggleStoneLock(false);
@@ -155,7 +157,7 @@ public class StoneRed extends AutoBase {
             robot.preMoveCrane(1, -10);
 
             //turn the tray
-            robot.getGyro().turn(90, 1, 1500,this);
+            robot.getGyro().turn(85, 1, 1500,this);
             //unhook the tray
             robot.hookTray(false);
 

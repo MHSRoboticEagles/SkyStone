@@ -118,7 +118,7 @@ public class StoneBlue extends AutoBase {
             //approach the tray
             sleep(200);
             moveBackUntil(0.7, 1, 20, true);
-            move(0.3, 3);
+            move(0.3, -3);
 
             // grab tray
             robot.hookTray(true);
@@ -182,18 +182,6 @@ public class StoneBlue extends AutoBase {
 
             // tested till this point
 
-
-            telemetry.addData("Elapsed (ms)", elapsedtime);
-//            telemetry.addData("Retreat", retreat);
-            telemetry.addData("traveled", traveled);
-            telemetry.addData("Wall", toWall);
-            telemetry.addData("Sky Stone", skyStoneIndex);
-//            telemetry.addData("Back", back);
-
-            telemetry.update();
-
-            sleep(20000);
-
             //measure the distance to the tray wall and calculate how far to go back
             sleep(200);
             double back = robot.getRangetoObstacleBack();
@@ -218,7 +206,7 @@ public class StoneBlue extends AutoBase {
             move(0.9, -retreat);
 
             // start intake
-            robot.moveIntake(1);
+//            robot.moveIntake(1);
             // turn into stone
             robot.getGyro().pivotForward(-62, -0.8, this);
             // approach stone
@@ -234,7 +222,7 @@ public class StoneBlue extends AutoBase {
                 }
             });
             // stop intake
-            robot.moveIntake(0);
+//            robot.moveIntake(0);
             // align
             robot.getGyro().fixHeading(0.3, this);
 
@@ -258,12 +246,12 @@ public class StoneBlue extends AutoBase {
             elapsedtime += runtime.milliseconds();
             if (elapsedtime <= 26500 && robot.isStoneInside()){
                 // lock stone again
-                robot.toggleStoneLock(true);
+//                robot.toggleStoneLock(true);
                 // extract crane
-                robot.preMoveCrane(1, 9);
+//                robot.preMoveCrane(1, 9);
                 // start moving while crane extends
                 move(0.8, 40);
-                robot.swivelStone(true);
+//                robot.swivelStone(true);
 
                 runtime.reset();
 
@@ -274,15 +262,27 @@ public class StoneBlue extends AutoBase {
                     }
                 }
                 // stop crane motors
-                robot.postMoveCrane();
+//                robot.postMoveCrane();
                 // unlock stone
-                robot.toggleStoneLock(false);
-                robot.swivelStone(false);
+//                robot.toggleStoneLock(false);
+//                robot.swivelStone(false);
                 // start retracting crane
-                robot.preMoveCrane(1, -9);
+//                robot.preMoveCrane(1, -9);
                 // rush back to bridge
                 move(0.9, -35);
-                robot.postMoveCrane();
+//                robot.postMoveCrane();
+
+
+                telemetry.addData("Elapsed (ms)", elapsedtime);
+                telemetry.addData("Retreat", retreat);
+                telemetry.addData("traveled", traveled);
+                telemetry.addData("Wall", toWall);
+                telemetry.addData("Sky Stone", skyStoneIndex);
+                telemetry.addData("Back", back);
+
+                telemetry.update();
+
+                sleep(20000);
             }
 
 

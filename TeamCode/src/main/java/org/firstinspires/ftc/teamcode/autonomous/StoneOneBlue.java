@@ -42,7 +42,7 @@ public class StoneOneBlue extends AutoBase {
                 skyStoneIndex = 4;
                 robot.getGyro().pivotForward(-20, -0.7, this);
                 approach = -27;
-                backUp = 16;
+                backUp = 14;
                 runToZone = 59;
             }
 
@@ -67,7 +67,7 @@ public class StoneOneBlue extends AutoBase {
                     case 5:
                         robot.getGyro().pivotForward(-15, -0.7, this);
                         approach = -15;
-                        backUp = 15;
+                        backUp = 12;
                         runToZone = 48;
                         break;
                 }
@@ -117,7 +117,7 @@ public class StoneOneBlue extends AutoBase {
             //approach the tray
             sleep(200);
             moveBackUntil(0.7, 1, 20, true);
-            move(0.3, 3);
+            move(0.3, -1);
 
             // grab tray
             robot.hookTray(true);
@@ -141,8 +141,8 @@ public class StoneOneBlue extends AutoBase {
             robot.swivelStone(true);
 
             //pull the tray back
-            robot.getGyro().pivotBackReverse(-165, .7, this);
-            move(0.8, -14);
+            robot.getGyro().pivotBackReverse(-165, .8, this);
+            move(0.8, -13);
 
             //release the stone and turn the holder inward
             robot.toggleStoneLock(false);
@@ -153,7 +153,7 @@ public class StoneOneBlue extends AutoBase {
             robot.preMoveCrane(1, -10);
 
             //turn the tray
-            robot.getGyro().turn(-85, .7, 2000,this);
+            robot.getGyro().turn(-85, .9, 2000,this);
             //unhook the tray
             robot.hookTray(false);
 
@@ -174,7 +174,7 @@ public class StoneOneBlue extends AutoBase {
                 traveled = robot.curveToPath(26, 18, toWall, this, false);
             }
 
-            //fix the original heading of 90 degrees
+            //fix the original heading of 85 degrees (Is there any way that we can put a timeout on this. It is going in an endless loop)
             robot.getGyro().fixHeading(0.3, this);
 
             move(0.9, -40);

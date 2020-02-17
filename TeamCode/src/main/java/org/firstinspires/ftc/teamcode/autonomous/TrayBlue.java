@@ -37,7 +37,7 @@ public class TrayBlue extends AutoBase {
             //approach the tray
             sleep(200);
             moveBackUntil(0.7, 1, 20, true);
-            move(0.3, 3);
+            move(0.3, -3);
 
             // grab tray
             robot.hookTray(true);
