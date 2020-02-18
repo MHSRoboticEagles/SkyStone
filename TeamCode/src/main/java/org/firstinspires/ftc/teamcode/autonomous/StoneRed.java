@@ -39,13 +39,14 @@ public class StoneRed extends AutoBase {
 
             int runToZone = 0;
             robot.hookTray(false);
+            sleep(300);
             boolean found = detectStone(1);
             stopStoneDetection();
             if (!found) {
                 skyStoneIndex = 4;
-                robot.getGyro().pivotForward(30, -0.7, this);
+                robot.getGyro().pivotForward(25, -0.7, this);
                 approach = -27;
-                backUp = 1;
+                backUp = 4;
                 runToZone = 59;
             }
 
@@ -69,8 +70,8 @@ public class StoneRed extends AutoBase {
                         break;
                     case 5:
                         robot.getGyro().pivotForward(25, -0.7, this);
-                        approach = -15;
-                        backUp = 2;
+                        approach = -16;
+                        backUp = 4;
                         runToZone = 48;
                         break;
                 }
@@ -105,13 +106,13 @@ public class StoneRed extends AutoBase {
             }
 
             //run to the building zone
-            move(0.9, runToZone - 3);
+            move(0.9, runToZone - 10);
             //lock just in case
             robot.toggleStoneLock(true);
             robot.moveIntake(0);
-            
+
             //approach the wall
-            sleep(400);
+            sleep(100);
             moveBackUntil(0.75, 18, 18, true);
 
             //turn toward the tray
@@ -121,9 +122,12 @@ public class StoneRed extends AutoBase {
             robot.preMoveCrane(1, 10);
 
             //approach the tray
-            sleep(200);
-            moveBackUntil(0.7, 1, 20, true);
+            sleep(400);
+            moveBackUntil(0.7, 1, 15, true);
+//            move(0.9, -2.5);
+            // hook tray
             robot.hookTray(true);
+            sleep(600);
 
             //make sure the crane is fully extended
             elapsedtime = (int)runtime.milliseconds();
@@ -144,9 +148,7 @@ public class StoneRed extends AutoBase {
 
             //pull the tray back
             robot.getGyro().pivotBackReverse(165, 1, this);
-            move(1, -5);
-            robot.getGyro().pivotBackReverse(150, 1, this);
-            move(1, -12);
+            move(0.8, -17);
 
             //release the stone and turn the holder inward
             robot.toggleStoneLock(false);
@@ -157,12 +159,13 @@ public class StoneRed extends AutoBase {
             robot.preMoveCrane(1, -10);
 
             //turn the tray
-            robot.getGyro().turn(85, 1, 1500,this);
+            robot.getGyro().turn(90, 1, 1500,this);
             //unhook the tray
             robot.hookTray(false);
 
             //push the tray forward to the wall
-            move(0.8, 7, 600);
+            move(0.9, 7, 600);
+//            move(0.9, 2);
 
 
             //measure distance to the red alliance wall
@@ -171,6 +174,7 @@ public class StoneRed extends AutoBase {
 
             // stop crane move
             robot.postMoveCrane();
+
 
             // swerve back on course if needed
             double traveled = 0;
@@ -185,9 +189,9 @@ public class StoneRed extends AutoBase {
             //measure the distance to the tray wall and calculate how far to go back
             sleep(200);
             double back = robot.getRangetoObstacleBack();
-            double retreat = 65;
+            double retreat = 60;
             if (back > -1){
-                retreat = retreat - back;
+                retreat = retreat - back - 10;
             }
             else{
                 if (traveled > 0){
@@ -203,16 +207,16 @@ public class StoneRed extends AutoBase {
             }
 
             // we move back for second stone
-            move(0.9, -retreat);
+            move(1, -retreat, 3000);
 
             // start intake
             robot.moveIntake(1);
             // turn into stone
-            robot.getGyro().pivotForward(62, -0.8, this);
+            robot.getGyro().pivotForward(60, -0.8,this);
             // approach stone
-            move(.55, -18);
+            move(.55, -19);
             // move away from stone
-            move(.8, 8);
+            move(.8, 12.5);
             // turn back into lane
             robot.getGyro().pivot(90, 0.8, this, new DetectionInterface() {
                 @Override
@@ -231,15 +235,14 @@ public class StoneRed extends AutoBase {
             sleep(200);
             double walldistance = robot.getRangetoObstacleLeft();
 
-            // check if adjustment needed
-            double backCurve = 0;
-
-//            backCurve = robot.curveToPathReverse(29, 18, walldistance, this, false);
-
-            // calculate disance to bridge and go
-            double toBridge = retreat - 40 - backCurve;
-            if (toBridge > 0) {
+            // calculate distance to bridge and go
+            double toBridge = retreat - 37;
+            if (toBridge > -10) {
                 move(0.8, toBridge);
+            }
+
+            if (skyStoneIndex == 5 || skyStoneIndex == 4){
+                move(0.9, 13);
             }
 
             // check if have stone and enough time left
@@ -248,9 +251,9 @@ public class StoneRed extends AutoBase {
                 // lock stone again
                 robot.toggleStoneLock(true);
                 // extract crane
-                robot.preMoveCrane(1, 9);
+                robot.preMoveCrane(1, 10);
                 // start moving while crane extends
-                move(0.8, 40);
+                move(0.8, 40, 4000);
                 robot.swivelStone(true);
 
                 runtime.reset();
@@ -267,9 +270,9 @@ public class StoneRed extends AutoBase {
                 robot.toggleStoneLock(false);
                 robot.swivelStone(false);
                 // start retracting crane
-                robot.preMoveCrane(1, -9);
+                robot.preMoveCrane(1, -10);
                 // rush back to bridge
-                move(0.9, -35);
+                move(0.9, -30);
                 robot.postMoveCrane();
             }
 

@@ -68,7 +68,7 @@ public class StoneOneBlue extends AutoBase {
                         robot.getGyro().pivotForward(-15, -0.7, this);
                         approach = -15;
                         backUp = 12;
-                        runToZone = 48;
+                        runToZone = 55;
                         break;
                 }
             }
@@ -142,7 +142,7 @@ public class StoneOneBlue extends AutoBase {
 
             //pull the tray back
             robot.getGyro().pivotBackReverse(-165, .8, this);
-            move(0.8, -13);
+            move(0.8, -8);
 
             //release the stone and turn the holder inward
             robot.toggleStoneLock(false);
