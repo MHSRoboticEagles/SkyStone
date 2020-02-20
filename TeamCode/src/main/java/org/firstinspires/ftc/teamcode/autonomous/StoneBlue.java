@@ -31,25 +31,24 @@ public class StoneBlue extends AutoBase {
         runtime.reset();
         super.act();
         try {
-            int start = 11;
+            int start = 12;
             int approach = 0;
             int backUp = 0;
 
             int runToZone = 0;
             robot.hookTray(false);
-            sleep(300);
             boolean found = detectStone(1);
             stopStoneDetection();
             if (!found) {
                 skyStoneIndex = 4;
-                robot.getGyro().pivotForward(-27, -0.7, this);
-                approach = -29;
-                backUp = 10;
-                runToZone = 59;
+                robot.getGyro().pivotForward(-20, -0.7, this);
+                approach = -27;
+                backUp = 14;
+                runToZone = 75;
             }
 
             if (found) {
-                move(1, -start);
+                move(.9, -start);
                 initRec();
                 found = detectStone(2);
                 if (found) {
@@ -61,67 +60,52 @@ public class StoneBlue extends AutoBase {
                 stopStoneDetection();
                 switch (skyStoneIndex) {
                     case 6:
-                        // maybe change angle
-                        robot.getGyro().pivotForward(-13, -0.7, this);
-                        approach = -16;
-                        backUp = 18;
+                        robot.getGyro().pivotForward(-4, -0.7, this);
+                        approach = -15;
+                        backUp = 13;
                         runToZone = 64;
                         break;
                     case 5:
-                        // add more of an angle
-                        robot.getGyro().pivotForward(-28, -0.7, this);
-                        approach = -16;
-                        backUp = 14;
-                        runToZone = 48;
+                        robot.getGyro().pivotForward(-12, -0.7, this);
+                        approach = -17;
+                        backUp = 17;
+                        runToZone = 65;
                         break;
                 }
             }
 
             //get close to the stone
             move(0.8, approach);
-            //turn intake on and move forward
             robot.moveIntake(1);
+            //turn intake on and move forward
             move(0.5, -10);
 
             //move back
             if (backUp > 0) {
                 move(0.8, backUp);
             }
-
-            if (skyStoneIndex == 6){
-                robot.getGyro().turn(-85, 0.7, this);
-            } else if (skyStoneIndex == 5){
-                //turn left toward the building zone
-                robot.getGyro().pivot(-78, 0.7, this, new DetectionInterface() {
-                    @Override
-                    public boolean detect() {
-                        return robot.autoLockStone();
-                    }
-                });
-            } else {
-                //turn left toward the building zone
-                robot.getGyro().pivot(-74, 0.7, this, new DetectionInterface() {
-                    @Override
-                    public boolean detect() {
-                        return robot.autoLockStone();
-                    }
-                });
-            }
-
+            robot.getGyro().turn(-85, 0.7, 0,this, new DetectionInterface() {
+                @Override
+                public boolean detect() {
+                    return robot.autoLockStone();
+                }
+            });
 
             if (robot.autoLockStone()) {
                 robot.moveIntake(0);
             }
 
+            robot.getGyro().fixHeading(0.3, this);
+
             //run to the building zone
-            move(0.9, runToZone - 10);
+            move(0.9, runToZone - 15);
             //lock just in case
             robot.toggleStoneLock(true);
             robot.moveIntake(0);
 
             //approach the wall
-            sleep(100);
-            moveBackUntil(0.75, 22, 22, true);
+            sleep(300);
+            moveBackUntil(0.75, 16, 14, true);
 
             //turn toward the tray
             robot.getGyro().turnAndExtend(-170, 0.8, false, this);
@@ -130,9 +114,11 @@ public class StoneBlue extends AutoBase {
             robot.preMoveCrane(1, 10);
 
             //approach the tray
-            sleep(400);
-            moveBackUntil(0.7, 1, 15, true);
-            // hook tray
+            sleep(200);
+            moveBackUntil(0.7, 1, 20, true);
+            move(0.3, -1);
+
+            // grab tray
             robot.hookTray(true);
             sleep(600);
 
@@ -154,45 +140,36 @@ public class StoneBlue extends AutoBase {
             robot.swivelStone(true);
 
             //pull the tray back
-            robot.getGyro().pivotBackReverse(160, 1, this);
-            move(0.8, -12);
+            robot.getGyro().pivotBackReverse(-165, .8, this);
+            move(0.8, -13);
 
             //release the stone and turn the holder inward
             robot.toggleStoneLock(false);
             robot.swivelStone(false);
 
+            robot.hookTraySide(false, true);
             // start removing the crane
             robot.preMoveCrane(1, -10);
 
-            // only left hook
-            robot.hookTraySide(false, false);
-
             //turn the tray
-            robot.getGyro().turn(-85, 0.7, 2000,this);
+            robot.getGyro().turn(-85, .9, 2000,this);
             //unhook the tray
             robot.hookTray(false);
 
             //push the tray forward to the wall
-            move(0.9, 10, 900);
-            robot.getGyro().turn(-90, 1, 1500,this);
-            move(0.9, -5, 400);
+            move(0.8, 10, 1000);
+            move(0.8, -5, 400);
 
             //measure distance to the red alliance wall
-            sleep(300);
-            double toWall = robot.getRangetoObstacleLeft();
+            sleep(200);
+            double toWall = robot.getRangetoObstacleRight();
 
             // stop crane move
             robot.postMoveCrane();
 
-            // swerve back on course if needed
-            double traveled = 0;
+            //fix the original heading of 85 degrees (Is there any way that we can put a timeout on this. It is going in an endless loop)
+            robot.getGyro().fixHeading(0.45, this);
 
-            if (toWall > -1) {
-                traveled = robot.curveToPath(27, 18, toWall, this, false);
-            }
-
-            //fix the original heading of 90 degrees
-            robot.getGyro().fixHeading(0.3, this);
 
             if(skyStoneIndex != 5) {
                 //measure the distance to the tray wall and calculate how far to go back
@@ -203,10 +180,6 @@ public class StoneBlue extends AutoBase {
                     retreat = retreat - back - 10;
                     if (skyStoneIndex == 6) {
                         retreat += 3;
-                    }
-                } else {
-                    if (traveled > 0) {
-                        retreat -= traveled;
                     }
                 }
 
@@ -279,7 +252,7 @@ public class StoneBlue extends AutoBase {
                     robot.postMoveCrane();
                 }
             } else {
-                move(0.9, -35 + traveled);
+                move(0.9, -35);
             }
 
             //// pause start

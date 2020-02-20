@@ -217,6 +217,7 @@ public class StoneRed extends AutoBase {
                 }
 
                 if (skyStoneIndex == 4) {
+                    // probably needs to go in more
                     retreat += StoneFinder.STONE_WIDTH * 2;
                 }
 
