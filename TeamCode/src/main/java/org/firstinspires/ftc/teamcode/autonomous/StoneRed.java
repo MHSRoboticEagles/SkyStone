@@ -46,7 +46,7 @@ public class StoneRed extends AutoBase {
                 skyStoneIndex = 4;
                 robot.getGyro().pivotForward(27, -0.7, this);
                 approach = -29;
-                backUp = 10;
+                backUp = 7;
                 runToZone = 59;
             }
 
@@ -229,7 +229,12 @@ public class StoneRed extends AutoBase {
                 // approach stone (add more)
                 move(.55, -21);
                 // move away from stone
-                move(.8, 14);
+                if(skyStoneIndex == 4){
+                    move(.8, 14);
+                } else {
+                    move(.8, 12);
+                }
+
                 // turn back into lane
                 robot.getGyro().pivot(90, 0.8, this, new DetectionInterface() {
                     @Override

@@ -44,7 +44,7 @@ public class StoneOneRed extends AutoBase {
                 skyStoneIndex = 4;
                 robot.getGyro().pivotForward(27, -0.7, this);
                 approach = -29;
-                backUp = 10;
+                backUp = 7;
                 runToZone = 59;
             }
 

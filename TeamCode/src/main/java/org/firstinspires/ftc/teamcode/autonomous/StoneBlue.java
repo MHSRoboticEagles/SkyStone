@@ -43,7 +43,7 @@ public class StoneBlue extends AutoBase {
                 skyStoneIndex = 4;
                 robot.getGyro().pivotForward(-20, -0.7, this);
                 approach = -27;
-                backUp = 17;
+                backUp = 14;
                 runToZone = 75;
             }
 
@@ -180,7 +180,7 @@ public class StoneBlue extends AutoBase {
                 if (back > -1) {
                     retreat = retreat - back - 10;
                     if (skyStoneIndex == 6) {
-                        retreat += 6;
+                        retreat += 8;
                     }
                 }
 
@@ -203,9 +203,9 @@ public class StoneBlue extends AutoBase {
                 }
                 // move away from stone
                 if (skyStoneIndex == 4){
-                    move(.8, 20);
+                    move(.8, 21);
                 } else {
-                    move(.8, 15);
+                    move(.8, 13);
                 }
                 // turn back into lane
                 robot.getGyro().turn(-90, 0.7, 0,this, new DetectionInterface() {
@@ -233,7 +233,7 @@ public class StoneBlue extends AutoBase {
                     // extract crane
                     robot.preMoveCrane(1, 10);
                     // start moving while crane extends
-                    move(0.8, 45, 4000);
+                    move(0.8, 48, 4000);
                     robot.swivelStone(true);
 
                     runtime.reset();
