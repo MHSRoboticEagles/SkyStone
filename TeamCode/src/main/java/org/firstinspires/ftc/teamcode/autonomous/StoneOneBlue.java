@@ -77,18 +77,19 @@ public class StoneOneBlue extends AutoBase {
             move(0.8, approach);
             robot.moveIntake(1);
             //turn intake on and move forward
-            move(0.5, -10);
+            move(0.5, -12);
 
             //move back
             if (backUp > 0) {
-                move(0.8, backUp);
+                move(0.8, backUp + 2);
             }
-                robot.getGyro().turn(-85, 0.7, 0,this, new DetectionInterface() {
-                    @Override
-                    public boolean detect() {
-                        return robot.autoLockStone();
-                    }
-                });
+
+            robot.getGyro().turn(-85, 0.7, 0,this, new DetectionInterface() {
+                @Override
+                public boolean detect() {
+                    return robot.autoLockStone();
+                }
+            });
 
             if (robot.autoLockStone()) {
                 robot.moveIntake(0);
@@ -157,6 +158,7 @@ public class StoneOneBlue extends AutoBase {
 
             //push the tray forward to the wall
             move(0.8, 10, 1000);
+            robot.getGyro().turn(-90, .9, 1000,this);
             move(0.8, -5, 400);
 
             //measure distance to the red alliance wall

@@ -119,7 +119,7 @@ public class StoneOneRed extends AutoBase {
 
             //approach the wall
             sleep(100);
-            moveBackUntil(0.75, 22, 22, true);
+            moveBackUntil(0.75, 20, 18, true);
 
             //turn toward the tray
             robot.getGyro().turnAndExtend(170, 0.8, false, this);

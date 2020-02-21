@@ -78,12 +78,13 @@ public class StoneBlue extends AutoBase {
             move(0.8, approach);
             robot.moveIntake(1);
             //turn intake on and move forward
-            move(0.5, -10);
+            move(0.5, -12);
 
             //move back
             if (backUp > 0) {
-                move(0.8, backUp);
+                move(0.8, backUp + 2);
             }
+
             robot.getGyro().turn(-85, 0.7, 0,this, new DetectionInterface() {
                 @Override
                 public boolean detect() {
@@ -158,6 +159,7 @@ public class StoneBlue extends AutoBase {
 
             //push the tray forward to the wall
             move(0.8, 10, 1000);
+            robot.getGyro().turn(-90, .9, 1000,this);
             move(0.8, -5, 400);
 
             //measure distance to the red alliance wall
@@ -169,7 +171,6 @@ public class StoneBlue extends AutoBase {
 
             //fix the original heading of 85 degrees (Is there any way that we can put a timeout on this. It is going in an endless loop)
             robot.getGyro().fixHeading(0.45, this);
-
 
             if(skyStoneIndex != 5) {
                 //measure the distance to the tray wall and calculate how far to go back

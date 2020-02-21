@@ -170,13 +170,18 @@ public class StoneRed extends AutoBase {
             robot.hookTraySide(false, false);
 
             //turn the tray
-            robot.getGyro().turn(85, 0.7, 2000,this);
+            if(skyStoneIndex == 6){
+                robot.getGyro().turn(85, 0.7, 2500,this);
+            } else {
+                robot.getGyro().turn(85, 0.7, 3000,this);
+            }
+
             //unhook the tray
             robot.hookTray(false);
 
             //push the tray forward to the wall
             move(0.9, 10, 900);
-            robot.getGyro().turn(90, 1, 1500,this);
+            robot.getGyro().turn(90, 1, 1000,this);
             move(0.9, -5, 400);
 
             //measure distance to the red alliance wall
@@ -190,7 +195,7 @@ public class StoneRed extends AutoBase {
             double traveled = 0;
 
             if (toWall > -1) {
-                traveled = robot.curveToPath(27, 18, toWall, this, false);
+                traveled = robot.curveToPath(24, 18, toWall, this, false);
             }
 
             //fix the original heading of 90 degrees
@@ -204,21 +209,14 @@ public class StoneRed extends AutoBase {
                 if (back > -1) {
                     retreat = retreat - back - 10;
                     if (skyStoneIndex == 6) {
-                        retreat += 3;
+                        retreat += 10;
                     }
-                } else {
-                    if (traveled > 0) {
-                        retreat -= traveled;
-                    }
-                }
-
-                if (skyStoneIndex == 6){
-                    retreat += 5;
                 }
 
                 if (skyStoneIndex == 4) {
                     // probably needs to go in more
                     retreat += StoneFinder.STONE_WIDTH * 2;
+                    retreat += 10;
                 }
 
                 // we move back for second stone
@@ -282,7 +280,7 @@ public class StoneRed extends AutoBase {
                     robot.postMoveCrane();
                 }
             } else {
-                move(0.9, -35 + traveled);
+                move(0.9, -35 + (traveled/2));
             }
 
             //// pause start
