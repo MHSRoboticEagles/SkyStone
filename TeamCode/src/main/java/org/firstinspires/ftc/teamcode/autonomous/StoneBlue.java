@@ -43,7 +43,7 @@ public class StoneBlue extends AutoBase {
                 skyStoneIndex = 4;
                 robot.getGyro().pivotForward(-20, -0.7, this);
                 approach = -27;
-                backUp = 14;
+                backUp = 17;
                 runToZone = 75;
             }
 
@@ -85,7 +85,7 @@ public class StoneBlue extends AutoBase {
                 move(0.8, backUp + 2);
             }
 
-            robot.getGyro().turn(-85, 0.7, 0,this, new DetectionInterface() {
+            robot.getGyro().turn(-90, 0.7, 0,this, new DetectionInterface() {
                 @Override
                 public boolean detect() {
                     return robot.autoLockStone();
@@ -96,7 +96,7 @@ public class StoneBlue extends AutoBase {
                 robot.moveIntake(0);
             }
 
-            robot.getGyro().fixHeading(0.3, this);
+            robot.getGyro().fixHeading(0.4, this);
 
             //run to the building zone
             move(0.9, runToZone - 15);
@@ -121,7 +121,7 @@ public class StoneBlue extends AutoBase {
 
             // grab tray
             robot.hookTray(true);
-            sleep(600);
+            sleep(500);
 
             //make sure the crane is fully extended
             elapsedtime = (int)runtime.milliseconds();
@@ -153,13 +153,13 @@ public class StoneBlue extends AutoBase {
             robot.preMoveCrane(1, -10);
 
             //turn the tray
-            robot.getGyro().turn(-85, .9, 2000,this);
+            robot.getGyro().turn(-90, .9, 2500,this);
             //unhook the tray
             robot.hookTray(false);
 
             //push the tray forward to the wall
             move(0.8, 10, 1000);
-            robot.getGyro().turn(-90, .9, 1000,this);
+            robot.getGyro().turn(-85, .9, 500,this);
             move(0.8, -5, 400);
 
             //measure distance to the red alliance wall
@@ -176,16 +176,12 @@ public class StoneBlue extends AutoBase {
                 //measure the distance to the tray wall and calculate how far to go back
                 sleep(300);
                 double back = robot.getRangetoObstacleBack();
-                double retreat = 61;
+                double retreat = 50;
                 if (back > -1) {
                     retreat = retreat - back - 10;
                     if (skyStoneIndex == 6) {
-                        retreat += 3;
+                        retreat += 6;
                     }
-                }
-
-                if (skyStoneIndex == 6){
-                    retreat += 5;
                 }
 
                 if (skyStoneIndex == 4) {
@@ -193,20 +189,27 @@ public class StoneBlue extends AutoBase {
                 }
 
                 // we move back for second stone
-                move(1, -retreat, 3000);
+                move(0.9, -retreat, 3000);
 
                 // start intake
                 robot.moveIntake(1);
                 // turn into stone
                 robot.getGyro().pivotForward(-60, -0.8, this);
-                // approach stone (add more)
-                move(.55, -21);
+                // approach stone
+                if (skyStoneIndex == 4){
+                    move(.55, -30);
+                } else {
+                    move(.55, -25);
+                }
                 // move away from stone
-                move(.8, 14);
+                if (skyStoneIndex == 4){
+                    move(.8, 20);
+                } else {
+                    move(.8, 15);
+                }
                 // turn back into lane
-                robot.getGyro().pivot(-90, 0.8, this, new DetectionInterface() {
+                robot.getGyro().turn(-90, 0.7, 0,this, new DetectionInterface() {
                     @Override
-                    // checks stone to lock
                     public boolean detect() {
                         return robot.autoLockStone();
                     }
@@ -217,8 +220,10 @@ public class StoneBlue extends AutoBase {
                 robot.getGyro().fixHeading(0.45, this);
 
                 // calculate distance to bridge and go
-                double toBridge = retreat - 40;
+                double toBridge = retreat - 15;
                 move(0.8, toBridge);
+
+                robot.getGyro().fixHeading(0.45, this);
 
                 // check if have stone and enough time left
                 elapsedtime += runtime.milliseconds();
