@@ -194,8 +194,10 @@ public class StoneRed extends AutoBase {
             // swerve back on course if needed
             double traveled = 0;
 
-            if (toWall > -1) {
-                traveled = robot.curveToPath(24, 18, toWall, this, false);
+            if (toWall < 19) {
+                if(skyStoneIndex == 4) {
+                    traveled = robot.curveToPath(24, 18, toWall, this, false);
+                }
             }
 
             //fix the original heading of 90 degrees

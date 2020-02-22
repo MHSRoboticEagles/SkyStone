@@ -55,7 +55,7 @@ import org.firstinspires.ftc.teamcode.skills.StoneFinder;
  */
 
 @TeleOp(name="Stone Rec", group="Robot15173")
-//@Disabled
+@Disabled
 public class StoneRecTest extends LinearOpMode {
 
     // Declare OpMode members.

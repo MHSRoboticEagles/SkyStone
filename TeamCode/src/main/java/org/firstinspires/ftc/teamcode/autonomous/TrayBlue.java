@@ -1,12 +1,13 @@
 package org.firstinspires.ftc.teamcode.autonomous;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 import org.firstinspires.ftc.teamcode.skills.DetectionInterface;
 
 
 @Autonomous(name="Tray Blue", group ="Robot15173")
-//@Disabled
+@Disabled
 public class TrayBlue extends AutoBase {
     @Override
     public void runOpMode() throws InterruptedException {
