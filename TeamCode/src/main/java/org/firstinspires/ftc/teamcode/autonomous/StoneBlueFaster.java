@@ -2,14 +2,13 @@ package org.firstinspires.ftc.teamcode.autonomous;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
-
 import org.firstinspires.ftc.teamcode.skills.DetectionInterface;
 import org.firstinspires.ftc.teamcode.skills.StoneFinder;
 
 
-@Autonomous(name="2Stone Blue", group ="Robot15173")
-//@Disabled
-public class StoneBlue extends AutoBase {
+@Autonomous(name="2Stone Blue F", group ="Robot15173")
+@Disabled
+public class StoneBlueFaster extends AutoBase {
     @Override
     public void runOpMode() throws InterruptedException {
         runAutoMode();
@@ -43,7 +42,7 @@ public class StoneBlue extends AutoBase {
                 skyStoneIndex = 4;
                 robot.getGyro().pivotForward(-20, -0.7, this);
                 approach = -27;
-                backUp = 13;
+                backUp = 14;
                 runToZone = 75;
             }
 
@@ -67,8 +66,8 @@ public class StoneBlue extends AutoBase {
                         break;
                     case 5:
                         robot.getGyro().pivotForward(-12, -0.7, this);
-                        approach = -18;
-                        backUp = 16;
+                        approach = -17;
+                        backUp = 17;
                         runToZone = 65;
                         break;
                 }
@@ -106,7 +105,7 @@ public class StoneBlue extends AutoBase {
 
             //approach the wall
             sleep(300);
-            moveBackUntil(0.75, 17, 15, true);
+            moveBackUntil(0.75, 16, 14, true);
 
             //turn toward the tray
             robot.getGyro().turnAndExtend(-170, 0.8, false, this);
@@ -115,7 +114,7 @@ public class StoneBlue extends AutoBase {
             robot.preMoveCrane(1, 10);
 
             //approach the tray
-            sleep(400);
+            sleep(200);
             moveBackUntil(0.7, 1, 20, true);
             move(0.3, -1);
 
@@ -134,7 +133,6 @@ public class StoneBlue extends AutoBase {
 
             elapsedtime += runtime.milliseconds();
             runtime.reset();
-
             //stop the crane
             robot.postMoveCrane();
 
@@ -143,7 +141,7 @@ public class StoneBlue extends AutoBase {
 
             //pull the tray back
             robot.getGyro().pivotBackReverse(-165, .8, this);
-            move(0.8, -11);
+            move(0.8, -13);
 
             //release the stone and turn the holder inward
             robot.toggleStoneLock(false);
@@ -154,12 +152,12 @@ public class StoneBlue extends AutoBase {
             robot.preMoveCrane(1, -10);
 
             //turn the tray
-            robot.getGyro().turn(-90, .9, 2300,this);
+            robot.getGyro().turn(-90, .9, 2500,this);
             //unhook the tray
             robot.hookTray(false);
 
             //push the tray forward to the wall
-            move(0.8, 10, 800);
+            move(0.8, 10, 1000);
             robot.getGyro().turn(-85, .9, 300,this);
             move(0.8, -5, 400);
 
@@ -167,13 +165,9 @@ public class StoneBlue extends AutoBase {
             sleep(200);
             double toWall = robot.getRangetoObstacleRight();
 
-            // stop crane move
-            robot.postMoveCrane();
 
             //fix the original heading of 85 degrees (Is there any way that we can put a timeout on this. It is going in an endless loop)
             robot.getGyro().fixHeading(0.45, this);
-
-
 
             if(skyStoneIndex != 5) {
                 //measure the distance to the tray wall and calculate how far to go back
@@ -183,17 +177,19 @@ public class StoneBlue extends AutoBase {
                 if (back > -1) {
                     retreat = retreat - back - 10;
                     if (skyStoneIndex == 6) {
-                        retreat += 10;
+                        retreat += 8;
                     }
                 }
 
                 if (skyStoneIndex == 4) {
                     retreat += StoneFinder.STONE_WIDTH * 2;
-                    retreat += 3;
                 }
 
                 // we move back for second stone
                 move(0.9, -retreat, 3000);
+
+                // stop crane move
+                robot.postMoveCrane();
 
                 // start intake
                 robot.moveIntake(1);
@@ -207,7 +203,7 @@ public class StoneBlue extends AutoBase {
                 }
                 // move away from stone
                 if (skyStoneIndex == 4){
-                    move(.8, 15);
+                    move(.8, 21);
                 } else {
                     move(.8, 13);
                 }
@@ -262,6 +258,10 @@ public class StoneBlue extends AutoBase {
                     robot.postMoveCrane();
                 }
             } else {
+                // stop crane move
+                robot.postMoveCrane();
+
+                // park
                 move(0.9, -35);
             }
 

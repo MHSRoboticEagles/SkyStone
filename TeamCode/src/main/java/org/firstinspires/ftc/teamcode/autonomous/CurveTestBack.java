@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 
 @Autonomous(name="CurveTestForward", group ="Robot15173")
-//@Disabled
+@Disabled
 public class CurveTestBack extends AutoBase {
     @Override
     public void runOpMode() throws InterruptedException {
