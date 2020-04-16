@@ -20,7 +20,7 @@ import org.firstinspires.ftc.teamcode.skills.Gyro;
  * Created by sjeltuhin on 9/12/17.
  */
 
-public class TieBot {
+public class TieBot extends UberBot{
     Telemetry telemetry;
     public DcMotor leftDriveBack = null;
     public DcMotor rightDriveBack = null;

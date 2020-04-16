@@ -68,22 +68,10 @@ public class Gyro {
         parameters.calibrationDataFile = "BNO055IMUCalibration.json";
         parameters.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
 
-//        LynxModule module = ahwMap.get(LynxModule.class, "imu");
-//        int i2cVersion = getLynxI2cVersion(module, ahwMap);
-//        if (i2cVersion == 1){
-//            imu = new LynxEmbeddedIMU(new I2cDeviceSynchImplOnSimple(
-//                    new LynxI2cDeviceSynchV1(ahwMap.appContext, module, 0), true));
-//        }
-//        else if (i2cVersion == 2){
-//            new LynxEmbeddedIMU(new I2cDeviceSynchImplOnSimple(
-//                    new LynxI2cDeviceSynchV2(ahwMap.appContext, module, 0), true));
-//        }
 
         imu = (BNO055IMU) ahwMap.get("imu");
         if (imu != null){
             imu.initialize(parameters);
-            // Start the logging of measured acceleration
-//            imu.startAccelerationIntegration(new Position(), new Velocity(), 1000);
             telemetry.addData("Info", "Gyro initialized");
         }
         else{

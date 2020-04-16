@@ -53,7 +53,7 @@ import org.firstinspires.ftc.teamcode.bots.TieBot;
  * @see <a href="http://revrobotics.com">REV Robotics Web Page</a>
  */
 @TeleOp(name = "Range Test", group = "Sensor")
-//@Disabled
+@Disabled
 public class RangeTest extends LinearOpMode {
 
     TieBot robot   = new TieBot();

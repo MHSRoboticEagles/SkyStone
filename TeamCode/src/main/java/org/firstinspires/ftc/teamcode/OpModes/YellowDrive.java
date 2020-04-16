@@ -29,12 +29,13 @@
 
 package org.firstinspires.ftc.teamcode.OpModes;
 
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.bots.OutreachBot;
+import org.firstinspires.ftc.teamcode.bots.TieBot;
+import org.firstinspires.ftc.teamcode.bots.YellowBot;
+
 
 /**
  * This file contains an minimal example of a Linear "OpMode". An OpMode is a 'program' that runs in either
@@ -49,24 +50,27 @@ import org.firstinspires.ftc.teamcode.bots.OutreachBot;
  * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list
  */
 
-@TeleOp(name="SecondBot", group="Robot15173")
-@Disabled
-public class OutreachMode extends LinearOpMode{
+@TeleOp(name="YellowDrive", group="Robot15173")
+//@Disabled
+public class YellowDrive extends LinearOpMode {
 
     // Declare OpMode members.
-    OutreachBot robot = new OutreachBot();
-    private ElapsedTime runtime = new ElapsedTime();
+    YellowBot robot   = new YellowBot();
+    private ElapsedTime     runtime = new ElapsedTime();
+
 
     @Override
     public void runOpMode() {
         try {
             try {
-                robot.init(this.hardwareMap, telemetry);
+                robot.init(this, this.hardwareMap, telemetry);
+                robot.initGyro();
             }
             catch (Exception ex){
                 telemetry.addData("Init", ex.getMessage());
             }
 
+            telemetry.update();
 
             // Wait for the game to start (driver presses PLAY)
             waitForStart();
@@ -78,43 +82,56 @@ public class OutreachMode extends LinearOpMode{
                 // POV Mode uses left stick to go forward, and right stick to turn.
                 // - This uses basic math to combine motions and is easier to drive straight.
                 double drive = gamepad1.left_stick_y;
-                if (Math.abs(drive) > 0) {
-                    robot.move(drive);
+                double turn = 0;
+                double ltrigger = gamepad1.left_trigger;
+                double rtrigger = gamepad1.right_trigger;
+                if (ltrigger > 0){
+                    turn = -ltrigger;
+                }
+                else if (rtrigger > 0){
+                    turn = rtrigger;
                 }
 
-                ///pivot
-                boolean leftPivot = gamepad1.left_bumper;
-                boolean rightPivot = gamepad1.right_bumper;
-                if (leftPivot){
-                    robot.pivotLeft(1);
-                }
-                else if(rightPivot){
-                    robot.pivotRight(1);
+                double strafe = gamepad1.right_stick_x;
+
+
+                if (Math.abs(strafe) > 0) {
+                    telemetry.addData("Strafing", "Left: %2f", strafe);
+                    telemetry.update();
+                    if (strafe < 0) {
+                        robot.strafeRight(Math.abs(strafe));
+                    } else {
+                        robot.strafeLeft(Math.abs(strafe));
+                    }
+                } else {
+                    robot.move(drive, turn);
                 }
 
-                // arm move
-                double arms = gamepad1.right_stick_y;
-                if (Math.abs(arms) > 0) {
-                    robot.moveArm(arms);
-                }
+//                //diag
+//                double diag = gamepad1.left_stick_x;
+//                if (diag >= 0){
+//                    robot.diagRight(diag, telemetry);
+//                }
+//                else{
+//                    robot.diagLeft(-diag, telemetry);
+//                }
 
-                //lock grabber
-                boolean grab = gamepad1.left_stick_button;
-                boolean letgo = gamepad1.right_stick_button;
-                if (grab){
-                    robot.lock();
-                }
-                else if(letgo){
-                    robot.unlock();
-                }
+
+                // get gyroscope data
+                telemetry.addData("Heading", robot.getGyroHeading());
+
 
                 telemetry.update();
             }
         }
-
         catch (Exception ex){
             telemetry.addData("Issues with the OpMode", ex.getMessage());
             telemetry.update();
+        }
+        finally {
+            if (robot != null){
+//                robot.getGyro().stopRecordingAcceleration();
+            }
         }
     }
 }
