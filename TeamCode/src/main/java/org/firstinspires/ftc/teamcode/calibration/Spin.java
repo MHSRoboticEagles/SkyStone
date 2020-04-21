@@ -22,8 +22,8 @@ public class Spin extends LinearOpMode {
 
     private double leftLong = 0;
     private double leftPerDegree = 0;
-    File leftSpinPerDegFile = AppUtil.getInstance().getSettingsFile("leftSpinPerDeg.txt");
-    File rightSpinPerDegFile = AppUtil.getInstance().getSettingsFile("rightSpinPerDeg.txt");
+    File calibFile = AppUtil.getInstance().getSettingsFile(BotCalibConfig.BOT_CALIB_CONFIG);
+
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -94,8 +94,14 @@ public class Spin extends LinearOpMode {
 
         leftLong = bot.getLeftOdemeter();
         leftPerDegree = leftLong / actualAngle;
-        ReadWriteFile.writeFile(leftSpinPerDegFile, String.valueOf(leftPerDegree));
-        ReadWriteFile.writeFile(rightSpinPerDegFile, String.valueOf(rightPerDegree));
+
+        //separation
+        double separation = 2*90 * ((-leftLong - rightLong)/actualAngle)/(Math.PI*bot.COUNTS_PER_INCH_REV);
+        BotCalibConfig config = new BotCalibConfig();
+        config.setLeftTickPerDegree(Math.abs(leftPerDegree));
+        config.setRightTickPerDegree(Math.abs(rightPerDegree));
+        config.setWheelBaseSeparation(separation);
+        ReadWriteFile.writeFile(calibFile, config.serialize());
     }
 
     private void turnRight(){

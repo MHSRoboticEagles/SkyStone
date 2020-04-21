@@ -53,8 +53,8 @@ public class Circular extends LinearOpMode {
                 telemetry.addData("Y1", nextY);
                 telemetry.addData("archAngle", archAngle);
 
-//                telemetry.addData("rightLong", rightLong);
-//                telemetry.addData("rightPerDegree", rightPerDegree);
+                telemetry.addData("rightLong", rightLong);
+                telemetry.addData("rightPerDegree", rightPerDegree);
 
                 telemetry.update();
             }
