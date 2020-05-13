@@ -9,6 +9,7 @@ public class BotCalibConfig implements Serializable {
     private double leftTickPerDegree;
     private double rightTickPerDegree;
     private double wheelBaseSeparation;
+    private double horizontalTicksDegree;
 
     public String serialize() {
         return SimpleGson.getInstance().toJson(this);
@@ -39,5 +40,13 @@ public class BotCalibConfig implements Serializable {
 
     public void setWheelBaseSeparation(double wheelBaseSeparation) {
         this.wheelBaseSeparation = wheelBaseSeparation;
+    }
+
+    public double getHorizontalTicksDegree() {
+        return horizontalTicksDegree;
+    }
+
+    public void setHorizontalTicksDegree(double horizontalTicksDegree) {
+        this.horizontalTicksDegree = horizontalTicksDegree;
     }
 }

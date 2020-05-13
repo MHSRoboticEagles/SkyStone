@@ -7,7 +7,10 @@ import com.qualcomm.robotcore.util.ReadWriteFile;
 
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 import org.firstinspires.ftc.robotcore.internal.system.Deadline;
+import org.firstinspires.ftc.teamcode.bots.RobotDirection;
 import org.firstinspires.ftc.teamcode.bots.YellowBot;
+import org.firstinspires.ftc.teamcode.gamefield.FieldStats;
+import org.firstinspires.ftc.teamcode.skills.Led;
 
 import java.io.File;
 import java.util.concurrent.TimeUnit;
@@ -31,8 +34,8 @@ public class MasterOdo extends LinearOpMode {
 
     protected double ratio = 0;
 
-    protected double startX = 0;
-    protected double startY = 0;
+    protected double startX = 56;
+    protected double startY = 24;
 
     protected double targetX = 0;
     protected double targetY = 0;
@@ -48,12 +51,14 @@ public class MasterOdo extends LinearOpMode {
     private double MODE_VALUE = 1;
     private boolean MODE_UP = true;
 
+    private static double CALIB_WEIGHT = 15.2;
+
 
 
     private boolean MOVING = false;
 
 
-    private double DISTANCE = 0;
+    private double DISTANCE_Y = 0;
 
     private double SPEED = bot.CALIB_SPEED;
     protected double valueSpeed = SPEED;
@@ -62,6 +67,7 @@ public class MasterOdo extends LinearOpMode {
     private double COORD_MIN = 1;
     private double COORD_MAX = 100;
     private double COORD_MULTIPLIER = 10;
+    private Led led = null;
 
     Deadline gamepadRateLimit;
     private final static int GAMEPAD_LOCKOUT = 500;
@@ -71,6 +77,7 @@ public class MasterOdo extends LinearOpMode {
     public void runOpMode() throws InterruptedException {
         try {
             bot.init(this, hardwareMap, telemetry);
+            this.led = bot.getLights();
             bot.initGyro();
             bot.initCalibData();
             gamepadRateLimit = new Deadline(GAMEPAD_LOCKOUT, TimeUnit.MILLISECONDS);
@@ -79,6 +86,10 @@ public class MasterOdo extends LinearOpMode {
 //            showSettings();
 
             waitForStart();
+
+            if (this.led != null){
+                this.led.start();
+            }
             showSettings();
 
             while (opModeIsActive()) {
@@ -235,19 +246,41 @@ public class MasterOdo extends LinearOpMode {
         }
 
 
-
         if (!MOVING&& gamepad1.right_bumper){
             gamepadRateLimit.reset();
             saveConfig();
 
             MOVING = true;
-            if (startX != targetX || startY != targetY) {
-                DISTANCE = targetX;
-                ratio = moveForward();
+            if (startY != targetY) {
+                if (startX == targetX) {
+                    if (targetY < bot.ROBOT_LENGTH_Y) {
+                        targetY = bot.ROBOT_LENGTH_Y + 1;
+                    }
+                    if (targetY > FieldStats.MAX_Y_INCHES) {
+                        targetY = FieldStats.MAX_Y_INCHES - 1;
+                    }
+                    DISTANCE_Y = targetY - startY;
+                    ratio = moveForward();
+                    startY = targetY;
+                    showStats();
+                }
+                else{
+                    curve();
+                }
             }
             else{
                 spin();
+                showStats();
             }
+        }
+
+        if (!MOVING&& gamepad1.left_bumper){
+            gamepadRateLimit.reset();
+            saveConfig();
+
+            MOVING = true;
+
+            spin();
 
             showStats();
         }
@@ -274,12 +307,15 @@ public class MasterOdo extends LinearOpMode {
     }
 
     private double moveForward(){
+        if (this.led != null){
+            this.led.move();
+        }
         startHead = bot.getGyroHeading();
         double leftStart = bot.getLeftOdemeter();
         double rightStart = bot.getRightOdemeter();
-        leftTarget = bot.getLeftTarget(DISTANCE);
-        rightTarget = bot.getRightTarget(DISTANCE);
-        bot.moveTo(SPEED, SPEED, DISTANCE);
+        leftTarget = bot.getLeftTarget(DISTANCE_Y);
+        rightTarget = bot.getRightTarget(DISTANCE_Y);
+        bot.moveTo(SPEED, SPEED, DISTANCE_Y);
         this.left = bot.getLeftOdemeter() - leftStart;
         this.right = bot.getRightOdemeter() - rightStart;
 
@@ -291,14 +327,21 @@ public class MasterOdo extends LinearOpMode {
             telemetry.update();
         }
         nextHead = bot.getGyroHeading();
+        MOVING = false;
+        if (this.led != null){
+            this.led.start();
+        }
 
         return ratio;
     }
 
     private void spin(){
+        if (this.led != null){
+            this.led.move();
+        }
         startHead = bot.getGyroHeading();
 
-        bot.spin(desiredHead, SPEED);
+        bot.spinH(desiredHead, SPEED);
 
         timer.reset();
         while(timer.milliseconds() < 1000 && opModeIsActive()){
@@ -307,9 +350,19 @@ public class MasterOdo extends LinearOpMode {
         }
 
         nextHead = bot.getGyroHeading();
+        MOVING = false;
+        if (this.led != null){
+            this.led.start();
+        }
+    }
+
+    private void  curve(){
+        bot.moveToCoordinate(startX, startY, targetX, targetY, RobotDirection.Forward, 0, SPEED);
     }
 
     private void showSettings(){
+        telemetry.addData("Start X", "%.2f. To change press x", startX);
+        telemetry.addData("Start Y", "%.2f. To change press y", startY);
         telemetry.addData("Target X", "%.2f. To change press x", targetX);
         telemetry.addData("Target Y", "%.2f. To change press y", targetY);
         telemetry.addData("Heading", "%.2f. To change press b", desiredHead);
@@ -374,6 +427,7 @@ public class MasterOdo extends LinearOpMode {
         telemetry.addData("startHead", startHead);
         telemetry.addData("nextHead", nextHead);
         telemetry.addData("Speed", SPEED);
+        telemetry.addData("Horizontal", bot.getHorizontalOdemeter());
 
         telemetry.update();
     }

@@ -5,7 +5,8 @@ package org.firstinspires.ftc.teamcode.bots;
  */
 
 public enum RobotDirection {
-    Straight,
+    Forward,
+    Backward,
     Left,
     Right
 }

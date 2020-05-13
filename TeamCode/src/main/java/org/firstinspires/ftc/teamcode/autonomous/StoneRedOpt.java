@@ -3,7 +3,8 @@ package org.firstinspires.ftc.teamcode.autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
-import org.firstinspires.ftc.teamcode.gamefield.GameStats;
+import org.firstinspires.ftc.teamcode.gamefield.FieldStats;
+import org.firstinspires.ftc.teamcode.gamefield.FieldStats;
 import org.firstinspires.ftc.teamcode.skills.StoneFinder;
 
 
@@ -174,7 +175,7 @@ public class StoneRedOpt extends AutoBase {
             }
             else{
                 if (traveled >= 0){
-                    retreat -= GameStats.TILE_WIDTH;
+                    retreat -= FieldStats.TILE_WIDTH;
                 }
             }
 

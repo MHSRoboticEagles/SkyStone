@@ -13,6 +13,7 @@ import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 import org.firstinspires.ftc.teamcode.calibration.BotCalibConfig;
 import org.firstinspires.ftc.teamcode.skills.Gyro;
 import org.firstinspires.ftc.teamcode.skills.Gyroscope;
+import org.firstinspires.ftc.teamcode.skills.Led;
 
 import java.io.File;
 
@@ -27,6 +28,8 @@ public class YellowBot extends UberBot {
     private Telemetry telemetry;
 
     private Gyroscope gyro = null;
+
+    private Led led = null;
 
     private LinearOpMode owner = null;
 
@@ -47,15 +50,19 @@ public class YellowBot extends UberBot {
     public static final double ROBOT_FRONT_X = 9;
     public static final double ROBOT_FORNT_Y = 9;
 
-    private final double LEFT_REDUCTION = 0.94;
+    private final double LEFT_REDUCTION = 0.955;
 
     //move to individual op mode
     public static final double START_X = 48;
     public static final double START_Y = 0;
 
+    private static double currentX = 0;
+    private static double currentY = 0;
+
     private double leftSpinByDegree = 0;
     private double rightSpinByDegree = 0;
     private double wheelBaseSeparation = 0;
+    private double horizontalTicksDegree = 0;
 
 
     public YellowBot() {
@@ -145,10 +152,32 @@ public class YellowBot extends UberBot {
 
     }
 
+    public double getHorizontalOdemeter(){
+        return  backLeft.getCurrentPosition();
+
+    }
+
     public void move(double drive, double turn){
         if (frontLeft != null && frontRight!= null && backLeft != null && backRight != null) {
             double rightPower = Range.clip(drive + turn, -1.0, 1.0);
             double leftPower = Range.clip(drive - turn, -1.0, 1.0);
+
+            //create dead zone for bad joysticks
+            if (Math.abs(rightPower) < 0.02){
+                rightPower = 0;
+            }
+
+            if (Math.abs(leftPower) < 0.02){
+                leftPower = 0;
+            }
+
+            //apply logarythmic adjustment
+
+            rightPower = rightPower * 100 / 110;
+            rightPower = rightPower * rightPower * rightPower;
+
+            leftPower = leftPower * 100 / 110;
+            leftPower = leftPower * leftPower * leftPower;
 
             this.frontLeft.setPower(leftPower);
             this.frontRight.setPower(rightPower);
@@ -185,24 +214,30 @@ public class YellowBot extends UberBot {
 
             double leftTarget = this.getLeftOdemeter() + distance;
 
-
             double cutOff = ROBOT_LENGTH_Y* COUNTS_PER_INCH_REV;
             //at top speed the slow-down should start at a 23% greater distance than at half speed.
             cutOff = cutOff + ROBOT_LENGTH_Y*0.5* COUNTS_PER_INCH_REV;
 
-            double slowdownMark = distance - cutOff;
+            double slowdownDistance = Math.abs(distance) - cutOff;
 
-            if (slowdownMark < 0){
+            double slowdownMark = 0;
+
+            if (slowdownDistance < 0){
                 slowdownMark = distance * 0.1;
                 if (forward){
                     rightPower = -CALIB_SPEED;
-                    leftPower = -CALIB_SPEED;
                 }
                 else{
                     rightPower = CALIB_SPEED;
-                    leftPower = CALIB_SPEED;
                 }
-
+            }
+            else{
+                if (forward){
+                    slowdownMark = startingPoint + slowdownDistance;
+                }
+                else{
+                    slowdownMark = startingPoint - slowdownDistance;
+                }
             }
 
 
@@ -211,7 +246,6 @@ public class YellowBot extends UberBot {
             double speedDropStep = 0.1;
 
 
-            double originalLeft = leftPower;
             double originalRight = rightPower;
 
 
@@ -234,11 +268,13 @@ public class YellowBot extends UberBot {
             int step = 0;
             while (!stop && owner.opModeIsActive()) {
                 double leftreading = this.getLeftOdemeter();
-                stop =  leftreading >= leftTarget;
+                stop =  (forward && leftreading >= leftTarget) ||
+                        (forward == false && leftreading <= leftTarget);
                 if (stop){
                     break;
                 }
-                if (leftreading >= startingPoint + slowdownMark){
+                if ((forward && leftreading >= slowdownMark) ||
+                        (forward == false && leftreading <= slowdownMark)){
                     step++;
 
                     if (forward) {
@@ -398,6 +434,117 @@ public class YellowBot extends UberBot {
         this.stop();
     }
 
+    public void spinH(double desiredHeading, double speed){
+        speed = Math.abs(speed);
+        double currentHead = this.getGyroHeading();
+        boolean spinLeft = false;
+        if (desiredHeading > currentHead){
+            spinLeft = true;
+        }
+
+        double leftDesiredSpeed = speed;
+        double rightDesiredSpeed = speed;
+
+        if (spinLeft){
+            rightDesiredSpeed = -rightDesiredSpeed;
+        }
+        else{
+            leftDesiredSpeed = -leftDesiredSpeed;
+        }
+
+        double archDegrees = Math.abs(desiredHeading - currentHead);
+        double horDistance = archDegrees * horizontalTicksDegree;
+
+
+
+        double startingPoint = this.getHorizontalOdemeter();
+
+        double slowdownDistance = horDistance * 0.4;
+
+        double slowdownMark = 0;
+
+        boolean targetIncrement = true;
+        double target = 0;
+        if (spinLeft){
+            target = startingPoint - horDistance;
+            slowdownMark = startingPoint - slowdownDistance;
+            targetIncrement = false;
+        }
+
+        if (!spinLeft){
+            target = startingPoint + horDistance;
+            slowdownMark = startingPoint + slowdownDistance;
+            targetIncrement = true;
+        }
+
+
+        double leftPower = 0;
+        double rightPower = 0;
+
+        double realSpeedLeft = leftPower;
+        double realSpeedRight = rightPower;
+
+        double speedIncrement = 0.05;
+
+        boolean stop = false;
+        int step = 0;
+        double minSpeed = 0.1;
+
+        double speedDropStep = 0.1;
+        while (!stop && this.owner.opModeIsActive()){
+            double currentReading = this.getHorizontalOdemeter();
+            if ((targetIncrement && currentReading >= target) ||
+                    (!targetIncrement && currentReading <= target)){
+                stop = true;
+            }
+            if (!stop) {
+                //slow down
+                if ((targetIncrement && currentReading >= slowdownMark) ||
+                        (!targetIncrement && currentReading <= slowdownMark)){
+                    step++;
+
+                    if (spinLeft) {
+                        rightPower = realSpeedRight + speedDropStep * step;
+                        leftPower = realSpeedLeft - speedDropStep * step;
+                        if (rightPower >= -minSpeed || leftPower <= minSpeed){
+                            leftPower = minSpeed;
+                            rightPower = -minSpeed;
+                        }
+                    }
+                    else{
+                        rightPower = realSpeedRight - speedDropStep * step;
+                        leftPower = realSpeedLeft + speedDropStep * step;
+                        if (rightPower <=minSpeed || leftPower >= -minSpeed){
+                            leftPower = -minSpeed;
+                            rightPower = minSpeed;
+                        }
+                    }
+                }
+                else {
+                    //accelerate
+                    if ((spinLeft && leftPower + speedIncrement <= leftDesiredSpeed) ||
+                            (!spinLeft && rightPower + speedIncrement <= rightDesiredSpeed)) {
+                        if (spinLeft) {
+                            leftPower = leftPower + speedIncrement;
+                            rightPower = -leftPower;
+                        } else {
+                            rightPower = rightPower + speedIncrement;
+                            leftPower = -rightPower;
+                        }
+                        realSpeedLeft = leftPower;
+                        realSpeedRight = rightPower;
+                    }
+                }
+            }
+            this.frontLeft.setPower(leftPower);
+            this.frontRight.setPower(rightPower);
+            this.backLeft.setPower(leftPower);
+            this.backRight.setPower(rightPower);
+        }
+
+        this.stop();
+    }
+
     public double getLeftTarget(double inches){
         return this.getLeftOdemeter() + inches * COUNTS_PER_INCH_REV;
     }
@@ -406,21 +553,85 @@ public class YellowBot extends UberBot {
         return this.getRightOdemeter() + inches * COUNTS_PER_INCH_REV;
     }
 
-    public void moveToCoordinate(double targetX, double targetY, double topSpeed){
-        //get current x and y and heading (e.g. 48 + ROBOT_CENTER_X : ROBOT_CENTER_Y: 0)
-        double currentX = START_X + ROBOT_CENTER_X;
-        double currentY = START_Y + ROBOT_CENTER_Y;
+    public void moveToCoordinate(double X, double Y, double targetX, double targetY, RobotDirection direction, double desiredHead, double topSpeed){
+        //X and Y are front center of the robot
+        double currentX = X;
+        double currentY = Y;
+        double currentHead = this.getGyroHeading();
+
+
         //determine the new heading to the target
-        double distanceX = Math.abs(Math.abs(currentX) - Math.abs(targetX));
-        double distanceY = Math.abs(Math.abs(currentY) - Math.abs(targetY));
-        double angle = Math.toDegrees(Math.tan(distanceX/distanceY));
-        double desiredHeading = 90 - angle;
-        //check if distanceY  is long enough for a curve or a spin is required
-        //if short, spin to the required heading and move along the hypotenuse
-        //if long enough, move along the curve
-        //get the wheel ratio for the desired degrees
-        //calculate the low speed
-        //move one side with low speed and the other with the top speed tracking the tics of the top speed side.
+        double distanceX = Math.abs(targetX - currentX);
+        double distanceY = Math.abs(targetY - currentY);
+        double angle = Math.toDegrees(Math.atan(distanceX/distanceY));
+        double chord = Math.sqrt(distanceX*distanceX + distanceY * distanceY);
+
+        telemetry.addData("Chord", chord);
+
+        //find the direction of the new target
+        double targetVector = angle;
+        if (targetY < currentY){
+            targetVector = 180 - angle;
+        }
+
+        if (targetX > currentX){
+            targetVector = - targetVector;
+        }
+
+        telemetry.addData("Target Vector", targetVector);
+
+        double angleChange = Math.abs(targetVector - currentHead);
+        double sign = -currentHead/Math.abs(currentHead);
+        if (angleChange > 90){
+            //backwards is faster
+            if (direction == RobotDirection.Backward){
+                currentHead = (180 - Math.abs(currentHead))*sign;
+            }
+            else{
+                //spin
+                spinH(targetVector, topSpeed);
+                //todo: make more precise
+                currentHead = targetVector;
+            }
+            angleChange = Math.abs(targetVector - currentHead);
+        }
+
+        telemetry.addData("CurrentHead", currentHead);
+        telemetry.addData("AngleChange", angleChange);
+
+        boolean turnLeft = false;
+
+        if (targetVector > currentHead){
+            turnLeft = true;
+        }
+        telemetry.addData("turnLeft", turnLeft);
+
+        double alpha = 90 - angleChange;
+        double theta = Math.toRadians(angleChange * 2);
+        double halfChord = chord/2;
+        double radius = halfChord/Math.cos(Math.toRadians(alpha));
+        double centerArch = theta * radius;
+        double wheelDistFromCenter = this.wheelBaseSeparation/2;
+        double longArch = theta * (radius + wheelDistFromCenter)*COUNTS_PER_INCH_REV;
+        double shortArch = theta * (radius - wheelDistFromCenter)*COUNTS_PER_INCH_REV;
+        double speedRatio = shortArch/longArch;
+        double lowSpeed = topSpeed*speedRatio;
+
+        telemetry.addData("Radius", radius);
+        telemetry.addData("Theta", theta);
+        telemetry.addData("longArch", longArch);
+        telemetry.addData("shortArch", shortArch);
+        if (turnLeft) {
+            telemetry.addData("right speed", topSpeed);
+            telemetry.addData("left speed", lowSpeed);
+        }
+        else{
+            telemetry.addData("left speed", topSpeed);
+            telemetry.addData("right speed", lowSpeed);
+        }
+
+        telemetry.update();
+
     }
 
     public void spinLeft(double speed, boolean forward){
@@ -577,10 +788,12 @@ public class YellowBot extends UberBot {
             BotCalibConfig config = BotCalibConfig.deserialize(data);
             this.leftSpinByDegree = config.getLeftTickPerDegree();
             this.rightSpinByDegree = config.getRightTickPerDegree();
-            this.wheelBaseSeparation = config.getWheelBaseSeparation();
+            this.wheelBaseSeparation = Math.abs(config.getWheelBaseSeparation());
+            this.horizontalTicksDegree = config.getHorizontalTicksDegree();
             telemetry.addData("leftSpinByDegree", leftSpinByDegree);
             telemetry.addData("rightSpinByDegree", rightSpinByDegree);
             telemetry.addData("wheel separation", wheelBaseSeparation);
+            telemetry.addData("horizontalTicksDegree", horizontalTicksDegree);
             telemetry.update();
             if (config == null){
                 throw new Exception("Calibration data does not exist. Run Spin calibration first");
@@ -624,5 +837,17 @@ public class YellowBot extends UberBot {
 
         return -666;
     }
+
+
+    //leds
+
+    public Led getLights(){
+        if (led == null){
+            led = new Led();
+            led.init(hwMap);
+        }
+        return led;
+    }
+
 
 }

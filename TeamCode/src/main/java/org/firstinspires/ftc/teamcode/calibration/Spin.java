@@ -22,6 +22,11 @@ public class Spin extends LinearOpMode {
 
     private double leftLong = 0;
     private double leftPerDegree = 0;
+
+    private double separation = 0;
+    private double horizontalTicksDegree = 0;
+
+    private double actualAngle = 0;
     File calibFile = AppUtil.getInstance().getSettingsFile(BotCalibConfig.BOT_CALIB_CONFIG);
 
 
@@ -35,18 +40,9 @@ public class Spin extends LinearOpMode {
             telemetry.update();
 
 
-
-
             waitForStart();
 
             spinLeft();
-//            timer.reset();
-//            while(timer.milliseconds() < 3000 && opModeIsActive()){
-//                telemetry.addData("Calib","Waiting for next step ...");
-//                telemetry.update();
-//            }
-//
-//            turnRight();
 
             while (opModeIsActive()) {
 
@@ -55,6 +51,10 @@ public class Spin extends LinearOpMode {
 
                 telemetry.addData("rightLong", rightLong);
                 telemetry.addData("rightPerDegree", rightPerDegree);
+
+                telemetry.addData("separation", separation);
+                telemetry.addData("horizontalTicksDegree", horizontalTicksDegree);
+                telemetry.addData("actualAngle", actualAngle);
 
                 telemetry.update();
             }
@@ -68,6 +68,7 @@ public class Spin extends LinearOpMode {
     private void spinLeft(){
         double currentHead = bot.getGyroHeading();
         double desiredHead = currentHead + 90;
+        double horizontalStart = bot.getHorizontalOdemeter();
         while (bot.getGyroHeading() < desiredHead && opModeIsActive()){
             if (bot.getGyroHeading() < desiredHead/2){
                 bot.spinLeft(bot.CALIB_SPEED, true);
@@ -86,8 +87,9 @@ public class Spin extends LinearOpMode {
             telemetry.update();
         }
 
+
         double finalHead = bot.getGyroHeading();
-        double actualAngle = finalHead - currentHead;
+        actualAngle = finalHead - currentHead;
 
         rightLong = bot.getRightOdemeter();
         rightPerDegree = rightLong / actualAngle;
@@ -95,40 +97,21 @@ public class Spin extends LinearOpMode {
         leftLong = bot.getLeftOdemeter();
         leftPerDegree = leftLong / actualAngle;
 
+        double horizontalPosition = bot.getHorizontalOdemeter();
+        double horizontalShift = horizontalPosition - horizontalStart;
+
+        horizontalTicksDegree = Math.abs(horizontalShift/actualAngle);
+
+
+
         //separation
-        double separation = 2*90 * ((-leftLong - rightLong)/actualAngle)/(Math.PI*bot.COUNTS_PER_INCH_REV);
+        separation = 2*90 * ((leftLong - rightLong)/actualAngle)/(Math.PI*bot.COUNTS_PER_INCH_REV);
         BotCalibConfig config = new BotCalibConfig();
         config.setLeftTickPerDegree(Math.abs(leftPerDegree));
         config.setRightTickPerDegree(Math.abs(rightPerDegree));
-        config.setWheelBaseSeparation(separation);
+        config.setWheelBaseSeparation(Math.abs(separation));
+        config.setHorizontalTicksDegree(horizontalTicksDegree);
         ReadWriteFile.writeFile(calibFile, config.serialize());
     }
 
-    private void turnRight(){
-        double currentHead = bot.getGyroHeading();
-        double desiredHead = currentHead - 90;
-        while (bot.getGyroHeading() > desiredHead && opModeIsActive()){
-            if (bot.getGyroHeading() > desiredHead/2){
-                bot.spinRight(bot.CALIB_SPEED, true);
-            }else{
-                bot.spinRight(bot.CALIB_SPEED/2, true);
-            }
-            telemetry.addData("Heading", bot.getGyroHeading());
-            telemetry.update();
-        }
-
-        bot.stop();
-
-        timer.reset();
-        while(timer.milliseconds() < 1000 && opModeIsActive()){
-            telemetry.addData("Gyroscope","Stabilizing ...");
-            telemetry.update();
-        }
-
-        double finalHead = bot.getGyroHeading();
-        double actualAngle = currentHead - finalHead;
-
-        leftLong = bot.getLeftOdemeter();
-        leftPerDegree = leftLong / actualAngle;
-    }
 }

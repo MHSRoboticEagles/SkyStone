@@ -12,7 +12,7 @@ import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-import org.firstinspires.ftc.teamcode.gamefield.GameStats;
+import org.firstinspires.ftc.teamcode.gamefield.FieldStats;
 import org.firstinspires.ftc.teamcode.skills.DetectionInterface;
 import org.firstinspires.ftc.teamcode.skills.Gyro;
 
@@ -1361,9 +1361,9 @@ public class TieBot extends UberBot{
         double travel = 0;
         int middle = close + (far - close)/2;
         int head = this.getGyro().getDesiredHeading();
-        double distanceReductionClose  = GameStats.ROBOT_SIDE*2/3;
-        double distanceReductionFar = GameStats.ROBOT_SIDE;
-        double longCat = GameStats.TILE_WIDTH;
+        double distanceReductionClose  = FieldStats.ROBOT_SIDE*2/3;
+        double distanceReductionFar = FieldStats.ROBOT_SIDE;
+        double longCat = FieldStats.TILE_WIDTH;
         if(toWall > far){
             double catet = toWall - middle;
             travel = Math.sqrt(longCat*longCat + catet * catet);
@@ -1407,9 +1407,9 @@ public class TieBot extends UberBot{
         double travel = 0;
         int middle = close + (far - close)/2;
         int head = this.getGyro().getDesiredHeading();
-        double distanceReduction  = GameStats.ROBOT_SIDE*2/3;
-        double distanceReductionFar = GameStats.ROBOT_SIDE + 1;
-        double longCat = GameStats.TILE_WIDTH;
+        double distanceReduction  = FieldStats.ROBOT_SIDE*2/3;
+        double distanceReductionFar = FieldStats.ROBOT_SIDE + 1;
+        double longCat = FieldStats.TILE_WIDTH;
         if(toWall > far){
             double catet = toWall - middle;
             travel = Math.sqrt(longCat*longCat + catet * catet);
