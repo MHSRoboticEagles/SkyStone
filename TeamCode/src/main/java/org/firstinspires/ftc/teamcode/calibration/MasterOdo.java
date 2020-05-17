@@ -48,6 +48,8 @@ public class MasterOdo extends LinearOpMode {
     private boolean speedMode = false;
     private boolean headingMode = false;
 
+    private double overage = 0;
+
     private double MODE_VALUE = 1;
     private boolean MODE_UP = true;
 
@@ -202,7 +204,7 @@ public class MasterOdo extends LinearOpMode {
         }
 
         //value adjustment
-        if (gamepad1.dpad_up){
+        if (gamepad1.dpad_down){
             MOVING = false;
             if (xmode){
                 valueX = valueX + MODE_VALUE;
@@ -223,7 +225,7 @@ public class MasterOdo extends LinearOpMode {
             gamepadRateLimit.reset();
         }
 
-        if (gamepad1.dpad_down){
+        if (gamepad1.dpad_up){
             MOVING = false;
             if (xmode){
                 valueX -= MODE_VALUE;
@@ -269,7 +271,12 @@ public class MasterOdo extends LinearOpMode {
                 }
             }
             else{
-                spin();
+                if (startX != targetX){
+                    strafe();
+                }
+                else {
+                    spin();
+                }
                 showStats();
             }
         }
@@ -358,6 +365,45 @@ public class MasterOdo extends LinearOpMode {
 
     private void  curve(){
         bot.moveToCoordinate(startX, startY, targetX, targetY, RobotDirection.Forward, 0, SPEED);
+    }
+
+    private void strafe(){
+        if (this.led != null){
+            this.led.move();
+        }
+        startHead = bot.getGyroHeading();
+
+        boolean left = false;
+        if (startHead > -90 && startHead < 90){
+            if (targetX < startX){
+                left = true;
+            }
+        }
+
+        if (startHead < -90 || startHead > 90){
+            if (targetX > startX){
+                left = true;
+            }
+        }
+
+        double distance = Math.abs(startX - targetX);
+
+        //todo: pull reudction from config
+        bot.strafeTo(SPEED, distance, left, 0.9);
+
+
+
+        timer.reset();
+        while(timer.milliseconds() < 1000 && opModeIsActive()){
+            telemetry.addData("Gyroscope","Stabilizing ...");
+            telemetry.update();
+        }
+
+        nextHead = bot.getGyroHeading();
+        MOVING = false;
+        if (this.led != null){
+            this.led.start();
+        }
     }
 
     private void showSettings(){

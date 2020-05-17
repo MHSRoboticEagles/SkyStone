@@ -10,6 +10,10 @@ public class BotCalibConfig implements Serializable {
     private double rightTickPerDegree;
     private double wheelBaseSeparation;
     private double horizontalTicksDegree;
+    private double minRadiusLeft;
+    private double minRadiusRight;
+    private double strafeLeftReduction;
+    private double strafeRightReduction;
 
     public String serialize() {
         return SimpleGson.getInstance().toJson(this);
@@ -48,5 +52,37 @@ public class BotCalibConfig implements Serializable {
 
     public void setHorizontalTicksDegree(double horizontalTicksDegree) {
         this.horizontalTicksDegree = horizontalTicksDegree;
+    }
+
+    public double getMinRadiusLeft() {
+        return minRadiusLeft;
+    }
+
+    public void setMinRadiusLeft(double minRadiusLeft) {
+        this.minRadiusLeft = minRadiusLeft;
+    }
+
+    public double getMinRadiusRight() {
+        return minRadiusRight;
+    }
+
+    public void setMinRadiusRight(double minRadiusRight) {
+        this.minRadiusRight = minRadiusRight;
+    }
+
+    public double getStrafeLeftReduction() {
+        return strafeLeftReduction;
+    }
+
+    public void setStrafeLeftReduction(double strafeLeftReduction) {
+        this.strafeLeftReduction = strafeLeftReduction;
+    }
+
+    public double getStrafeRightReduction() {
+        return strafeRightReduction;
+    }
+
+    public void setStrafeRightReduction(double strafeRightReduction) {
+        this.strafeRightReduction = strafeRightReduction;
     }
 }

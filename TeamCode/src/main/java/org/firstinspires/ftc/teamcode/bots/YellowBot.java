@@ -50,7 +50,7 @@ public class YellowBot extends UberBot {
     public static final double ROBOT_FRONT_X = 9;
     public static final double ROBOT_FORNT_Y = 9;
 
-    private final double LEFT_REDUCTION = 0.955;
+    private final double LEFT_REDUCTION = 1;//0.955;
 
     //move to individual op mode
     public static final double START_X = 48;
@@ -63,6 +63,8 @@ public class YellowBot extends UberBot {
     private double rightSpinByDegree = 0;
     private double wheelBaseSeparation = 0;
     private double horizontalTicksDegree = 0;
+    private double minRadiusLeft = 0;
+    private double minRadiusRight = 0;
 
 
     public YellowBot() {
@@ -610,24 +612,29 @@ public class YellowBot extends UberBot {
         double theta = Math.toRadians(angleChange * 2);
         double halfChord = chord/2;
         double radius = halfChord/Math.cos(Math.toRadians(alpha));
-        double centerArch = theta * radius;
-        double wheelDistFromCenter = this.wheelBaseSeparation/2;
-        double longArch = theta * (radius + wheelDistFromCenter)*COUNTS_PER_INCH_REV;
-        double shortArch = theta * (radius - wheelDistFromCenter)*COUNTS_PER_INCH_REV;
-        double speedRatio = shortArch/longArch;
-        double lowSpeed = topSpeed*speedRatio;
 
-        telemetry.addData("Radius", radius);
-        telemetry.addData("Theta", theta);
-        telemetry.addData("longArch", longArch);
-        telemetry.addData("shortArch", shortArch);
-        if (turnLeft) {
-            telemetry.addData("right speed", topSpeed);
-            telemetry.addData("left speed", lowSpeed);
-        }
-        else{
-            telemetry.addData("left speed", topSpeed);
-            telemetry.addData("right speed", lowSpeed);
+        if ((turnLeft && radius <= this.minRadiusLeft) ||
+                (turnLeft == false && radius <=this.minRadiusRight)){
+            telemetry.addData("Radius", "Too small. Cannot turn");
+        }else {
+            //double centerArch = theta * radius;
+            double wheelDistFromCenter = this.wheelBaseSeparation / 2;
+            double longArch = theta * (radius + wheelDistFromCenter) * COUNTS_PER_INCH_REV;
+            double shortArch = theta * (radius - wheelDistFromCenter) * COUNTS_PER_INCH_REV;
+            double speedRatio = shortArch / longArch;
+            double lowSpeed = topSpeed * speedRatio;
+
+            telemetry.addData("Radius", radius);
+            telemetry.addData("Theta", theta);
+            telemetry.addData("longArch", longArch);
+            telemetry.addData("shortArch", shortArch);
+            if (turnLeft) {
+                telemetry.addData("right speed", topSpeed);
+                telemetry.addData("left speed", lowSpeed);
+            } else {
+                telemetry.addData("left speed", topSpeed);
+                telemetry.addData("right speed", lowSpeed);
+            }
         }
 
         telemetry.update();
@@ -751,6 +758,49 @@ public class YellowBot extends UberBot {
         }
     }
 
+    public double strafeTo(double speed, double inches, boolean left, double reduction) {
+        double currentPos = this.getHorizontalOdemeter();
+        double distance = inches * COUNTS_PER_INCH_REV;
+
+
+        double overage = 0;
+
+        if (left == false){
+            distance = -distance;
+        }
+
+        double target = currentPos + distance;
+
+        boolean stop = false;
+
+        while (!stop && this.owner.opModeIsActive()){
+            currentPos = this.getHorizontalOdemeter();
+            if((left && currentPos >= target) || (left == false && currentPos <= target)){
+                stop = true;
+            }
+
+            if (left){
+                this.backLeft.setPower(-speed);
+                this.backRight.setPower(speed);
+                this.frontLeft.setPower(speed*reduction);
+                this.frontRight.setPower(-speed*reduction);
+            }
+            else{
+                this.backLeft.setPower(speed*reduction);
+                this.backRight.setPower(-speed);
+                this.frontLeft.setPower(-speed*reduction);
+                this.frontRight.setPower(speed);
+            }
+        }
+
+        stop();
+        double newPos = this.getHorizontalOdemeter();
+        double diff = Math.abs(newPos - target);
+        overage = diff/distance*100;
+        return overage;
+    }
+
+
     public void diagLeft(double speed){
         if (backLeft != null && backRight!= null && frontLeft != null && frontRight != null) {
             double power = Range.clip(speed, -1.0, 1.0);
@@ -780,6 +830,75 @@ public class YellowBot extends UberBot {
         }
     }
 
+    public void diagTo(double speed, double diagInches, boolean left){
+        if (backLeft != null && backRight!= null && frontLeft != null && frontRight != null) {
+            if (left) {
+                double power = speed;
+
+                if (diagInches > 0){
+                    power = -power;
+                }
+
+                double leftOdoStart = getLeftOdemeter();
+                double rightOdoStart = getRightOdemeter();
+                double horOdoStart = getHorizontalOdemeter();
+
+                double distance = diagInches * COUNTS_PER_INCH_REV;
+
+                double hyp = 0;
+                boolean stop = false;
+                double angle = 0;
+                double horDist = 0;
+                double catet = 0;
+
+
+                while(!stop && owner.opModeIsActive()){
+                    double leftOdo = getLeftOdemeter();
+                    double rightOdo = getRightOdemeter();
+                    double horOdo = getHorizontalOdemeter();
+                    double leftDist = leftOdo - leftOdoStart;
+                    double rightDist = rightOdo - rightOdoStart;
+                    horDist = horOdo - horOdoStart;
+                    catet = leftDist > rightDist ? leftDist : rightDist;
+                    hyp = Math.sqrt(horDist*horDist + catet * catet);
+                    if (hyp >= distance){
+                        angle = Math.toDegrees(Math.atan(catet/horDist));
+                        break;
+                    }
+
+                    if (!left) {
+                        this.backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                        this.frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+                        this.frontLeft.setPower(power);
+                        this.backRight.setPower(power);
+
+                        this.backLeft.setPower(0);
+                        this.frontRight.setPower(0);
+                    }
+                    else{
+                        this.frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                        this.backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+                        this.backLeft.setPower(power);
+                        this.frontRight.setPower(power);
+
+
+                        this.frontLeft.setPower(0);
+                        this.backRight.setPower(0);
+                    }
+                }
+
+                telemetry.addData("Angle", angle);
+                telemetry.addData("Hor", horDist/COUNTS_PER_INCH_REV);
+                telemetry.addData("Vert", catet/COUNTS_PER_INCH_REV);
+                telemetry.addData("Hyp", catet/COUNTS_PER_INCH_REV);
+                telemetry.update();
+            }
+            this.stop();
+        }
+    }
+
 
     public void initCalibData() throws Exception {
         File calibFile = AppUtil.getInstance().getSettingsFile(BotCalibConfig.BOT_CALIB_CONFIG);
@@ -790,10 +909,14 @@ public class YellowBot extends UberBot {
             this.rightSpinByDegree = config.getRightTickPerDegree();
             this.wheelBaseSeparation = Math.abs(config.getWheelBaseSeparation());
             this.horizontalTicksDegree = config.getHorizontalTicksDegree();
+            this.minRadiusLeft = config.getMinRadiusLeft();
+            this.minRadiusRight = config.getMinRadiusRight();
             telemetry.addData("leftSpinByDegree", leftSpinByDegree);
             telemetry.addData("rightSpinByDegree", rightSpinByDegree);
             telemetry.addData("wheel separation", wheelBaseSeparation);
             telemetry.addData("horizontalTicksDegree", horizontalTicksDegree);
+            telemetry.addData("minRadiusLeft", minRadiusLeft);
+            telemetry.addData("minRadiusRight", minRadiusRight);
             telemetry.update();
             if (config == null){
                 throw new Exception("Calibration data does not exist. Run Spin calibration first");
@@ -802,6 +925,20 @@ public class YellowBot extends UberBot {
         else{
             throw new Exception("Calibration data does not exist. Run Spin calibration first");
         }
+    }
+
+    public BotCalibConfig getCalibConfig(){
+        BotCalibConfig config = null;
+        File calibFile = AppUtil.getInstance().getSettingsFile(BotCalibConfig.BOT_CALIB_CONFIG);
+        if (calibFile.exists()) {
+            String data = ReadWriteFile.readFile(calibFile);
+            config = BotCalibConfig.deserialize(data);
+        }
+        return config;
+    }
+
+    public File getCalibConfigFile(){
+        return AppUtil.getInstance().getSettingsFile(BotCalibConfig.BOT_CALIB_CONFIG);
     }
 
 

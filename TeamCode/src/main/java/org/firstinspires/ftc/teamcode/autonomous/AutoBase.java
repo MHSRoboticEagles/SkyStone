@@ -382,14 +382,14 @@ public abstract class AutoBase extends LinearOpMode {
 
     protected void strafeRight(double speed, double moveTo){
         int increment = robot.getStrafeIncrement(moveTo);
-        telemetry.addData("Strafe", "Increment = %d", increment);
+        telemetry.addData("MasterCali", "Increment = %d", increment);
         int pos = robot.leftDriveBack.getCurrentPosition();
-        telemetry.addData("Strafe", "Start pos = %d", pos);
+        telemetry.addData("MasterCali", "Start pos = %d", pos);
         int current = pos;
         robot.strafeLeft(speed);
         while (current < pos + increment){
             current = robot.leftDriveBack.getCurrentPosition();
-            telemetry.addData("Strafe", "Current pos = %d", current);
+            telemetry.addData("MasterCali", "Current pos = %d", current);
             telemetry.update();
         }
         robot.stop();
@@ -397,9 +397,9 @@ public abstract class AutoBase extends LinearOpMode {
 
     protected void strafeLeft(double speed, double moveTo){
         int increment = robot.getStrafeIncrement(moveTo);
-        telemetry.addData("Strafe", "Increment = %d", increment);
+        telemetry.addData("MasterCali", "Increment = %d", increment);
         int pos = robot.leftDriveBack.getCurrentPosition();
-        telemetry.addData("Strafe", "Start pos = %d", pos);
+        telemetry.addData("MasterCali", "Start pos = %d", pos);
         int current = pos;
         robot.strafeRight(speed);
         while (current > pos - increment){
@@ -407,7 +407,7 @@ public abstract class AutoBase extends LinearOpMode {
                 break;
             }
             current = robot.leftDriveBack.getCurrentPosition();
-            telemetry.addData("Strafe", "Current pos = %d", current);
+            telemetry.addData("MasterCali", "Current pos = %d", current);
             telemetry.update();
         }
         robot.stop();

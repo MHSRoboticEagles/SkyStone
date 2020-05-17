@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.calibration;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -10,7 +11,7 @@ import org.firstinspires.ftc.teamcode.bots.YellowBot;
 
 import java.io.File;
 
-
+@Disabled
 @TeleOp(name="Calibration Spin", group="Robot15173")
 public class Spin extends LinearOpMode {
 
@@ -27,7 +28,6 @@ public class Spin extends LinearOpMode {
     private double horizontalTicksDegree = 0;
 
     private double actualAngle = 0;
-    File calibFile = AppUtil.getInstance().getSettingsFile(BotCalibConfig.BOT_CALIB_CONFIG);
 
 
     @Override
@@ -106,12 +106,16 @@ public class Spin extends LinearOpMode {
 
         //separation
         separation = 2*90 * ((leftLong - rightLong)/actualAngle)/(Math.PI*bot.COUNTS_PER_INCH_REV);
-        BotCalibConfig config = new BotCalibConfig();
+        BotCalibConfig config = bot.getCalibConfig();
+        if (config == null){
+            config = new BotCalibConfig();
+        }
+
         config.setLeftTickPerDegree(Math.abs(leftPerDegree));
         config.setRightTickPerDegree(Math.abs(rightPerDegree));
         config.setWheelBaseSeparation(Math.abs(separation));
         config.setHorizontalTicksDegree(horizontalTicksDegree);
-        ReadWriteFile.writeFile(calibFile, config.serialize());
+        ReadWriteFile.writeFile(bot.getCalibConfigFile(), config.serialize());
     }
 
 }

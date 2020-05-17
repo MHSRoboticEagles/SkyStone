@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.calibration;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.ReadWriteFile;
 
 import org.firstinspires.ftc.teamcode.bots.YellowBot;
 
@@ -19,10 +20,8 @@ public class Circular extends LinearOpMode {
     private double leftLong = 0;
     private double leftPerDegree = 0;
 
-    private double nextX = 0;
-    private double nextY = 0;
-
-    private double archAngle = 0;
+    private double minRadiusLeft = 0;
+    private double minRadiusRight = 0;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -38,23 +37,34 @@ public class Circular extends LinearOpMode {
             turnLeft();
             timer.reset();
             while(timer.milliseconds() < 3000 && opModeIsActive()){
-                telemetry.addData("Calib","Waiting for next step ...");
+                telemetry.addData("Calib","Waiting to turn right ...");
                 telemetry.update();
             }
 
-//            turnRight();
+            turnRight();
+
+            timer.reset();
+            while(timer.milliseconds() < 3000 && opModeIsActive()){
+                telemetry.addData("Calib","Waiting for gyro to settle ...");
+                telemetry.update();
+            }
+
+            BotCalibConfig config = bot.getCalibConfig();
+            if (config == null){
+                config = new BotCalibConfig();
+            }
+
+            config.setMinRadiusLeft(minRadiusLeft);
+            config.setMinRadiusRight(minRadiusRight);
+
+            ReadWriteFile.writeFile(bot.getCalibConfigFile(), config.serialize());
 
             while (opModeIsActive()) {
 
-                telemetry.addData("leftLong", leftLong);
-                telemetry.addData("leftPerDegree", leftPerDegree);
+                telemetry.addData("minRadiusLeft", minRadiusLeft);
 
-                telemetry.addData("X1", nextX);
-                telemetry.addData("Y1", nextY);
-                telemetry.addData("archAngle", archAngle);
 
-                telemetry.addData("rightLong", rightLong);
-                telemetry.addData("rightPerDegree", rightPerDegree);
+                telemetry.addData("minRadiusRight", minRadiusRight);
 
                 telemetry.update();
             }
@@ -87,22 +97,24 @@ public class Circular extends LinearOpMode {
         }
 
         double finalHead = bot.getGyroHeading();
-        double actualAngle = finalHead - currentHead;
+        double actualAngle = Math.abs(finalHead - currentHead);
 
         rightLong = bot.getRightOdemeter();
-        rightPerDegree = rightLong / actualAngle;
 
         double dLeft = bot.getLeftOdemeter();
-        archAngle = (rightLong - dLeft)/bot.ODO_WHEEL_DISTANCE;
         double dCenter = (dLeft + rightLong)/2;
-        nextX = bot.START_X + dCenter*Math.cos(currentHead+90);
-        nextY = bot.START_Y + dCenter*Math.sin(currentHead+90);
-        double head = currentHead+90 + archAngle;
+        double dCenterInches = dCenter/bot.COUNTS_PER_INCH_REV;
+        double inchPerDegree = dCenterInches/actualAngle;
+        double circleLength = inchPerDegree*360;
+        minRadiusLeft = circleLength/Math.PI/2;
+
     }
 
     private void turnRight(){
         double currentHead = bot.getGyroHeading();
         double desiredHead = currentHead - 90;
+        double startLeft = bot.getLeftOdemeter();
+        double startRight = bot.getRightOdemeter();
         while (bot.getGyroHeading() > desiredHead && opModeIsActive()){
             if (bot.getGyroHeading() > desiredHead/2){
                 bot.turnRight(bot.CALIB_SPEED, true);
@@ -124,7 +136,13 @@ public class Circular extends LinearOpMode {
         double finalHead = bot.getGyroHeading();
         double actualAngle = currentHead - finalHead;
 
-        leftLong = bot.getLeftOdemeter();
-        leftPerDegree = leftLong / actualAngle;
+        leftLong = bot.getLeftOdemeter() - startLeft;
+        double right = bot.getRightOdemeter() - startRight;
+
+        double dCenter = (leftLong + right)/2;
+        double dCenterInches = dCenter/bot.COUNTS_PER_INCH_REV;
+        double inchPerDegree = dCenterInches/actualAngle;
+        double circleLength = inchPerDegree*360;
+        minRadiusRight = circleLength/Math.PI/2;
     }
 }
