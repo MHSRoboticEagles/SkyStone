@@ -18,12 +18,21 @@ public class Led {
         }
     }
 
+
     public void none(){
-        setPattern(RevBlinkinLedDriver.BlinkinPattern.fromNumber(0));
+        setPattern(RevBlinkinLedDriver.BlinkinPattern.BLACK);
+    }
+
+    public void OK(){
+        setPattern(RevBlinkinLedDriver.BlinkinPattern.DARK_GREEN);
+    }
+
+    public void needAdjustment(){
+        setPattern(RevBlinkinLedDriver.BlinkinPattern.YELLOW);
     }
 
     public void start(){
-        setPattern(RevBlinkinLedDriver.BlinkinPattern.DARK_GREEN);
+        this.OK();
     }
 
     public void move(){

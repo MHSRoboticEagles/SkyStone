@@ -11,6 +11,11 @@ import com.qualcomm.robotcore.util.ReadWriteFile;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 import org.firstinspires.ftc.teamcode.calibration.BotCalibConfig;
+import org.firstinspires.ftc.teamcode.calibration.DiagCalibConfig;
+import org.firstinspires.ftc.teamcode.calibration.MotorName;
+import org.firstinspires.ftc.teamcode.calibration.MotorReduction;
+import org.firstinspires.ftc.teamcode.calibration.MotorReductionCalib;
+import org.firstinspires.ftc.teamcode.calibration.MotorReductionList;
 import org.firstinspires.ftc.teamcode.skills.Gyro;
 import org.firstinspires.ftc.teamcode.skills.Gyroscope;
 import org.firstinspires.ftc.teamcode.skills.Led;
@@ -315,6 +320,19 @@ public class YellowBot extends UberBot {
 
             this.stop();
         }
+    }
+
+    private RealSpeed accelerate(boolean forward, double desiredSpeed, double speedIncrement, double leftPower, double rightPower){
+        //acceleration
+        RealSpeed rs = new RealSpeed();
+        if ((forward && rightPower + speedIncrement >= desiredSpeed) ||
+                (!forward && rightPower + speedIncrement <= desiredSpeed)) {
+            rightPower = rightPower + speedIncrement;
+            leftPower = rightPower * LEFT_REDUCTION;
+            rs.setLeftSide(leftPower);
+            rs.setRightSide(rightPower);
+        }
+        return rs;
     }
 
     public void spin(double desiredHeading, double speed){
@@ -758,7 +776,7 @@ public class YellowBot extends UberBot {
         }
     }
 
-    public double strafeTo(double speed, double inches, boolean left, double reduction) {
+    public double strafeTo(double speed, double inches, boolean left, MotorReductionList reductionLeft, MotorReductionList reductionRight) {
         double currentPos = this.getHorizontalOdemeter();
         double distance = inches * COUNTS_PER_INCH_REV;
 
@@ -780,16 +798,16 @@ public class YellowBot extends UberBot {
             }
 
             if (left){
-                this.backLeft.setPower(-speed);
-                this.backRight.setPower(speed);
-                this.frontLeft.setPower(speed*reduction);
-                this.frontRight.setPower(-speed*reduction);
+                this.backLeft.setPower(-speed*reductionLeft.getMotorReduction(MotorName.LB));
+                this.backRight.setPower(speed*reductionLeft.getMotorReduction(MotorName.RB));
+                this.frontLeft.setPower(speed*reductionLeft.getMotorReduction(MotorName.LF));
+                this.frontRight.setPower(-speed*reductionLeft.getMotorReduction(MotorName.RF));
             }
             else{
-                this.backLeft.setPower(speed*reduction);
-                this.backRight.setPower(-speed);
-                this.frontLeft.setPower(-speed*reduction);
-                this.frontRight.setPower(speed);
+                this.backLeft.setPower(speed*reductionRight.getMotorReduction(MotorName.LB));
+                this.backRight.setPower(-speed*reductionRight.getMotorReduction(MotorName.RB));
+                this.frontLeft.setPower(-speed*reductionRight.getMotorReduction(MotorName.LF));
+                this.frontRight.setPower(speed*reductionRight.getMotorReduction(MotorName.RF));
             }
         }
 
@@ -830,74 +848,170 @@ public class YellowBot extends UberBot {
         }
     }
 
-    public void diagTo(double speed, double diagInches, boolean left){
+    public void diagToCalib(double speed, double lowSpeed, double diagInches, boolean leftAxis, MotorReductionCalib calib){
         if (backLeft != null && backRight!= null && frontLeft != null && frontRight != null) {
-            if (left) {
-                double power = speed;
-
-                if (diagInches > 0){
-                    power = -power;
-                }
-
-                double leftOdoStart = getLeftOdemeter();
-                double rightOdoStart = getRightOdemeter();
-                double horOdoStart = getHorizontalOdemeter();
-
-                double distance = diagInches * COUNTS_PER_INCH_REV;
-
-                double hyp = 0;
-                boolean stop = false;
-                double angle = 0;
-                double horDist = 0;
-                double catet = 0;
 
 
-                while(!stop && owner.opModeIsActive()){
-                    double leftOdo = getLeftOdemeter();
-                    double rightOdo = getRightOdemeter();
-                    double horOdo = getHorizontalOdemeter();
-                    double leftDist = leftOdo - leftOdoStart;
-                    double rightDist = rightOdo - rightOdoStart;
-                    horDist = horOdo - horOdoStart;
-                    catet = leftDist > rightDist ? leftDist : rightDist;
-                    hyp = Math.sqrt(horDist*horDist + catet * catet);
-                    if (hyp >= distance){
-                        angle = Math.toDegrees(Math.atan(catet/horDist));
-                        break;
-                    }
 
-                    if (!left) {
-                        this.backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                        this.frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            double leftOdoStart = getLeftOdemeter();
+            double rightOdoStart = getRightOdemeter();
+            double horOdoStart = getHorizontalOdemeter();
 
-                        this.frontLeft.setPower(power);
-                        this.backRight.setPower(power);
+            double distance = Math.abs(diagInches * COUNTS_PER_INCH_REV);
 
-                        this.backLeft.setPower(0);
-                        this.frontRight.setPower(0);
-                    }
-                    else{
-                        this.frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                        this.backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+//            double horDistance = distance * Math.sin(Math.toRadians(targetAngle));
+//            double verDistance = distance * Math.cos(Math.toRadians(targetAngle));
+//
+//
+//
+//            boolean angleChange = lowSpeed > 0;
 
-                        this.backLeft.setPower(power);
-                        this.frontRight.setPower(power);
+            double power = speed;
 
-
-                        this.frontLeft.setPower(0);
-                        this.backRight.setPower(0);
-                    }
-                }
-
-                telemetry.addData("Angle", angle);
-                telemetry.addData("Hor", horDist/COUNTS_PER_INCH_REV);
-                telemetry.addData("Vert", catet/COUNTS_PER_INCH_REV);
-                telemetry.addData("Hyp", catet/COUNTS_PER_INCH_REV);
-                telemetry.update();
+            if (diagInches > 0){
+                power = -power;
+                lowSpeed = -lowSpeed;
             }
-            this.stop();
+
+            boolean stop = false;
+
+
+            while(!stop && owner.opModeIsActive()){
+                double leftOdo = getLeftOdemeter();
+                double rightOdo = getRightOdemeter();
+                double horOdo = getHorizontalOdemeter();
+                double leftDistActual = Math.abs(leftOdo - leftOdoStart);
+                double rightDistActual = Math.abs(rightOdo - rightOdoStart);
+                double horDistActual = Math.abs(horOdo - horOdoStart);
+
+                double catet = leftDistActual;
+                if (rightDistActual > catet){
+                    catet = rightDistActual;
+                }
+
+                double hyp = Math.sqrt(catet* catet + horDistActual * horDistActual );
+
+                if (hyp >= distance) {
+                    break;
+                }
+
+//                if (angleChange) {
+//                    if (hyp >= distance) {
+//                        break;
+//                    }
+//                }else {
+//                    if (leftDistActual >= verDistance || rightDistActual >= verDistance || horDistActual >= horDistance) {
+//                        break;
+//                    }
+//                }
+
+                this.backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                this.frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                this.frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                this.backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+
+                if (!leftAxis) {
+                    this.frontLeft.setPower(power);
+                    this.backRight.setPower(power);
+
+                    this.backLeft.setPower(lowSpeed);
+                    this.frontRight.setPower(lowSpeed);
+                }
+                else{
+                    this.backLeft.setPower(power);
+                    this.frontRight.setPower(power);
+
+                    this.frontLeft.setPower(lowSpeed);
+                    this.backRight.setPower(lowSpeed);
+                }
+            }
         }
+        this.stop();
     }
+
+    public void diagTo(double speed,  double diagInches, double angle,  DiagCalibConfig calibCofig){
+        if (backLeft != null && backRight!= null && frontLeft != null && frontRight != null) {
+
+
+
+            double leftOdoStart = getLeftOdemeter();
+            double rightOdoStart = getRightOdemeter();
+            double horOdoStart = getHorizontalOdemeter();
+
+            double distance = Math.abs(diagInches * COUNTS_PER_INCH_REV);
+
+//            double horDistance = distance * Math.sin(Math.toRadians(targetAngle));
+//            double verDistance = distance * Math.cos(Math.toRadians(targetAngle));
+//
+
+            boolean leftAxis = angle > 0;
+            double lowSpeed = calibCofig.getSpeedPerDegree() * angle;
+
+            double power = speed;
+
+            if (diagInches > 0){
+                power = -power;
+                lowSpeed = -lowSpeed;
+            }
+
+            boolean stop = false;
+
+
+            while(!stop && owner.opModeIsActive()){
+                double leftOdo = getLeftOdemeter();
+                double rightOdo = getRightOdemeter();
+                double horOdo = getHorizontalOdemeter();
+                double leftDistActual = Math.abs(leftOdo - leftOdoStart);
+                double rightDistActual = Math.abs(rightOdo - rightOdoStart);
+                double horDistActual = Math.abs(horOdo - horOdoStart);
+
+                double catet = leftDistActual;
+                if (rightDistActual > catet){
+                    catet = rightDistActual;
+                }
+
+                double hyp = Math.sqrt(catet* catet + horDistActual * horDistActual );
+
+                if (hyp >= distance) {
+                    break;
+                }
+
+//                if (angleChange) {
+//                    if (hyp >= distance) {
+//                        break;
+//                    }
+//                }else {
+//                    if (leftDistActual >= verDistance || rightDistActual >= verDistance || horDistActual >= horDistance) {
+//                        break;
+//                    }
+//                }
+
+                this.backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                this.frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                this.frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                this.backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+
+                if (!leftAxis) {
+                    this.frontLeft.setPower(power);
+                    this.backRight.setPower(power);
+
+                    this.backLeft.setPower(lowSpeed);
+                    this.frontRight.setPower(lowSpeed);
+                }
+                else{
+                    this.backLeft.setPower(power);
+                    this.frontRight.setPower(power);
+
+                    this.frontLeft.setPower(lowSpeed);
+                    this.backRight.setPower(lowSpeed);
+                }
+            }
+        }
+        this.stop();
+    }
+
 
 
     public void initCalibData() throws Exception {
