@@ -8,6 +8,10 @@ public class DiagCalibConfig {
     private HashMap<Double,Double> speedDegree = new HashMap<>();
     private double speedPerDegree = 0;
 
+    private MotorReductionList motorReductions = new MotorReductionList();
+
+    private double slowDown = 0;
+
     public DiagCalibConfig(){
 
     }

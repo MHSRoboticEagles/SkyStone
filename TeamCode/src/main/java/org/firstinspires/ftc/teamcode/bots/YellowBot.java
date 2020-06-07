@@ -64,8 +64,6 @@ public class YellowBot extends UberBot {
     private static double currentX = 0;
     private static double currentY = 0;
 
-    private double leftSpinByDegree = 0;
-    private double rightSpinByDegree = 0;
     private double wheelBaseSeparation = 0;
     private double horizontalTicksDegree = 0;
     private double minRadiusLeft = 0;
@@ -335,124 +333,124 @@ public class YellowBot extends UberBot {
         return rs;
     }
 
-    public void spin(double desiredHeading, double speed){
-        speed = Math.abs(speed);
-        double currentHead = this.getGyroHeading();
-        boolean spinLeft = false;
-        if (desiredHeading > currentHead){
-            spinLeft = true;
-        }
-
-        double leftDesiredSpeed = speed;
-        double rightDesiredSpeed = speed;
-
-        if (spinLeft){
-            rightDesiredSpeed = -rightDesiredSpeed;
-        }
-        else{
-            leftDesiredSpeed = -leftDesiredSpeed;
-        }
-
-        double archDegrees = Math.abs(desiredHeading - currentHead);
-        double leftDistance = archDegrees * leftSpinByDegree;
-        double rightDistance = archDegrees * rightSpinByDegree;
-
-
-
-        double minDistance = rightDistance;
-        boolean leftOdometer = false;
-        if (rightDistance > leftDistance) {
-            minDistance = leftDistance;
-            leftOdometer = true;
-        }
-
-        double startingPoint = this.getOdemeteReading(leftOdometer);
-
-        double slowdownDistance = minDistance * 0.4;
-
-        double slowdownMark = 0;
-
-        boolean targetIncrement = true;
-        double target = 0;
-        if ((spinLeft && leftOdometer) || (!spinLeft && !leftOdometer)){
-            target = startingPoint - minDistance;
-            slowdownMark = startingPoint - slowdownDistance;
-            targetIncrement = false;
-        }
-
-        if ((spinLeft && !leftOdometer) || (!spinLeft && leftOdometer)){
-            target = startingPoint + minDistance;
-            slowdownMark = startingPoint + slowdownDistance;
-            targetIncrement = true;
-        }
-
-
-        double leftPower = 0;
-        double rightPower = 0;
-
-        double realSpeedLeft = leftPower;
-        double realSpeedRight = rightPower;
-
-        double speedIncrement = 0.05;
-
-        boolean stop = false;
-        int step = 0;
-        double minSpeed = 0.1;
-
-        double speedDropStep = 0.1;
-        while (!stop && this.owner.opModeIsActive()){
-            double currentReading = this.getOdemeteReading(leftOdometer);
-            if ((targetIncrement && currentReading >= target) ||
-                    (!targetIncrement && currentReading <= target)){
-                stop = true;
-            }
-            if (!stop) {
-                //slow down
-                if ((targetIncrement && currentReading >= slowdownMark) ||
-                        (!targetIncrement && currentReading <= slowdownMark)){
-                    step++;
-
-                    if (spinLeft) {
-                        rightPower = realSpeedRight + speedDropStep * step;
-                        leftPower = realSpeedLeft - speedDropStep * step;
-                        if (rightPower >= -minSpeed || leftPower <= minSpeed){
-                            leftPower = minSpeed;
-                            rightPower = -minSpeed;
-                        }
-                    }
-                    else{
-                        rightPower = realSpeedRight - speedDropStep * step;
-                        leftPower = realSpeedLeft + speedDropStep * step;
-                        if (rightPower <=minSpeed || leftPower >= -minSpeed){
-                            leftPower = -minSpeed;
-                            rightPower = minSpeed;
-                        }
-                    }
-                }
-                else {
-                    //accelerate
-                    if ((spinLeft && leftPower + speedIncrement <= leftDesiredSpeed) ||
-                            (!spinLeft && rightPower + speedIncrement <= rightDesiredSpeed)) {
-                        if (spinLeft) {
-                            leftPower = leftPower + speedIncrement;
-                            rightPower = -leftPower;
-                        } else {
-                            rightPower = rightPower + speedIncrement;
-                            leftPower = -rightPower;
-                        }
-                        realSpeedLeft = leftPower;
-                        realSpeedRight = rightPower;
-                    }
-                }
-            }
-            this.frontLeft.setPower(leftPower);
-            this.frontRight.setPower(rightPower);
-            this.backLeft.setPower(leftPower);
-            this.backRight.setPower(rightPower);
-        }
-
-        this.stop();
-    }
+//    public void spin(double desiredHeading, double speed){
+//        speed = Math.abs(speed);
+//        double currentHead = this.getGyroHeading();
+//        boolean spinLeft = false;
+//        if (desiredHeading > currentHead){
+//            spinLeft = true;
+//        }
+//
+//        double leftDesiredSpeed = speed;
+//        double rightDesiredSpeed = speed;
+//
+//        if (spinLeft){
+//            rightDesiredSpeed = -rightDesiredSpeed;
+//        }
+//        else{
+//            leftDesiredSpeed = -leftDesiredSpeed;
+//        }
+//
+//        double archDegrees = Math.abs(desiredHeading - currentHead);
+//        double leftDistance = archDegrees * leftSpinByDegree;
+//        double rightDistance = archDegrees * rightSpinByDegree;
+//
+//
+//
+//        double minDistance = rightDistance;
+//        boolean leftOdometer = false;
+//        if (rightDistance > leftDistance) {
+//            minDistance = leftDistance;
+//            leftOdometer = true;
+//        }
+//
+//        double startingPoint = this.getOdemeteReading(leftOdometer);
+//
+//        double slowdownDistance = minDistance * 0.4;
+//
+//        double slowdownMark = 0;
+//
+//        boolean targetIncrement = true;
+//        double target = 0;
+//        if ((spinLeft && leftOdometer) || (!spinLeft && !leftOdometer)){
+//            target = startingPoint - minDistance;
+//            slowdownMark = startingPoint - slowdownDistance;
+//            targetIncrement = false;
+//        }
+//
+//        if ((spinLeft && !leftOdometer) || (!spinLeft && leftOdometer)){
+//            target = startingPoint + minDistance;
+//            slowdownMark = startingPoint + slowdownDistance;
+//            targetIncrement = true;
+//        }
+//
+//
+//        double leftPower = 0;
+//        double rightPower = 0;
+//
+//        double realSpeedLeft = leftPower;
+//        double realSpeedRight = rightPower;
+//
+//        double speedIncrement = 0.05;
+//
+//        boolean stop = false;
+//        int step = 0;
+//        double minSpeed = 0.1;
+//
+//        double speedDropStep = 0.1;
+//        while (!stop && this.owner.opModeIsActive()){
+//            double currentReading = this.getOdemeteReading(leftOdometer);
+//            if ((targetIncrement && currentReading >= target) ||
+//                    (!targetIncrement && currentReading <= target)){
+//                stop = true;
+//            }
+//            if (!stop) {
+//                //slow down
+//                if ((targetIncrement && currentReading >= slowdownMark) ||
+//                        (!targetIncrement && currentReading <= slowdownMark)){
+//                    step++;
+//
+//                    if (spinLeft) {
+//                        rightPower = realSpeedRight + speedDropStep * step;
+//                        leftPower = realSpeedLeft - speedDropStep * step;
+//                        if (rightPower >= -minSpeed || leftPower <= minSpeed){
+//                            leftPower = minSpeed;
+//                            rightPower = -minSpeed;
+//                        }
+//                    }
+//                    else{
+//                        rightPower = realSpeedRight - speedDropStep * step;
+//                        leftPower = realSpeedLeft + speedDropStep * step;
+//                        if (rightPower <=minSpeed || leftPower >= -minSpeed){
+//                            leftPower = -minSpeed;
+//                            rightPower = minSpeed;
+//                        }
+//                    }
+//                }
+//                else {
+//                    //accelerate
+//                    if ((spinLeft && leftPower + speedIncrement <= leftDesiredSpeed) ||
+//                            (!spinLeft && rightPower + speedIncrement <= rightDesiredSpeed)) {
+//                        if (spinLeft) {
+//                            leftPower = leftPower + speedIncrement;
+//                            rightPower = -leftPower;
+//                        } else {
+//                            rightPower = rightPower + speedIncrement;
+//                            leftPower = -rightPower;
+//                        }
+//                        realSpeedLeft = leftPower;
+//                        realSpeedRight = rightPower;
+//                    }
+//                }
+//            }
+//            this.frontLeft.setPower(leftPower);
+//            this.frontRight.setPower(rightPower);
+//            this.backLeft.setPower(leftPower);
+//            this.backRight.setPower(rightPower);
+//        }
+//
+//        this.stop();
+//    }
 
     public void spinH(double desiredHeading, double speed){
         speed = Math.abs(speed);
@@ -851,6 +849,25 @@ public class YellowBot extends UberBot {
     public void diagToCalib(double speed, double lowSpeed, double diagInches, boolean leftAxis, MotorReductionCalib calib){
         if (backLeft != null && backRight!= null && frontLeft != null && frontRight != null) {
 
+            double LFreduction = 1;
+            double LBreduction = 1;
+            double RFreduction = 1;
+            double RBreduction = 1;
+
+            if (calib != null){
+                if (calib.getMotorName() == MotorName.LF){
+                    LFreduction = calib.getMotorReduction();
+                }
+                if (calib.getMotorName() == MotorName.LB){
+                    LBreduction = calib.getMotorReduction();
+                }
+                if (calib.getMotorName() == MotorName.RF){
+                    RFreduction = calib.getMotorReduction();
+                }
+                if (calib.getMotorName() == MotorName.RB){
+                    RBreduction = calib.getMotorReduction();
+                }
+            }
 
 
             double leftOdoStart = getLeftOdemeter();
@@ -912,18 +929,18 @@ public class YellowBot extends UberBot {
 
 
                 if (!leftAxis) {
-                    this.frontLeft.setPower(power);
-                    this.backRight.setPower(power);
+                    this.frontLeft.setPower(power*LFreduction);
+                    this.backRight.setPower(power*RBreduction);
 
-                    this.backLeft.setPower(lowSpeed);
-                    this.frontRight.setPower(lowSpeed);
+                    this.backLeft.setPower(lowSpeed*LBreduction);
+                    this.frontRight.setPower(lowSpeed*RFreduction);
                 }
                 else{
-                    this.backLeft.setPower(power);
-                    this.frontRight.setPower(power);
+                    this.backLeft.setPower(power*LBreduction);
+                    this.frontRight.setPower(power*RFreduction);
 
-                    this.frontLeft.setPower(lowSpeed);
-                    this.backRight.setPower(lowSpeed);
+                    this.frontLeft.setPower(lowSpeed*LFreduction);
+                    this.backRight.setPower(lowSpeed*RBreduction);
                 }
             }
         }
@@ -1019,25 +1036,21 @@ public class YellowBot extends UberBot {
         if (calibFile.exists()){
             String data = ReadWriteFile.readFile(calibFile);
             BotCalibConfig config = BotCalibConfig.deserialize(data);
-            this.leftSpinByDegree = config.getLeftTickPerDegree();
-            this.rightSpinByDegree = config.getRightTickPerDegree();
             this.wheelBaseSeparation = Math.abs(config.getWheelBaseSeparation());
             this.horizontalTicksDegree = config.getHorizontalTicksDegree();
             this.minRadiusLeft = config.getMinRadiusLeft();
             this.minRadiusRight = config.getMinRadiusRight();
-            telemetry.addData("leftSpinByDegree", leftSpinByDegree);
-            telemetry.addData("rightSpinByDegree", rightSpinByDegree);
             telemetry.addData("wheel separation", wheelBaseSeparation);
             telemetry.addData("horizontalTicksDegree", horizontalTicksDegree);
             telemetry.addData("minRadiusLeft", minRadiusLeft);
             telemetry.addData("minRadiusRight", minRadiusRight);
             telemetry.update();
             if (config == null){
-                throw new Exception("Calibration data does not exist. Run Spin calibration first");
+                throw new Exception("Calibration data does not exist. Run calibration first");
             }
         }
         else{
-            throw new Exception("Calibration data does not exist. Run Spin calibration first");
+            throw new Exception("Calibration data does not exist. Run calibration first");
         }
     }
 

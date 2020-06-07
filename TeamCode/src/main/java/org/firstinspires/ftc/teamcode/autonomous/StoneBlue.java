@@ -8,7 +8,7 @@ import org.firstinspires.ftc.teamcode.skills.StoneFinder;
 
 
 @Autonomous(name="2Stone Blue", group ="Robot15173")
-//@Disabled
+@Disabled
 public class StoneBlue extends AutoBase {
     @Override
     public void runOpMode() throws InterruptedException {

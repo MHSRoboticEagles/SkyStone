@@ -1,13 +1,14 @@
 package org.firstinspires.ftc.teamcode.autonomous;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 import org.firstinspires.ftc.teamcode.skills.DetectionInterface;
 import org.firstinspires.ftc.teamcode.skills.StoneFinder;
 
 
 @Autonomous(name="1Stone Blue", group ="Robot15173")
-//@Disabled
+@Disabled
 public class StoneOneBlue extends AutoBase {
     @Override
     public void runOpMode() throws InterruptedException {

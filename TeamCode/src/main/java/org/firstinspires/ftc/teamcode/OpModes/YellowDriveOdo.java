@@ -33,8 +33,8 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.bots.TieBot;
 import org.firstinspires.ftc.teamcode.bots.YellowBot;
+import org.firstinspires.ftc.teamcode.odometry.RobotCoordinatePostiion;
 
 
 /**
@@ -50,13 +50,14 @@ import org.firstinspires.ftc.teamcode.bots.YellowBot;
  * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list
  */
 
-@TeleOp(name="YellowDrive", group="Robot15173")
+@TeleOp(name="YellowDriveOdo", group="Robot15173")
 //@Disabled
-public class YellowDrive extends LinearOpMode {
+public class YellowDriveOdo extends LinearOpMode {
 
     // Declare OpMode members.
     YellowBot robot   = new YellowBot();
     private ElapsedTime     runtime = new ElapsedTime();
+    RobotCoordinatePostiion locator = null;
 
 
     @Override
@@ -65,12 +66,18 @@ public class YellowDrive extends LinearOpMode {
             try {
                 robot.init(this, this.hardwareMap, telemetry);
                 robot.initGyro();
+                robot.initCalibData();
             }
             catch (Exception ex){
                 telemetry.addData("Init", ex.getMessage());
             }
 
             telemetry.update();
+
+            locator = new RobotCoordinatePostiion(robot, 75);
+            locator.reverseHorEncoder();
+            Thread positionThread = new Thread(locator);
+            positionThread.start();
 
             // Wait for the game to start (driver presses PLAY)
             waitForStart();
@@ -96,9 +103,7 @@ public class YellowDrive extends LinearOpMode {
 
 
                 if (Math.abs(strafe) > 0) {
-                    telemetry.addData("Strafing", "Left: %2f", strafe);
-                    telemetry.update();
-                    if (strafe < 0) {
+                      if (strafe < 0) {
                         robot.strafeRight(Math.abs(strafe));
                     } else {
                         robot.strafeLeft(Math.abs(strafe));
@@ -107,20 +112,12 @@ public class YellowDrive extends LinearOpMode {
                     robot.move(drive, turn);
                 }
 
-//                //diag
-//                double diag = gamepad1.left_stick_x;
-//                if (diag >= 0){
-//                    robot.diagRight(diag, telemetry);
-//                }
-//                else{
-//                    robot.diagLeft(-diag, telemetry);
-//                }
-
-
                 // get gyroscope data
-                telemetry.addData("Heading", robot.getGyroHeading());
-                telemetry.addData("Horiz encoder", robot.getHorizontalOdemeter());
-
+                telemetry.addData("X ", locator.getXInches() );
+                telemetry.addData("Y ", locator.getYInches() );
+                telemetry.addData("Orientation (Degrees)", locator.returnOrientation());
+                telemetry.addData("Thread Active", positionThread.isAlive());
+                telemetry.update();
 
                 telemetry.update();
             }
@@ -130,9 +127,9 @@ public class YellowDrive extends LinearOpMode {
             telemetry.update();
         }
         finally {
-            if (robot != null){
-//                robot.getGyro().stopRecordingAcceleration();
-            }
+           if (locator != null){
+               locator.stop();
+           }
         }
     }
 }

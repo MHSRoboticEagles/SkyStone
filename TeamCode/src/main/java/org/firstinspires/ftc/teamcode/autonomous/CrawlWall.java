@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 
 @Autonomous(name="CrawlWall", group ="Robot15173")
-//@Disabled
+@Disabled
 public class CrawlWall extends AutoBase {
     @Override
     public void runOpMode() throws InterruptedException {

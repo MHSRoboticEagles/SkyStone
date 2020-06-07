@@ -6,10 +6,10 @@ import java.io.Serializable;
 
 public class BotCalibConfig implements Serializable {
     public static String BOT_CALIB_CONFIG = "bot-config.json";
-    private double leftTickPerDegree;
-    private double rightTickPerDegree;
     private double wheelBaseSeparation;
     private double horizontalTicksDegree;
+    private double horizontalTicksDegreeLeft;
+    private double horizontalTicksDegreeRight;
     private double minRadiusLeft;
     private double minRadiusRight;
     private double strafeLeftReduction;
@@ -22,21 +22,6 @@ public class BotCalibConfig implements Serializable {
         return SimpleGson.getInstance().fromJson(data, BotCalibConfig.class);
     }
 
-    public double getLeftTickPerDegree() {
-        return leftTickPerDegree;
-    }
-
-    public void setLeftTickPerDegree(double leftTickPerDegree) {
-        this.leftTickPerDegree = leftTickPerDegree;
-    }
-
-    public double getRightTickPerDegree() {
-        return rightTickPerDegree;
-    }
-
-    public void setRightTickPerDegree(double rightTickPerDegree) {
-        this.rightTickPerDegree = rightTickPerDegree;
-    }
 
     public double getWheelBaseSeparation() {
         return wheelBaseSeparation;
@@ -50,8 +35,9 @@ public class BotCalibConfig implements Serializable {
         return horizontalTicksDegree;
     }
 
-    public void setHorizontalTicksDegree(double horizontalTicksDegree) {
-        this.horizontalTicksDegree = horizontalTicksDegree;
+    public void updateHorizontalTicksDegree() {
+
+        this.horizontalTicksDegree = (this.getHorizontalTicksDegreeLeft() + this.getHorizontalTicksDegreeRight())/2;
     }
 
     public double getMinRadiusLeft() {
@@ -84,5 +70,23 @@ public class BotCalibConfig implements Serializable {
 
     public void setStrafeRightReduction(double strafeRightReduction) {
         this.strafeRightReduction = strafeRightReduction;
+    }
+
+    public double getHorizontalTicksDegreeLeft() {
+        return horizontalTicksDegreeLeft;
+    }
+
+    public void setHorizontalTicksDegreeLeft(double horizontalTicksDegreeLeft) {
+        this.horizontalTicksDegreeLeft = horizontalTicksDegreeLeft;
+        updateHorizontalTicksDegree();
+    }
+
+    public double getHorizontalTicksDegreeRight() {
+        return horizontalTicksDegreeRight;
+    }
+
+    public void setHorizontalTicksDegreeRight(double horizontalTicksDegreeRight) {
+        this.horizontalTicksDegreeRight = horizontalTicksDegreeRight;
+        updateHorizontalTicksDegree();
     }
 }

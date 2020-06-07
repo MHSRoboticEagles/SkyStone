@@ -32,17 +32,10 @@ public class MasterCali extends LinearOpMode {
     private static double CALIB_SPEED_HIGH = 0.8;
     private static double CALIB_SPEED_LOW = 0.2;
 
-    private double rightLong = 0;
-    private double rightPerDegree = 0;
-
-    private double leftLong = 0;
-    private double leftPerDegree = 0;
 
     private double separation = 0;
     private double horizontalTicksDegreeLeft = 0;
     private double horizontalTicksDegreeRight = 0;
-
-    private double actualAngle = 0;
 
 
     Deadline gamepadRateLimit;
@@ -251,13 +244,13 @@ public class MasterCali extends LinearOpMode {
 
 
         double finalHead = bot.getGyroHeading();
-        actualAngle = finalHead - currentHead;
+        double actualAngle = finalHead - currentHead;
 
-        rightLong = bot.getRightOdemeter();
-        rightPerDegree = rightLong / actualAngle;
+        double rightLong = bot.getRightOdemeter();
 
-        leftLong = bot.getLeftOdemeter();
-        leftPerDegree = leftLong / actualAngle;
+        double leftLong = bot.getLeftOdemeter();
+
+
 
         double horizontalPosition = bot.getHorizontalOdemeter();
         double horizontalShift = horizontalPosition - horizontalStart;
@@ -266,7 +259,7 @@ public class MasterCali extends LinearOpMode {
 
         timer.reset();
         while(timer.milliseconds() < 1000 && opModeIsActive()){
-            telemetry.addData("SPin","Will go to right now");
+            telemetry.addData("Spin","Will go to right now");
             telemetry.update();
         }
 
@@ -282,31 +275,25 @@ public class MasterCali extends LinearOpMode {
             config = new BotCalibConfig();
         }
 
-        config.setLeftTickPerDegree(Math.abs(leftPerDegree));
-        config.setRightTickPerDegree(Math.abs(rightPerDegree));
         config.setWheelBaseSeparation(Math.abs(separation));
-        config.setHorizontalTicksDegree(horizontalTicksDegreeLeft);
+        config.setHorizontalTicksDegreeLeft(horizontalTicksDegreeLeft);
+        config.setHorizontalTicksDegreeRight(horizontalTicksDegreeRight);
         ReadWriteFile.writeFile(bot.getCalibConfigFile(), config.serialize());
 
         timer.reset();
         while(timer.milliseconds() < 1000 && opModeIsActive()){
-            telemetry.addData("Spin","Finlizing....");
+            telemetry.addData("Spin","Finalizing....");
             telemetry.update();
         }
 
         restoreHead();
 
         telemetry.addData("Spin","Calibration complete");
-        telemetry.addData("leftLong", leftLong);
-        telemetry.addData("leftPerDegree", leftPerDegree);
-
-        telemetry.addData("rightLong", rightLong);
-        telemetry.addData("rightPerDegree", rightPerDegree);
 
         telemetry.addData("separation", separation);
         telemetry.addData("horizontalTicksDegree Left", horizontalTicksDegreeLeft);
         telemetry.addData("horizontalTicksDegree Right", horizontalTicksDegreeRight);
-        telemetry.addData("actualAngle", actualAngle);
+        telemetry.addData("actualAngle Left", actualAngle);
 
         telemetry.update();
     }
@@ -334,7 +321,7 @@ public class MasterCali extends LinearOpMode {
         }
 
         double finalHead = bot.getGyroHeading();
-        actualAngle = finalHead - currentHead;
+        double actualAngle = finalHead - currentHead;
 
 
         double horizontalPosition = bot.getHorizontalOdemeter();
@@ -471,22 +458,14 @@ public class MasterCali extends LinearOpMode {
     private void calibDiag(){
         try {
             led.none();
+
             MotorReductionCalib calibLeft = new MotorReductionCalib();
             calibLeft.setCalibSpeed(desiredSpeed);
-
-            DiagCalibConfig dcLeft = null;
-            DiagCalibConfig dcRight = null;
-
-            while (!calibLeft.isCalibComplete()){
-                dcLeft =  diag(true, calibLeft);
-            }
-
+            diagMR(true, calibLeft);
 
             MotorReductionCalib calibRight = new MotorReductionCalib();
             calibRight.setCalibSpeed(desiredSpeed);
-            while (!calibRight.isCalibComplete()){
-                dcRight = diag(false, calibRight);
-            }
+            diagMR(false, calibRight);
 
 
             double leftF = 1;
@@ -508,13 +487,17 @@ public class MasterCali extends LinearOpMode {
                 rightB = calibRight.getMotorReduction();
             }
 
+            //speed per degree
+            DiagCalibConfig dcLeft = diagAngle(true, calibLeft);
+            DiagCalibConfig dcRight = diagAngle(false, calibRight);
+
             dcLeft.computeSpeedPerDegree();
             dcRight.computeSpeedPerDegree();
 
             telemetry.addData("Speed", desiredSpeed);
 
             telemetry.addData("Left Angle", dcLeft.getMaxAgle());
-            telemetry.addData("Right Agle", dcRight.getMaxAgle());
+            telemetry.addData("Right Angle", dcRight.getMaxAgle());
 
             telemetry.addData("Left Speed/degree", dcLeft.getSpeedPerDegree());
             telemetry.addData("Right Speed/degree", dcRight.getSpeedPerDegree());
@@ -537,10 +520,106 @@ public class MasterCali extends LinearOpMode {
         }
     }
 
-    private DiagCalibConfig diag(boolean left, MotorReductionCalib calib)
+    private void diagMR(boolean left, MotorReductionCalib calib)
+    {
+        while (!calib.isCalibComplete()) {
+            double distanceInches = 30;
+
+
+            double leftOdoStart = bot.getLeftOdemeter();
+            double rightOdoStart = bot.getRightOdemeter();
+            double horOdoStart = bot.getHorizontalOdemeter();
+
+            double startHead = bot.getGyroHeading();
+
+//        double distance = Math.abs(distanceInches * bot.COUNTS_PER_INCH_REV);
+//        double horDistance = distance * Math.sin(Math.toRadians(desiredAngle));
+//        double verDistance = distance * Math.cos(Math.toRadians(desiredAngle));
+//        calib.setHorOdoDistance(horDistance);
+//        calib.setLeftOdoDistance(verDistance);
+//        calib.setRightOdoDistance(verDistance);
+
+            bot.diagToCalib(calib.getCalibSpeed(), 0, distanceInches, left, calib);
+
+
+            timer.reset();
+            while (timer.milliseconds() < 2000 && opModeIsActive()) {
+//                    telemetry.addData("Gyroscope", "Stabilizing ...");
+//                    telemetry.update();
+            }
+
+            double leftOdoEnd = bot.getLeftOdemeter();
+            double rightOdoEnd = bot.getRightOdemeter();
+
+            double finalHead = bot.getGyroHeading();
+
+            double leftDistanceActual = Math.abs(leftOdoEnd - leftOdoStart);
+            double rightDistanceActual = Math.abs(rightOdoEnd - rightOdoStart);
+
+            double headChange = Math.abs(finalHead - startHead);
+            double reduction = 1;
+            if (headChange >= 2) {
+                this.led.needAdjustment();
+
+                if (leftDistanceActual > rightDistanceActual) {
+                    reduction = rightDistanceActual / leftDistanceActual;
+                    if (left) {
+                        calib.setMotorName(MotorName.LB);
+                    } else {
+                        calib.setMotorName(MotorName.LF);
+                    }
+                } else {
+                    reduction = leftDistanceActual / rightDistanceActual;
+                    if (left) {
+                        calib.setMotorName(MotorName.RF);
+                    } else {
+                        calib.setMotorName(MotorName.RB);
+                    }
+                }
+                calib.setMotorReduction(reduction);
+                calib.setHeadChange(headChange);
+                restoreHead();
+            } else {
+                calib.setCalibComplete(true);
+                this.led.OK();
+            }
+
+
+            timer.reset();
+            while (timer.milliseconds() < 2000 && opModeIsActive()) {
+//                    telemetry.addData("Angle", angle);
+//                    telemetry.addData("startHead", startHead);
+//                    telemetry.addData("finalHead", finalHead);
+//                    telemetry.addData("Diag", "About to go back ...");
+//                    telemetry.update();
+            }
+
+            //go back
+            bot.diagToCalib(calib.getCalibSpeed(), 0, -distanceInches, left, null);
+
+            timer.reset();
+            while (timer.milliseconds() < 1000 && opModeIsActive()) {
+//                    telemetry.addData("Gyroscope", "Stabilizing ...");
+//                    telemetry.update();
+            }
+
+            restoreHead();
+            this.led.none();
+        }
+
+        calib.computeSpeedReduction();
+
+        timer.reset();
+        while (timer.milliseconds() < 2000 && opModeIsActive()) {
+
+        }
+
+    }
+
+    private DiagCalibConfig diagAngle(boolean left, MotorReductionCalib calib)
     {
         DiagCalibConfig diagConfig = new DiagCalibConfig();
-        double [] speeds = new double[]{0, 0.05, 0.1};
+        double [] speeds = new double[]{0.05, 0.1};
         for (int i = 0; i < speeds.length; i++) {
             double distanceInches = 30;
 
@@ -578,30 +657,7 @@ public class MasterCali extends LinearOpMode {
             double horDistanceActual = Math.abs(horOdoEnd - horOdoStart);
 
             double headChange = Math.abs(finalHead - startHead);
-            double reduction = 1;
-            if (headChange >= 2) {
-                this.led.needAdjustment();
 
-                if (leftDistanceActual > rightDistanceActual) {
-                    reduction = rightDistanceActual / leftDistanceActual;
-                    if (left) {
-                        calib.setMotorName(MotorName.LB);
-                    } else {
-                        calib.setMotorName(MotorName.LF);
-                    }
-                } else {
-                    reduction = leftDistanceActual / rightDistanceActual;
-                    if (left) {
-                        calib.setMotorName(MotorName.RF);
-                    } else {
-                        calib.setMotorName(MotorName.RB);
-                    }
-                }
-                calib.setHeadChange(headChange);
-                restoreHead();
-            } else {
-                this.led.OK();
-            }
 
 //        calib.setLeftOdoDistanceActual(leftDistanceActual);
 //        calib.setRightOdoDistanceActual(rightDistanceActual);
@@ -611,10 +667,6 @@ public class MasterCali extends LinearOpMode {
 
             double actualAngle = Math.toDegrees(Math.atan(horDistanceActual / averageVerticalDistance));
             diagConfig.setSpeedDegreeData(speeds[i], actualAngle);
-            if (i == 0) {
-                calib.setMotorReduction(reduction);
-            }
-
 
             timer.reset();
             while (timer.milliseconds() < 2000 && opModeIsActive()) {
@@ -642,9 +694,6 @@ public class MasterCali extends LinearOpMode {
         while (timer.milliseconds() < 2000 && opModeIsActive()) {
 
         }
-
-        calib.computeSpeedReduction();
-        calib.setCalibComplete(true);
 
         return diagConfig;
     }
