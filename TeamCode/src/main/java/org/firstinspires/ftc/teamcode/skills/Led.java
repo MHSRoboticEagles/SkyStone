@@ -39,6 +39,10 @@ public class Led {
         setPattern(RevBlinkinLedDriver.BlinkinPattern.DARK_RED);
     }
 
+    public void breaking(){
+        setPattern(RevBlinkinLedDriver.BlinkinPattern.BREATH_RED);
+    }
+
     public void problem(){
         setPattern(RevBlinkinLedDriver.BlinkinPattern.FIRE_LARGE);
     }

@@ -6,6 +6,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.ReadWriteFile;
 
 import org.firstinspires.ftc.robotcore.internal.system.Deadline;
+import org.firstinspires.ftc.teamcode.bots.RobotDirection;
+import org.firstinspires.ftc.teamcode.bots.RobotVeer;
 import org.firstinspires.ftc.teamcode.bots.YellowBot;
 import org.firstinspires.ftc.teamcode.gamefield.FieldStats;
 import org.firstinspires.ftc.teamcode.skills.Led;
@@ -29,8 +31,10 @@ public class MasterCali extends LinearOpMode {
     boolean strafeDirLeft = true;
 
     private static double CALIB_SPEED = 0.5;
-    private static double CALIB_SPEED_HIGH = 0.8;
+    private static double CALIB_SPEED_HIGH = 0.9;
     private static double CALIB_SPEED_LOW = 0.2;
+
+    private static double MARGIN_ERROR_DEGREES = 2;
 
 
     private double separation = 0;
@@ -41,8 +45,8 @@ public class MasterCali extends LinearOpMode {
     Deadline gamepadRateLimit;
     private final static int GAMEPAD_LOCKOUT = 500;
 
-    private static final int[] modes = new int[]{0, 1, 2, 3};
-    private static final String[] modeNames = new String[]{"Straight", "Spin", "Strafe", "Diag"};
+    private static final int[] modes = new int[]{0, 1, 2, 3, 4};
+    private static final String[] modeNames = new String[]{"Straight", "Break", "Spin", "Strafe", "Diag"};
 
     private int selectedMode = 0;
 
@@ -148,12 +152,15 @@ public class MasterCali extends LinearOpMode {
                     calibMove();
                     break;
                 case 1:
-                    calibSpin();
+                    calibBreak();
                     break;
                 case 2:
-//                    calibStrafe();
+                    calibSpin();
                     break;
                 case 3:
+                    calibStrafe();
+                    break;
+                case 4:
                     calibDiag();
                     break;
 
@@ -179,21 +186,243 @@ public class MasterCali extends LinearOpMode {
     }
 
     private void calibMove(){
-        double leftReduction = 1;
-        double rightReduction = 1;
+        MotorReductionBotCalib botCalibForward = new MotorReductionBotCalib();
+        botCalibForward.setDirection(RobotDirection.Forward);
+
+        MotorReductionBotCalib botCalibBack = new MotorReductionBotCalib();
+        botCalibBack.setDirection(RobotDirection.Backward);
+
+
+        MotorReductionCalib calibF = new MotorReductionCalib();
+        MotorReductionCalib calibB = new MotorReductionCalib();
+
+        //baseline
+        move(calibF, calibB);
+        calibF.computeReduction();
+        calibB.computeReduction();
+
+        botCalibForward.setHeadChangeBaseline(calibF.getHeadChange());
+        botCalibForward.setVeer(calibF.getVeer());
+        botCalibForward.setMRBaseline(calibF.getMotorReduction());
+
+        botCalibBack.setHeadChangeBaseline(calibB.getHeadChange());
+        botCalibBack.setVeer(calibB.getVeer());
+        botCalibBack.setMRBaseline(calibB.getMotorReduction());
+
+
+        double initialMRForward = 1 - ((1 - calibF.getMotorReduction()) * 2);
+        double initialMRBack = 1 - ((1 - calibB.getMotorReduction()) * 2);
+
+        //front motor
+        if (botCalibForward.getVeer() == RobotVeer.RIGHT) {
+            calibF.setMotorName(MotorName.LF);
+        }
+        else {
+            calibF.setMotorName(MotorName.RF);
+        }
+        calibF.setMotorReduction(initialMRForward);
+
+        if (botCalibBack.getVeer() == RobotVeer.RIGHT) {
+            calibB.setMotorName(MotorName.LF);
+        }
+        else {
+            calibB.setMotorName(MotorName.RF);
+        }
+        calibB.setMotorReduction(initialMRBack);
+
+        move(calibF, calibB);
+        botCalibForward.update(calibF);
+        botCalibBack.update(calibB);
+
+        //back motor
+
+        if (botCalibForward.getVeer() == RobotVeer.RIGHT) {
+            calibF.setMotorName(MotorName.LB);
+        }
+        else {
+            calibF.setMotorName(MotorName.RB);
+        }
+        calibF.setMotorReduction(initialMRForward);
+
+        if (botCalibBack.getVeer() == RobotVeer.RIGHT) {
+            calibB.setMotorName(MotorName.LB);
+        }
+        else {
+            calibB.setMotorName(MotorName.RB);
+        }
+        calibB.setMotorReduction(initialMRBack);
+
+        move(calibF, calibB);
+        botCalibForward.update(calibF);
+        botCalibBack.update(calibB);
+
+
+
+        //analyze
+        calibF  = botCalibForward.analyze();
+        calibB  = botCalibBack.analyze();
+        MotorReductionBot mrForwardFinal = new MotorReductionBot(calibF);
+        MotorReductionBot mrBackFinal = new MotorReductionBot(calibB);
+
+        move(calibF, calibB);
+        botCalibForward.update(calibF);
+        botCalibBack.update(calibB);
+
+        timer.reset();
+        while(timer.milliseconds() < 1000 && opModeIsActive()){
+        }
+        restoreHead();
+
+        // show results
+        showMotorReductionCalib(botCalibForward);
+        showMotorReductionCalib(botCalibBack);
+        telemetry.update();
+
+
+        saveConfigMove(mrForwardFinal, mrBackFinal);
+//
+//
+//        telemetry.addData("Calib Move","Complete");
+//        showMotorReduction(mr);
+//        showMotorReductionCalib(botCalib);
+//        telemetry.update();
+
+    }
+
+    private void move(MotorReductionCalib calibF, MotorReductionCalib calibB){
+        led.none();
+        MotorReductionBot mrForward = new MotorReductionBot(calibF);
+        MotorReductionBot mrBack = new MotorReductionBot(calibB);
+
+        showMotorReduction(mrForward);
+        showMotorReduction(mrBack);
+        telemetry.update();
+
+        double currentHead = bot.getGyroHeading();
+
         double leftOdo = bot.getLeftOdemeter();
         double rightOdo = bot.getRightOdemeter();
-        bot.moveTo(CALIB_SPEED, CALIB_SPEED, 30);
+        bot.moveToCalib(CALIB_SPEED_HIGH, CALIB_SPEED_HIGH, 30, mrForward, 0, led);
+
+        timer.reset();
+        while(timer.milliseconds() < 1000 && opModeIsActive()){
+
+        }
+
+        double actualHead = bot.getGyroHeading();
+        double headChange = actualHead - currentHead;
+
         double leftDistance = bot.getLeftOdemeter() - leftOdo;
         double rightDistance = bot.getRightOdemeter() - rightOdo;
+        calibF.setLeftOdoDistanceActual(leftDistance);
+        calibF.setRightOdoDistanceActual(rightDistance);
+        calibF.setHeadChange(headChange);
 
-        if (leftDistance > rightDistance){
-            leftReduction = rightDistance/leftDistance;
+        if (Math.abs(headChange) > MARGIN_ERROR_DEGREES){
+            led.needAdjustment();
         }
-        if (rightDistance > leftDistance){
-            rightReduction = leftDistance/rightDistance;
+        else{
+            led.OK();
         }
 
+
+        timer.reset();
+        while(timer.milliseconds() < 1000 && opModeIsActive()){
+        }
+        currentHead = bot.getGyroHeading();
+        leftOdo = bot.getLeftOdemeter();
+        rightOdo = bot.getRightOdemeter();
+
+        bot.moveToCalib(CALIB_SPEED_HIGH, CALIB_SPEED_HIGH, -30, mrBack, 0, led);
+
+        timer.reset();
+        while(timer.milliseconds() < 1000 && opModeIsActive()){
+
+        }
+
+        actualHead = bot.getGyroHeading();
+        headChange = actualHead - currentHead;
+
+        calibB.setHeadChange(headChange);
+
+        if (Math.abs(headChange) > MARGIN_ERROR_DEGREES){
+            led.needAdjustment();
+        }
+        else{
+            led.OK();
+        }
+
+        leftDistance = Math.abs(bot.getLeftOdemeter() - leftOdo);
+        rightDistance = Math.abs(bot.getRightOdemeter() - rightOdo);
+
+        calibB.setLeftOdoDistanceActual(leftDistance);
+        calibB.setRightOdoDistanceActual(rightDistance);
+
+    }
+
+    private void calibBreak(){
+        boolean done = false;
+        BotCalibConfig config = bot.getCalibConfig();
+        if (config == null || config.getMoveMRForward() == null){
+            telemetry.addData("Error", "Motor Reduction missing. Must run move calibration first");
+        }
+        else {
+            MotorReductionBot mr = config.getMoveMRForward();
+            double overRunOriginal = movePrecision(mr);
+            double distance = 30 * bot.COUNTS_PER_INCH_REV;
+            double breakPointOriginal = overRunOriginal/distance;
+            telemetry.addData("breakPointOriginal", breakPointOriginal);
+            telemetry.addData("error (inches) original", overRunOriginal / bot.COUNTS_PER_INCH_REV);
+            telemetry.update();
+
+            while (!done) {
+                BreakCalib breakCalib = moveBreakTest(mr, overRunOriginal, breakPointOriginal);
+                telemetry.addData("breakPoint", breakCalib.getBreakPoint());
+                double errorInches = breakCalib.getOverRun() / bot.COUNTS_PER_INCH_REV;
+                telemetry.addData("error (inches)", errorInches);
+                telemetry.update();
+                done = breakCalib.isComplete();
+                overRunOriginal = breakCalib.getOverRun();
+                breakPointOriginal = breakCalib.getBreakPoint();
+
+                timer.reset();
+                while(timer.milliseconds() < 1000 && opModeIsActive()){
+
+                }
+            }
+
+            telemetry.addData("Calib", "Complete");
+        }
+        telemetry.update();
+
+    }
+
+    private double movePrecision(MotorReductionBot mr){
+        double breakPoint = 0;
+        led.none();
+
+        double leftOdo = bot.getLeftOdemeter();
+        double rightOdo = bot.getRightOdemeter();
+
+        bot.moveToCalib(desiredSpeed, desiredSpeed, 30, mr, breakPoint,led);
+
+        timer.reset();
+        while(timer.milliseconds() < 1000 && opModeIsActive()){
+            telemetry.addData("Calib","Waiting for next step...");
+            telemetry.update();
+        }
+
+
+        double leftDistanceActual = bot.getLeftOdemeter() - leftOdo;
+        double rightDistanceActual = bot.getRightOdemeter() - rightOdo;
+        double longest = leftDistanceActual;
+        if (rightDistanceActual > longest){
+            longest = rightDistanceActual;
+        }
+
+        double distance = 30 * bot.COUNTS_PER_INCH_REV;
+
+        double overdrive = longest - distance;
 
         timer.reset();
         while(timer.milliseconds() < 1000 && opModeIsActive()){
@@ -203,7 +432,7 @@ public class MasterCali extends LinearOpMode {
 
         restoreHead();
 
-        bot.moveTo(CALIB_SPEED*leftReduction, CALIB_SPEED*rightReduction, -30);
+        bot.moveToCalib(desiredSpeed, desiredSpeed, -30, mr, breakPoint, led);
 
         timer.reset();
         while(timer.milliseconds() < 1000 && opModeIsActive()){
@@ -212,12 +441,64 @@ public class MasterCali extends LinearOpMode {
         }
 
         restoreHead();
+        return overdrive;
+    }
 
-        telemetry.addData("Calib","Complete");
-        telemetry.addData("Left", leftReduction);
-        telemetry.addData("Right", rightReduction);
-        telemetry.update();
+    private BreakCalib moveBreakTest(MotorReductionBot mr, double overdriveOriginal, double breakPoint){
+        led.none();
+        BreakCalib breakCalib = new BreakCalib();
 
+        double leftOdo = bot.getLeftOdemeter();
+        double rightOdo = bot.getRightOdemeter();
+        double distance = 30 * bot.COUNTS_PER_INCH_REV;
+
+        bot.moveToCalib(desiredSpeed, desiredSpeed, 30, mr, breakPoint, led);
+
+        timer.reset();
+        while(timer.milliseconds() < 1000 && opModeIsActive()){
+        }
+
+        double leftDistanceActual = bot.getLeftOdemeter() - leftOdo;
+        double rightDistanceActual = bot.getRightOdemeter() - rightOdo;
+        double longest = leftDistanceActual;
+        if (longest < rightDistanceActual){
+            longest = rightDistanceActual;
+        }
+
+        breakCalib.setOverRun(longest - distance);
+
+        if (breakCalib.getOverRun()/bot.COUNTS_PER_INCH_REV >=-2 && breakCalib.getOverRun()/bot.COUNTS_PER_INCH_REV <=2){
+            led.OK();
+            breakCalib.isComplete();
+        }else{
+            led.needAdjustment();
+            if (longest < distance){
+                //breaking too soon
+                double needLess  = breakCalib.getOverRun()/overdriveOriginal;
+                breakCalib.setBreakPoint(breakPoint + breakPoint * needLess);
+            }
+            else{
+                //this is the effect of the current breakPoint
+                double needMore  = (overdriveOriginal - breakCalib.getOverRun())/overdriveOriginal;
+                breakCalib.setBreakPoint(breakPoint + breakPoint * needMore);
+            }
+        }
+
+        timer.reset();
+        while(timer.milliseconds() < 1000 && opModeIsActive()){
+        }
+
+        restoreHead();
+
+        bot.moveToCalib(desiredSpeed, desiredSpeed, -30, mr, breakPoint, led);
+
+        timer.reset();
+        while(timer.milliseconds() < 1000 && opModeIsActive()){
+
+        }
+
+        restoreHead();
+        return breakCalib;
     }
 
     private void calibSpin(){
@@ -349,9 +630,13 @@ public class MasterCali extends LinearOpMode {
     }
 
     private double strafe(){
+        led.none();
+
         double headChange = 0;
         double currentHead = bot.getGyroHeading();
 
+        double startLeft = bot.getLeftOdemeter();
+        double startRight = bot.getRightOdemeter();
 
         bot.strafeTo(CALIB_SPEED, 30, strafeDirLeft, leftReductionStrafe, rightReductionStrafe);
 
@@ -362,13 +647,17 @@ public class MasterCali extends LinearOpMode {
             currentMRCalib = currentMRLeft;
         }
 
-
-
         timer.reset();
         while(timer.milliseconds() < 2000 && opModeIsActive()){
             telemetry.addData("Gyroscope","Stabilizing ...");
             telemetry.update();
         }
+
+        double endLeft = bot.getLeftOdemeter();
+        double endRight = bot.getRightOdemeter();
+
+        double leftDistance = Math.abs(endLeft - startLeft);
+        double rightDistance = Math.abs(endRight - startRight);
 
 
         //get change in heading
@@ -380,46 +669,55 @@ public class MasterCali extends LinearOpMode {
         //if one of the directions has been calibrated, do nothing
         if (currentMRCalib.isCalibComplete()){
             //do nothing
+            led.OK();
         }
         else {
             //set values if fully calibrated
             if (headChange >= -2 && headChange <= 2) {
                 currentMRCalib.setCalibComplete(true);
+                led.OK();
             } else {
+                led.needAdjustment();
+                double speedReduction = 1;
+                if (leftDistance > rightDistance){
+                    speedReduction = rightDistance/leftDistance;
+                }
+                else{
+                    speedReduction = leftDistance/rightDistance;
+                }
                 //first time
                 if (currentMRCalib.getMotorName() == MotorName.NONE){
                     currentMRCalib.setMotorName(currentList.getFirsttMR().getMotorName());
                     currentMRCalib.setOriginalHeadChange(headChange);
                     currentMRCalib.setHeadChange(headChange);
-                    currentMRCalib.setReductionStep(MotorReductionCalib.DEFAULT_REDUCTION_STEP);
+                    currentMRCalib.setMotorReduction(speedReduction);
                 }
                 else{
                     //compare current change in heading with the previous
                     double oldHeadChange = currentMRCalib.getHeadChange();
-                    boolean not_improved = (oldHeadChange < 0 && headChange < oldHeadChange) || (oldHeadChange > 0 && headChange > oldHeadChange);
+                    boolean not_improved = (oldHeadChange < 0 && headChange <= oldHeadChange) || (oldHeadChange > 0 && headChange >= oldHeadChange);
                     if (not_improved){
                         //try another motor next time
                         currentList.restoreList();
                         MotorReduction next = currentList.getNextMR(currentMRCalib.getMotorName());
                         currentMRCalib.setMotorName(next.getMotorName());
-                        currentMRCalib.setReductionStep(MotorReductionCalib.DEFAULT_REDUCTION_STEP);
+                        currentMRCalib.setMotorReduction(speedReduction);
                         currentMRCalib.setHeadChange(currentMRCalib.getOriginalHeadChange());
                     }
                     else{
                         double diff = Math.abs(oldHeadChange - headChange);
                         if (diff < Math.abs(oldHeadChange)){
                             //need to reduce more
-                            double adjustment = Math.abs(headChange)/diff * currentMRCalib.getReductionStep();
-                            currentMRCalib.setReductionStep(adjustment);
+                            double adjusted = Math.abs(headChange)/diff * currentMRCalib.getMotorReduction();
+                            currentMRCalib.setMotorReduction(adjusted);
                         }
                         else{
                             //overkill. need to reduce less
-                            double adjustment = Math.abs(headChange)/diff * currentMRCalib.getReductionStep();
-                            currentMRCalib.setReductionStep(-adjustment);
+                            double adjusted = Math.abs(headChange)/diff * currentMRCalib.getMotorReduction();
+                            currentMRCalib.setMotorReduction(adjusted);
                         }
                     }
                 }
-                currentMRCalib.adjustReduction();
                 currentList.updateList(currentMRCalib.getMR());
             }
         }
@@ -458,6 +756,7 @@ public class MasterCali extends LinearOpMode {
     private void calibDiag(){
         try {
             led.none();
+            desiredSpeed = CALIB_SPEED_HIGH;
 
             MotorReductionCalib calibLeft = new MotorReductionCalib();
             calibLeft.setCalibSpeed(desiredSpeed);
@@ -468,45 +767,42 @@ public class MasterCali extends LinearOpMode {
             diagMR(false, calibRight);
 
 
-            double leftF = 1;
-            double leftB = 1;
-
-            double rightF = 1;
-            double rightB = 1;
+            MotorReductionBot mrDiag = new MotorReductionBot();
 
             if (calibLeft.getMotorName() == MotorName.LB){
-                leftB = calibLeft.getMotorReduction();
+                mrDiag.setLB(calibLeft.getMotorReduction());
             } else if (calibLeft.getMotorName() == MotorName.RF){
-                rightF = calibLeft.getMotorReduction();
+                mrDiag.setRF(calibLeft.getMotorReduction());
             }
 
 
             if (calibRight.getMotorName() == MotorName.LF){
-                leftF = calibRight.getMotorReduction();
+                mrDiag.setLF(calibRight.getMotorReduction());
             } else if (calibRight.getMotorName() == MotorName.RB){
-                rightB = calibRight.getMotorReduction();
+                mrDiag.setRB(calibRight.getMotorReduction());
             }
 
             //speed per degree
-            DiagCalibConfig dcLeft = diagAngle(true, calibLeft);
-            DiagCalibConfig dcRight = diagAngle(false, calibRight);
-
-            dcLeft.computeSpeedPerDegree();
-            dcRight.computeSpeedPerDegree();
+//            DiagCalibConfig dcLeft = diagAngle(true, calibLeft);
+//            DiagCalibConfig dcRight = diagAngle(false, calibRight);
+//
+//            dcLeft.computeSpeedPerDegree();
+//            dcRight.computeSpeedPerDegree();
 
             telemetry.addData("Speed", desiredSpeed);
 
-            telemetry.addData("Left Angle", dcLeft.getMaxAgle());
-            telemetry.addData("Right Angle", dcRight.getMaxAgle());
-
-            telemetry.addData("Left Speed/degree", dcLeft.getSpeedPerDegree());
-            telemetry.addData("Right Speed/degree", dcRight.getSpeedPerDegree());
+//            telemetry.addData("Left Angle", dcLeft.getMaxAgle());
+//            telemetry.addData("Right Angle", dcRight.getMaxAgle());
+//
+//            telemetry.addData("Left Speed/degree", dcLeft.getSpeedPerDegree());
+//            telemetry.addData("Right Speed/degree", dcRight.getSpeedPerDegree());
 
 //            telemetry.addData("Left Dist", "%.3f  %.3f  %.3f", calibLeft.getBreakPointLeft(), calibLeft.getBreakPointRight(), calibLeft.getBreakPointHor());
 //            telemetry.addData("Right Dist", "%.3f  %.3f  %.3f", calibRight.getBreakPointLeft(), calibRight.getBreakPointRight(), calibRight.getBreakPointHor());
 //
 
-            showMotorReduction( leftF,  rightF,  leftB,  rightB);
+            saveConfigDiag(mrDiag);
+            showMotorReduction( mrDiag);
             telemetry.update();
 
         //max angle left/right
@@ -702,6 +998,17 @@ public class MasterCali extends LinearOpMode {
         this.bot.spinH(0, 0.1);
     }
 
+    private void saveConfigMove(MotorReductionBot mrForward, MotorReductionBot mrBack){
+        BotCalibConfig config = bot.getCalibConfig();
+        if (config == null){
+            config = new BotCalibConfig();
+        }
+
+        config.setMoveMRForward(mrForward);
+        config.setMoveMRBack(mrBack);
+        ReadWriteFile.writeFile(bot.getCalibConfigFile(), config.serialize());
+    }
+
     private void saveConfigStrafe(){
     BotCalibConfig config = bot.getCalibConfig();
         if (config == null){
@@ -713,11 +1020,34 @@ public class MasterCali extends LinearOpMode {
         ReadWriteFile.writeFile(bot.getCalibConfigFile(), config.serialize());
     }
 
-    private void showMotorReduction(double leftF, double rightF, double leftB, double rightB){
-        telemetry.addData("*  ","%.2f ||--  --|| %.2f", leftF, rightF);
+    private void saveConfigDiag(MotorReductionBot mr){
+        BotCalibConfig config = bot.getCalibConfig();
+        if (config == null){
+            config = new BotCalibConfig();
+        }
+
+        config.setDiagMR(mr);
+        ReadWriteFile.writeFile(bot.getCalibConfigFile(), config.serialize());
+    }
+
+    private void showMotorReduction(MotorReductionBot mr){
+        telemetry.addData("*  ","%.2f ||--  --|| %.2f", mr.getLF(), mr.getRF());
         telemetry.addData("*  ", "             ||");
         telemetry.addData("*  ", "             ||");
-        telemetry.addData("*  ","%.2f ||--  --|| %.2f", leftB, rightB);
+        telemetry.addData("*  ","%.2f ||--  --|| %.2f", mr.getLB(), mr.getRB());
+    }
+
+    private void showMotorReductionCalib(MotorReductionBotCalib mr){
+        telemetry.addData(mr.getDirection().name(), "Baseline: %.2f degrees; %.2f ", mr.getHeadChangeBaseline(), mr.getMRBaseline());
+        telemetry.addData("*  ", "--------------------");
+        telemetry.addData("*  ","%.2f            %.2f", mr.getLFHeadChange(), mr.getRFHeadChange());
+        telemetry.addData("*  ","%.2f ||--  --|| %.2f", mr.getLF(), mr.getRF());
+        telemetry.addData("*  ", "             ||");
+        telemetry.addData("*  ", "             ||");
+        telemetry.addData("*  ","%.2f ||--  --|| %.2f", mr.getLB(), mr.getRB());
+        telemetry.addData("*  ","%.2f            %.2f", mr.getLBHeadChange(), mr.getRBHeadChange());
+        telemetry.addData("*  ", "--------------------");
+        telemetry.addData("   ", "                    ");
     }
 
 }

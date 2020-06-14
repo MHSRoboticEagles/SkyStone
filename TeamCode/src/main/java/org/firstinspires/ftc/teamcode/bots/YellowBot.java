@@ -14,6 +14,7 @@ import org.firstinspires.ftc.teamcode.calibration.BotCalibConfig;
 import org.firstinspires.ftc.teamcode.calibration.DiagCalibConfig;
 import org.firstinspires.ftc.teamcode.calibration.MotorName;
 import org.firstinspires.ftc.teamcode.calibration.MotorReduction;
+import org.firstinspires.ftc.teamcode.calibration.MotorReductionBot;
 import org.firstinspires.ftc.teamcode.calibration.MotorReductionCalib;
 import org.firstinspires.ftc.teamcode.calibration.MotorReductionList;
 import org.firstinspires.ftc.teamcode.skills.Gyro;
@@ -55,7 +56,6 @@ public class YellowBot extends UberBot {
     public static final double ROBOT_FRONT_X = 9;
     public static final double ROBOT_FORNT_Y = 9;
 
-    private final double LEFT_REDUCTION = 1;//0.955;
 
     //move to individual op mode
     public static final double START_X = 48;
@@ -199,7 +199,7 @@ public class YellowBot extends UberBot {
     public void moveTo(double leftspeed, double rightspeed, double inches){
         if (frontLeft != null && frontRight!= null && backLeft != null && backRight != null) {
             double rightPower = rightspeed;
-            double leftPower = leftspeed*LEFT_REDUCTION;
+            double leftPower = leftspeed;
             frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -304,7 +304,7 @@ public class YellowBot extends UberBot {
                     if ((forward && rightPower + speedIncrement >= originalRight) ||
                             (!forward && rightPower + speedIncrement <= originalRight)) {
                         rightPower = rightPower + speedIncrement;
-                        leftPower = rightPower * LEFT_REDUCTION;
+                        leftPower = rightPower;
                         realSpeedLeft = leftPower;
                         realSpeedRight = rightPower;
                     }
@@ -320,13 +320,264 @@ public class YellowBot extends UberBot {
         }
     }
 
+    public void moveToCalib(double leftspeed, double rightspeed, double inches, MotorReductionBot mr, double breakPoint, Led led){
+        if (frontLeft != null && frontRight!= null && backLeft != null && backRight != null) {
+            double rightPower = rightspeed;
+            double leftPower = leftspeed;
+            frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+            boolean forward = inches > 0;
+
+            //reverse speed
+            if (forward){
+                rightPower = -rightPower;
+                leftPower = -leftPower;
+            }
+
+            double distance = inches * COUNTS_PER_INCH_REV;
+
+            double startingPoint = this.getLeftOdemeter();
+
+            double leftTarget = startingPoint + distance;
+
+
+
+            double slowdownMark = startingPoint + (distance - distance*breakPoint);
+
+
+            double minSpeed = 0.01;
+
+            double speedDropStep = 0.05;
+
+            double originalRight = rightPower;
+            double originalLeft = leftPower;
+
+
+            double speedIncrement = 0.05;
+            if (forward){
+                speedIncrement = -speedIncrement;
+            }
+            leftPower = 0;
+            rightPower = 0;
+
+            double realSpeedLeft = leftPower;
+            double realSpeedRight = rightPower;
+
+            boolean stop = false;
+            int step = 0;
+            while (!stop && owner.opModeIsActive()) {
+                double leftreading = this.getLeftOdemeter();
+//                stop =  (forward && leftreading >= leftTarget) ||
+//                        (forward == false && leftreading <= leftTarget);
+//                if (stop){
+//                    break;
+//                }
+                if ((forward && leftreading >= slowdownMark) ||
+                        (forward == false && leftreading <= slowdownMark)){
+//                    led.breaking();
+                    step++;
+                    if (Math.abs(leftPower) <= Math.abs(minSpeed) || Math.abs(rightPower) <= Math.abs(minSpeed) ){
+                        break;
+                    }
+
+                    if (forward) {
+                        rightPower = realSpeedRight + speedDropStep * step;
+                        leftPower = realSpeedLeft + speedDropStep * step;
+                        if (rightPower >= -minSpeed || leftPower >= -minSpeed){
+                            leftPower = -minSpeed;
+                            rightPower = -minSpeed;
+                        }
+                    }
+                    else{
+                        rightPower = realSpeedRight - speedDropStep * step;
+                        leftPower = realSpeedLeft - speedDropStep * step;
+                        if (rightPower <=minSpeed || leftPower <= minSpeed){
+                            leftPower = minSpeed;
+                            rightPower = minSpeed;
+                        }
+                    }
+                }
+                else{
+                    //acceleration
+                    if ((forward && rightPower + speedIncrement >= originalRight) ||
+                            (!forward && rightPower + speedIncrement <= originalRight)) {
+                        rightPower = rightPower + speedIncrement;
+                        leftPower = rightPower;
+                        realSpeedLeft = leftPower;
+                        realSpeedRight = rightPower;
+                    }
+                }
+
+                this.frontLeft.setPower(leftPower*mr.getLF());
+                this.frontRight.setPower(rightPower*mr.getRF());
+                this.backLeft.setPower(leftPower*mr.getLB());
+                this.backRight.setPower(rightPower*mr.getRB());
+            }
+
+            this.stop();
+        }
+    }
+
+    public void moveCurveCalib(double leftspeed, double rightspeed, double lowSpeedReduction, double inchesShort, double inchesLong, MotorReductionBot mr, double breakPoint){
+        if (frontLeft != null && frontRight!= null && backLeft != null && backRight != null) {
+            double rightPower = rightspeed;
+            double leftPower = leftspeed;
+
+            MotorReductionBot curveMR = new MotorReductionBot();
+
+            boolean leftLong = true;
+
+            if (leftPower > rightPower){
+                //reduce right motors
+                curveMR.setRF(lowSpeedReduction);
+                curveMR.setRB(lowSpeedReduction);
+            }
+            else if (rightPower > leftPower){
+                //reduce left motors
+                curveMR.setLF(lowSpeedReduction);
+                curveMR.setLB(lowSpeedReduction);
+                leftLong = false;
+            }
+
+
+            frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+            boolean forward = inchesLong > 0;
+
+            //reverse speed
+            if (forward){
+                rightPower = -rightPower;
+                leftPower = -leftPower;
+            }
+
+            double distanceLong = inchesLong * COUNTS_PER_INCH_REV;
+            double distanceShort = inchesShort * COUNTS_PER_INCH_REV;
+
+            double startingPoint = this.getLeftOdemeter();
+
+            double longTarget = startingPoint + distanceLong;
+
+            double slowdownMarkLong = startingPoint + (distanceLong - distanceLong*breakPoint);
+            double slowdownMarkShort = startingPoint + (distanceShort - distanceShort*breakPoint);
+
+
+            double minSpeed = 0.01;
+
+            double speedDropStep = 0.05;
+
+            double originalRight = rightPower;
+            double originalLeft = leftPower;
+
+
+            double speedIncrement = 0.05;
+            if (forward){
+                speedIncrement = -speedIncrement;
+            }
+            leftPower = 0;
+            rightPower = 0;
+
+            double realSpeedLF = leftPower;
+            double realSpeedLB = leftPower;
+            double realSpeedRF = rightPower;
+            double realSpeedRB = rightPower;
+
+            boolean accelDoneLF = false;
+            boolean accelDoneLB = false;
+            boolean accelDoneRF = false;
+            boolean accelDoneRB = false;
+
+            boolean stop = false;
+            while (!stop && owner.opModeIsActive()) {
+                double longReading = leftLong == true ? this.getLeftOdemeter() : this.getRightOdemeter();
+                double shortReading = leftLong == true ? this.getRightOdemeter() : this.getLeftOdemeter();
+//                stop =  (forward && leftreading >= leftTarget) ||
+//                        (forward == false && leftreading <= leftTarget);
+//                if (stop){
+//                    break;
+//                }
+                if ((forward && (longReading >= slowdownMarkLong || shortReading >= slowdownMarkShort)) ||
+                        (forward == false && (longReading <= slowdownMarkLong || shortReading <= slowdownMarkShort))){
+                    //slowing down
+                    if (forward) {
+                        realSpeedRF = realSpeedRF + speedDropStep;
+                        realSpeedRB = realSpeedRB + speedDropStep;
+                        realSpeedLF = realSpeedLF + speedDropStep;
+                        realSpeedLB = realSpeedLB + speedDropStep;
+                        if (realSpeedRF >= -minSpeed || realSpeedRB >= -minSpeed
+                        || realSpeedLF >= -minSpeed || realSpeedLB >= -minSpeed){
+                            break;
+                        }
+                    }
+                    else{
+                        realSpeedRF = realSpeedRF - speedDropStep;
+                        realSpeedRB = realSpeedRB - speedDropStep;
+                        realSpeedLF = realSpeedLF - speedDropStep;
+                        realSpeedLB = realSpeedLB - speedDropStep;
+                        if (realSpeedRF <= minSpeed || realSpeedRB <= minSpeed
+                        ||  realSpeedLF <= minSpeed || realSpeedLB <= minSpeed){
+                            break;
+                        }
+                    }
+
+                }
+                else{
+                    leftPower += speedIncrement;
+                    rightPower += speedIncrement;
+                    if (!accelDoneLF) {
+                        realSpeedLF = leftPower * curveMR.getLF();
+                    }
+                    if (!accelDoneLB) {
+                        realSpeedLB = leftPower * curveMR.getLB();
+                    }
+                    if (!accelDoneRF) {
+                        realSpeedRF = rightPower * curveMR.getRF();
+                    }
+                    if (!accelDoneRB) {
+                        realSpeedRB = rightPower * curveMR.getRB();
+                    }
+
+                    if (Math.abs(realSpeedLF) >= Math.abs(originalLeft)){
+                        realSpeedLF = originalLeft;
+                        accelDoneLF = true;
+                    }
+                    if (Math.abs(realSpeedLB) <= Math.abs(originalLeft)){
+                        realSpeedLB = originalLeft;
+                        accelDoneLB = true;
+                    }
+                    if (Math.abs(realSpeedRF) <= Math.abs(originalRight)){
+                        realSpeedRF = originalRight;
+                        accelDoneRF = true;
+                    }
+                    if (Math.abs(realSpeedRB) <= Math.abs(originalRight)){
+                        realSpeedRB = originalRight;
+                        accelDoneRB = true;
+                    }
+                }
+
+                this.frontLeft.setPower(realSpeedLF * mr.getLF());
+                this.backLeft.setPower(realSpeedLB * mr.getLB());
+                this.frontRight.setPower(realSpeedRF * mr.getRF());
+                this.backRight.setPower(realSpeedRB * mr.getRB());
+            }
+
+            this.stop();
+        }
+    }
+
+
     private RealSpeed accelerate(boolean forward, double desiredSpeed, double speedIncrement, double leftPower, double rightPower){
         //acceleration
         RealSpeed rs = new RealSpeed();
         if ((forward && rightPower + speedIncrement >= desiredSpeed) ||
                 (!forward && rightPower + speedIncrement <= desiredSpeed)) {
             rightPower = rightPower + speedIncrement;
-            leftPower = rightPower * LEFT_REDUCTION;
+            leftPower = rightPower;
             rs.setLeftSide(leftPower);
             rs.setRightSide(rightPower);
         }

@@ -14,6 +14,10 @@ public class BotCalibConfig implements Serializable {
     private double minRadiusRight;
     private double strafeLeftReduction;
     private double strafeRightReduction;
+    private MotorReductionBot diagMR;
+    private MotorReductionBot moveMRForward;
+    private MotorReductionBot moveMRBack;
+
 
     public String serialize() {
         return SimpleGson.getInstance().toJson(this);
@@ -88,5 +92,30 @@ public class BotCalibConfig implements Serializable {
     public void setHorizontalTicksDegreeRight(double horizontalTicksDegreeRight) {
         this.horizontalTicksDegreeRight = horizontalTicksDegreeRight;
         updateHorizontalTicksDegree();
+    }
+
+    public MotorReductionBot getDiagMR() {
+        return diagMR;
+    }
+
+    public void setDiagMR(MotorReductionBot diagMR) {
+        this.diagMR = diagMR;
+    }
+
+
+    public MotorReductionBot getMoveMRForward() {
+        return moveMRForward;
+    }
+
+    public void setMoveMRForward(MotorReductionBot moveMRForward) {
+        this.moveMRForward = moveMRForward;
+    }
+
+    public MotorReductionBot getMoveMRBack() {
+        return moveMRBack;
+    }
+
+    public void setMoveMRBack(MotorReductionBot moveMRBack) {
+        this.moveMRBack = moveMRBack;
     }
 }

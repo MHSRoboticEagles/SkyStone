@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.calibration;
 
+import org.firstinspires.ftc.teamcode.bots.RobotVeer;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -11,6 +13,8 @@ public class MotorReductionCalib extends MotorReduction {
     private double reductionStep = DEFAULT_REDUCTION_STEP;
     private boolean calibComplete = false;
     private HashMap<Double, Double> redMap = new HashMap<>();
+
+    private RobotVeer veer = RobotVeer.NONE;
 
 
     private double leftOdoDistance;
@@ -28,6 +32,10 @@ public class MotorReductionCalib extends MotorReduction {
 
     public MotorReductionCalib(){
 
+    }
+
+    public void setMotorName(MotorName motorName) {
+            this.motorName = motorName;
     }
 
     public MotorReductionCalib(MotorName name) {
@@ -215,5 +223,26 @@ public class MotorReductionCalib extends MotorReduction {
 
     public void setBreakPointHor(double breakPointHor) {
         this.breakPointHor = breakPointHor;
+    }
+
+    public RobotVeer getVeer() {
+        return veer;
+    }
+
+    public void setVeer(RobotVeer veer) {
+        this.veer = veer;
+    }
+
+    public void computeReduction(){
+        if (leftOdoDistanceActual > rightOdoDistanceActual){
+            double left = rightOdoDistanceActual/leftOdoDistanceActual;
+            this.setMotorReduction(left);
+            this.setVeer(RobotVeer.RIGHT);
+        }
+        if (rightOdoDistanceActual > leftOdoDistanceActual){
+            double right = leftOdoDistanceActual/rightOdoDistanceActual;
+            this.setMotorReduction(right);
+            this.setVeer(RobotVeer.LEFT);
+        }
     }
 }

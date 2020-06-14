@@ -3,7 +3,7 @@ package org.firstinspires.ftc.teamcode.calibration;
 public class MotorReduction {
 
     public static double DEFAULT_REDUCTION = 1;
-    private MotorName motorName = MotorName.NONE;
+    protected MotorName motorName = MotorName.NONE;
     private double motorReduction = DEFAULT_REDUCTION;
     private double calibSpeed = 0;
 
