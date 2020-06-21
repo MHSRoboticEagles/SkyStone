@@ -1,9 +1,7 @@
 package org.firstinspires.ftc.teamcode.bots;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.Range;
 import com.qualcomm.robotcore.util.ReadWriteFile;
@@ -12,12 +10,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 import org.firstinspires.ftc.teamcode.calibration.BotCalibConfig;
 import org.firstinspires.ftc.teamcode.calibration.DiagCalibConfig;
-import org.firstinspires.ftc.teamcode.calibration.MotorName;
-import org.firstinspires.ftc.teamcode.calibration.MotorReduction;
 import org.firstinspires.ftc.teamcode.calibration.MotorReductionBot;
-import org.firstinspires.ftc.teamcode.calibration.MotorReductionCalib;
-import org.firstinspires.ftc.teamcode.calibration.MotorReductionList;
-import org.firstinspires.ftc.teamcode.skills.Gyro;
 import org.firstinspires.ftc.teamcode.skills.Gyroscope;
 import org.firstinspires.ftc.teamcode.skills.Led;
 
@@ -64,10 +57,8 @@ public class YellowBot extends UberBot {
     private static double currentX = 0;
     private static double currentY = 0;
 
-    private double wheelBaseSeparation = 0;
-    private double horizontalTicksDegree = 0;
-    private double minRadiusLeft = 0;
-    private double minRadiusRight = 0;
+
+    private BotCalibConfig botConfig;
 
 
     public YellowBot() {
@@ -429,17 +420,22 @@ public class YellowBot extends UberBot {
             MotorReductionBot curveMR = new MotorReductionBot();
 
             boolean leftLong = true;
+            double startingPointLong = 0, startingPointShort = 0;
 
             if (leftPower > rightPower){
                 //reduce right motors
                 curveMR.setRF(lowSpeedReduction);
                 curveMR.setRB(lowSpeedReduction);
+                startingPointLong = this.getLeftOdemeter();
+                startingPointShort = this.getRightOdemeter();
             }
             else if (rightPower > leftPower){
                 //reduce left motors
                 curveMR.setLF(lowSpeedReduction);
                 curveMR.setLB(lowSpeedReduction);
                 leftLong = false;
+                startingPointShort = this.getLeftOdemeter();
+                startingPointLong = this.getRightOdemeter();
             }
 
 
@@ -459,12 +455,9 @@ public class YellowBot extends UberBot {
             double distanceLong = inchesLong * COUNTS_PER_INCH_REV;
             double distanceShort = inchesShort * COUNTS_PER_INCH_REV;
 
-            double startingPoint = this.getLeftOdemeter();
 
-            double longTarget = startingPoint + distanceLong;
-
-            double slowdownMarkLong = startingPoint + (distanceLong - distanceLong*breakPoint);
-            double slowdownMarkShort = startingPoint + (distanceShort - distanceShort*breakPoint);
+            double slowdownMarkLong = startingPointLong + (distanceLong - distanceLong*breakPoint);
+            double slowdownMarkShort = startingPointShort + (distanceShort - distanceShort*breakPoint);
 
 
             double minSpeed = 0.01;
@@ -722,7 +715,7 @@ public class YellowBot extends UberBot {
         }
 
         double archDegrees = Math.abs(desiredHeading - currentHead);
-        double horDistance = archDegrees * horizontalTicksDegree;
+        double horDistance = archDegrees * botConfig.getHorizontalTicksDegree();
 
 
 
@@ -832,7 +825,17 @@ public class YellowBot extends UberBot {
         //determine the new heading to the target
         double distanceX = Math.abs(targetX - currentX);
         double distanceY = Math.abs(targetY - currentY);
-        double angle = Math.toDegrees(Math.atan(distanceX/distanceY));
+        double angle = 0;
+        if (distanceY != 0){
+            if (distanceX == 0){
+                angle = 0;
+            }
+            else {
+                angle = Math.toDegrees(Math.atan(distanceX / distanceY));
+            }
+        }else{
+            angle = 90;
+        }
         double chord = Math.sqrt(distanceX*distanceX + distanceY * distanceY);
 
         telemetry.addData("Chord", chord);
@@ -880,12 +883,12 @@ public class YellowBot extends UberBot {
         double halfChord = chord/2;
         double radius = halfChord/Math.cos(Math.toRadians(alpha));
 
-        if ((turnLeft && radius <= this.minRadiusLeft) ||
-                (turnLeft == false && radius <=this.minRadiusRight)){
+        if ((turnLeft && radius <= this.botConfig.getMinRadiusLeft()) ||
+                (turnLeft == false && radius <=this.botConfig.getMinRadiusRight())){
             telemetry.addData("Radius", "Too small. Cannot turn");
         }else {
             //double centerArch = theta * radius;
-            double wheelDistFromCenter = this.wheelBaseSeparation / 2;
+            double wheelDistFromCenter = this.botConfig.getWheelBaseSeparation() / 2;
             double longArch = theta * (radius + wheelDistFromCenter) * COUNTS_PER_INCH_REV;
             double shortArch = theta * (radius - wheelDistFromCenter) * COUNTS_PER_INCH_REV;
             double speedRatio = shortArch / longArch;
@@ -895,13 +898,23 @@ public class YellowBot extends UberBot {
             telemetry.addData("Theta", theta);
             telemetry.addData("longArch", longArch);
             telemetry.addData("shortArch", shortArch);
+            double leftSpeed, rightSpeed;
             if (turnLeft) {
                 telemetry.addData("right speed", topSpeed);
                 telemetry.addData("left speed", lowSpeed);
+                leftSpeed = lowSpeed;
+                rightSpeed = topSpeed;
             } else {
                 telemetry.addData("left speed", topSpeed);
                 telemetry.addData("right speed", lowSpeed);
+                leftSpeed = topSpeed;
+                rightSpeed = lowSpeed;
             }
+            MotorReductionBot mr = getCalibConfig().getMoveMRForward();
+            if (direction == RobotDirection.Backward){
+                mr = getCalibConfig().getMoveMRBack();
+            }
+            moveCurveCalib(leftSpeed, rightSpeed, speedRatio, shortArch, longArch, mr, 0);
         }
 
         telemetry.update();
@@ -1025,7 +1038,58 @@ public class YellowBot extends UberBot {
         }
     }
 
-    public double strafeTo(double speed, double inches, boolean left, MotorReductionList reductionLeft, MotorReductionList reductionRight) {
+    public double strafeTo(double speed, double inches, boolean left) {
+        double currentPos = this.getHorizontalOdemeter();
+        double distance = inches * COUNTS_PER_INCH_REV;
+
+        MotorReductionBot calib = null;
+        if (left) {
+            calib = getCalibConfig().getStrafeLeftReduction();
+        }
+        else{
+            calib = getCalibConfig().getStrafeRightReduction();
+        }
+
+
+
+        double overage = 0;
+
+        if (left == false){
+            distance = -distance;
+        }
+
+        double target = currentPos + distance;
+
+        boolean stop = false;
+
+        while (!stop && this.owner.opModeIsActive()){
+            currentPos = this.getHorizontalOdemeter();
+            if((left && currentPos >= target) || (left == false && currentPos <= target)){
+                stop = true;
+            }
+
+            if (left){
+                this.backLeft.setPower(-speed*calib.getLB());
+                this.backRight.setPower(speed*calib.getRB());
+                this.frontLeft.setPower(speed*calib.getLF());
+                this.frontRight.setPower(-speed*calib.getRF());
+            }
+            else{
+                this.backLeft.setPower(speed*calib.getLB());
+                this.backRight.setPower(-speed*calib.getRB());
+                this.frontLeft.setPower(-speed*calib.getLF());
+                this.frontRight.setPower(speed*calib.getRF());
+            }
+        }
+
+        stop();
+        double newPos = this.getHorizontalOdemeter();
+        double diff = Math.abs(newPos - target);
+        overage = diff/distance*100;
+        return overage;
+    }
+
+    public double strafeToCalib(double speed, double inches, boolean left, MotorReductionBot calib) {
         double currentPos = this.getHorizontalOdemeter();
         double distance = inches * COUNTS_PER_INCH_REV;
 
@@ -1047,16 +1111,16 @@ public class YellowBot extends UberBot {
             }
 
             if (left){
-                this.backLeft.setPower(-speed*reductionLeft.getMotorReduction(MotorName.LB));
-                this.backRight.setPower(speed*reductionLeft.getMotorReduction(MotorName.RB));
-                this.frontLeft.setPower(speed*reductionLeft.getMotorReduction(MotorName.LF));
-                this.frontRight.setPower(-speed*reductionLeft.getMotorReduction(MotorName.RF));
+                this.backLeft.setPower(-speed*calib.getLB());
+                this.backRight.setPower(speed*calib.getRB());
+                this.frontLeft.setPower(speed*calib.getLF());
+                this.frontRight.setPower(-speed*calib.getRF());
             }
             else{
-                this.backLeft.setPower(speed*reductionRight.getMotorReduction(MotorName.LB));
-                this.backRight.setPower(-speed*reductionRight.getMotorReduction(MotorName.RB));
-                this.frontLeft.setPower(-speed*reductionRight.getMotorReduction(MotorName.LF));
-                this.frontRight.setPower(speed*reductionRight.getMotorReduction(MotorName.RF));
+                this.backLeft.setPower(speed*calib.getLB());
+                this.backRight.setPower(-speed*calib.getRB());
+                this.frontLeft.setPower(-speed*calib.getLF());
+                this.frontRight.setPower(speed*calib.getRF());
             }
         }
 
@@ -1097,28 +1161,8 @@ public class YellowBot extends UberBot {
         }
     }
 
-    public void diagToCalib(double speed, double lowSpeed, double diagInches, boolean leftAxis, MotorReductionCalib calib){
+    public void diagToCalib(double speed, double lowSpeed, double diagInches, boolean leftAxis, MotorReductionBot calib){
         if (backLeft != null && backRight!= null && frontLeft != null && frontRight != null) {
-
-            double LFreduction = 1;
-            double LBreduction = 1;
-            double RFreduction = 1;
-            double RBreduction = 1;
-
-            if (calib != null){
-                if (calib.getMotorName() == MotorName.LF){
-                    LFreduction = calib.getMotorReduction();
-                }
-                if (calib.getMotorName() == MotorName.LB){
-                    LBreduction = calib.getMotorReduction();
-                }
-                if (calib.getMotorName() == MotorName.RF){
-                    RFreduction = calib.getMotorReduction();
-                }
-                if (calib.getMotorName() == MotorName.RB){
-                    RBreduction = calib.getMotorReduction();
-                }
-            }
 
 
             double leftOdoStart = getLeftOdemeter();
@@ -1180,18 +1224,18 @@ public class YellowBot extends UberBot {
 
 
                 if (!leftAxis) {
-                    this.frontLeft.setPower(power*LFreduction);
-                    this.backRight.setPower(power*RBreduction);
+                    this.frontLeft.setPower(power*calib.getLF());
+                    this.backRight.setPower(power*calib.getRB());
 
-                    this.backLeft.setPower(lowSpeed*LBreduction);
-                    this.frontRight.setPower(lowSpeed*RFreduction);
+                    this.backLeft.setPower(lowSpeed*calib.getLB());
+                    this.frontRight.setPower(lowSpeed*calib.getRF());
                 }
                 else{
-                    this.backLeft.setPower(power*LBreduction);
-                    this.frontRight.setPower(power*RFreduction);
+                    this.backLeft.setPower(power*calib.getLB());
+                    this.frontRight.setPower(power*calib.getRF());
 
-                    this.frontLeft.setPower(lowSpeed*LFreduction);
-                    this.backRight.setPower(lowSpeed*RBreduction);
+                    this.frontLeft.setPower(lowSpeed*calib.getLF());
+                    this.backRight.setPower(lowSpeed*calib.getRB());
                 }
             }
         }
@@ -1286,19 +1330,12 @@ public class YellowBot extends UberBot {
         File calibFile = AppUtil.getInstance().getSettingsFile(BotCalibConfig.BOT_CALIB_CONFIG);
         if (calibFile.exists()){
             String data = ReadWriteFile.readFile(calibFile);
-            BotCalibConfig config = BotCalibConfig.deserialize(data);
-            this.wheelBaseSeparation = Math.abs(config.getWheelBaseSeparation());
-            this.horizontalTicksDegree = config.getHorizontalTicksDegree();
-            this.minRadiusLeft = config.getMinRadiusLeft();
-            this.minRadiusRight = config.getMinRadiusRight();
-            telemetry.addData("wheel separation", wheelBaseSeparation);
-            telemetry.addData("horizontalTicksDegree", horizontalTicksDegree);
-            telemetry.addData("minRadiusLeft", minRadiusLeft);
-            telemetry.addData("minRadiusRight", minRadiusRight);
-            telemetry.update();
-            if (config == null){
+            botConfig = BotCalibConfig.deserialize(data);
+            if (botConfig == null){
                 throw new Exception("Calibration data does not exist. Run calibration first");
             }
+            telemetry.addData("Bot Config", "Initialized");
+            telemetry.update();
         }
         else{
             throw new Exception("Calibration data does not exist. Run calibration first");
@@ -1306,13 +1343,14 @@ public class YellowBot extends UberBot {
     }
 
     public BotCalibConfig getCalibConfig(){
-        BotCalibConfig config = null;
-        File calibFile = AppUtil.getInstance().getSettingsFile(BotCalibConfig.BOT_CALIB_CONFIG);
-        if (calibFile.exists()) {
-            String data = ReadWriteFile.readFile(calibFile);
-            config = BotCalibConfig.deserialize(data);
+        if (botConfig == null) {
+            File calibFile = AppUtil.getInstance().getSettingsFile(BotCalibConfig.BOT_CALIB_CONFIG);
+            if (calibFile.exists()) {
+                String data = ReadWriteFile.readFile(calibFile);
+                botConfig = BotCalibConfig.deserialize(data);
+            }
         }
-        return config;
+        return botConfig;
     }
 
     public File getCalibConfigFile(){

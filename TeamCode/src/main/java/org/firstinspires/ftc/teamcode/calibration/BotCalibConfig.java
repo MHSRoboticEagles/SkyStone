@@ -12,9 +12,10 @@ public class BotCalibConfig implements Serializable {
     private double horizontalTicksDegreeRight;
     private double minRadiusLeft;
     private double minRadiusRight;
-    private double strafeLeftReduction;
-    private double strafeRightReduction;
-    private MotorReductionBot diagMR;
+    private MotorReductionBot strafeLeftReduction;
+    private MotorReductionBot strafeRightReduction;
+    private MotorReductionBot diagMRLeft;
+    private MotorReductionBot diagMRRight;
     private MotorReductionBot moveMRForward;
     private MotorReductionBot moveMRBack;
 
@@ -60,19 +61,19 @@ public class BotCalibConfig implements Serializable {
         this.minRadiusRight = minRadiusRight;
     }
 
-    public double getStrafeLeftReduction() {
+    public MotorReductionBot getStrafeLeftReduction() {
         return strafeLeftReduction;
     }
 
-    public void setStrafeLeftReduction(double strafeLeftReduction) {
+    public void setStrafeLeftReduction(MotorReductionBot strafeLeftReduction) {
         this.strafeLeftReduction = strafeLeftReduction;
     }
 
-    public double getStrafeRightReduction() {
+    public MotorReductionBot getStrafeRightReduction() {
         return strafeRightReduction;
     }
 
-    public void setStrafeRightReduction(double strafeRightReduction) {
+    public void setStrafeRightReduction(MotorReductionBot strafeRightReduction) {
         this.strafeRightReduction = strafeRightReduction;
     }
 
@@ -94,14 +95,6 @@ public class BotCalibConfig implements Serializable {
         updateHorizontalTicksDegree();
     }
 
-    public MotorReductionBot getDiagMR() {
-        return diagMR;
-    }
-
-    public void setDiagMR(MotorReductionBot diagMR) {
-        this.diagMR = diagMR;
-    }
-
 
     public MotorReductionBot getMoveMRForward() {
         return moveMRForward;
@@ -117,5 +110,21 @@ public class BotCalibConfig implements Serializable {
 
     public void setMoveMRBack(MotorReductionBot moveMRBack) {
         this.moveMRBack = moveMRBack;
+    }
+
+    public MotorReductionBot getDiagMRLeft() {
+        return diagMRLeft;
+    }
+
+    public void setDiagMRLeft(MotorReductionBot diagMRLeft) {
+        this.diagMRLeft = diagMRLeft;
+    }
+
+    public MotorReductionBot getDiagMRRight() {
+        return diagMRRight;
+    }
+
+    public void setDiagMRRight(MotorReductionBot diagMRRight) {
+        this.diagMRRight = diagMRRight;
     }
 }

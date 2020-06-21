@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.odometry;
 
+import android.graphics.Point;
+
 import org.firstinspires.ftc.teamcode.bots.YellowBot;
 import org.firstinspires.ftc.teamcode.calibration.BotCalibConfig;
 
@@ -21,10 +23,12 @@ public class RobotCoordinatePostiion implements Runnable {
     private int verticalRightEncoderPositionMultiplier = 1;
     private int horEncoderPositionMultiplier = 1;
 
-    public RobotCoordinatePostiion(YellowBot bot, int sleepTimeMS){
+    public RobotCoordinatePostiion(YellowBot bot, Point startPos, int sleepTimeMS){
         this.bot = bot;
         config = bot.getCalibConfig();
         sleepTime = sleepTimeMS;
+        this.robotGlobalXCoordinatePosition = startPos.x;
+        this.robotGlobalYCoordinatePosition = startPos.y;
         this.robotEncoderWheelDistance = config.getWheelBaseSeparation() * bot.COUNTS_PER_INCH_REV;
         this.horizontalEncoderTickPerDegreeOffset = config.getHorizontalTicksDegree();
     }

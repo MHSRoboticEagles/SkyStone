@@ -29,6 +29,8 @@
 
 package org.firstinspires.ftc.teamcode.OpModes;
 
+import android.graphics.Point;
+
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -74,7 +76,7 @@ public class YellowDriveOdo extends LinearOpMode {
 
             telemetry.update();
 
-            locator = new RobotCoordinatePostiion(robot, 75);
+            locator = new RobotCoordinatePostiion(robot, new Point(30, 24), 75);
             locator.reverseHorEncoder();
             Thread positionThread = new Thread(locator);
             positionThread.start();

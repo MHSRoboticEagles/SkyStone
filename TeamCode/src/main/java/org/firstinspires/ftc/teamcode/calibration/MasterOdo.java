@@ -389,7 +389,7 @@ public class MasterOdo extends LinearOpMode {
         double distance = Math.abs(startX - targetX);
 
         //todo: pull reudction from config
-        bot.strafeTo(SPEED, distance, left,  new MotorReductionList(), new MotorReductionList());
+        bot.strafeTo(SPEED, distance, left);
 
 
 
