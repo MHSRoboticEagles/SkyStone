@@ -5,8 +5,8 @@ import org.firstinspires.ftc.robotcore.internal.collections.SimpleGson;
 import java.io.Serializable;
 
 public class LastRunConfig implements Serializable {
-    private double X;
-    private double Y;
+    private int X;
+    private int Y;
     private double heading;
     private double speed;
 
@@ -18,19 +18,19 @@ public class LastRunConfig implements Serializable {
         return SimpleGson.getInstance().fromJson(data, LastRunConfig.class);
     }
 
-    public double getX() {
+    public int getX() {
         return X;
     }
 
-    public void setX(double x) {
+    public void setX(int x) {
         X = x;
     }
 
-    public double getY() {
+    public int getY() {
         return Y;
     }
 
-    public void setY(double y) {
+    public void setY(int y) {
         Y = y;
     }
 

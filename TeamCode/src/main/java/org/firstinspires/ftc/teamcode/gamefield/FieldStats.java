@@ -6,7 +6,7 @@ package org.firstinspires.ftc.teamcode.gamefield;
 
 public class FieldStats {
     public static final double TILE_WIDTH         = 24;
-    public static final double MAX_X_INCHES       = 96; //144;
-    public static final double MAX_Y_INCHES       = 96; //144;
+    public static final int MAX_X_INCHES       = 96; //144;
+    public static final int MAX_Y_INCHES       = 96; //144;
     public static final double ROBOT_SIDE         = 17;
 }

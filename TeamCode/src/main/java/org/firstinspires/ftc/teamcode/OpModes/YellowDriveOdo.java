@@ -117,7 +117,7 @@ public class YellowDriveOdo extends LinearOpMode {
                 // get gyroscope data
                 telemetry.addData("X ", locator.getXInches() );
                 telemetry.addData("Y ", locator.getYInches() );
-                telemetry.addData("Orientation (Degrees)", locator.returnOrientation());
+                telemetry.addData("Orientation (Degrees)", locator.getOrientation());
                 telemetry.addData("Thread Active", positionThread.isAlive());
                 telemetry.update();
 

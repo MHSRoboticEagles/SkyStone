@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.calibration;
 
+import android.graphics.Point;
+
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -10,6 +12,7 @@ import org.firstinspires.ftc.robotcore.internal.system.Deadline;
 import org.firstinspires.ftc.teamcode.bots.RobotDirection;
 import org.firstinspires.ftc.teamcode.bots.YellowBot;
 import org.firstinspires.ftc.teamcode.gamefield.FieldStats;
+import org.firstinspires.ftc.teamcode.odometry.RobotCoordinatePostiion;
 import org.firstinspires.ftc.teamcode.skills.Led;
 
 import java.io.File;
@@ -34,14 +37,14 @@ public class MasterOdo extends LinearOpMode {
 
     protected double ratio = 0;
 
-    protected double startX = 56;
-    protected double startY = 24;
+    protected int startX = 56;
+    protected int startY = 24;
 
-    protected double targetX = 0;
-    protected double targetY = 0;
+    protected int targetX = 0;
+    protected int targetY = 0;
 
-    protected double valueX = 0;
-    protected double valueY = 0;
+    protected int valueX = 0;
+    protected int valueY = 0;
 
     private boolean xmode = false;
     private boolean ymode = false;
@@ -50,7 +53,7 @@ public class MasterOdo extends LinearOpMode {
 
     private double overage = 0;
 
-    private double MODE_VALUE = 1;
+    private int MODE_VALUE = 1;
     private boolean MODE_UP = true;
 
     private static double CALIB_WEIGHT = 15.2;
@@ -68,7 +71,7 @@ public class MasterOdo extends LinearOpMode {
 
     private double COORD_MIN = 1;
     private double COORD_MAX = 100;
-    private double COORD_MULTIPLIER = 10;
+    private int COORD_MULTIPLIER = 10;
     private Led led = null;
 
     Deadline gamepadRateLimit;
@@ -255,8 +258,8 @@ public class MasterOdo extends LinearOpMode {
             MOVING = true;
             if (startY != targetY) {
                 if (startX == targetX) {
-                    if (targetY < bot.ROBOT_LENGTH_Y) {
-                        targetY = bot.ROBOT_LENGTH_Y + 1;
+                    if (targetY < Math.round(bot.ROBOT_LENGTH_Y)) {
+                        targetY = (int) Math.round(bot.ROBOT_LENGTH_Y) + 1;
                     }
                     if (targetY > FieldStats.MAX_Y_INCHES) {
                         targetY = FieldStats.MAX_Y_INCHES - 1;
@@ -294,8 +297,8 @@ public class MasterOdo extends LinearOpMode {
 
     }
 
-    private double changeIncrement(){
-        double tempVal = Math.abs(MODE_VALUE);
+    private int changeIncrement(){
+        int tempVal = Math.abs(MODE_VALUE);
         if(MODE_UP && tempVal < COORD_MAX){
             tempVal = tempVal * COORD_MULTIPLIER;
             if (tempVal == COORD_MAX) {
@@ -364,7 +367,20 @@ public class MasterOdo extends LinearOpMode {
     }
 
     private void  curve(){
-        bot.moveToCoordinate(startX, startY, targetX, targetY, RobotDirection.Forward, 0, SPEED);
+        RobotCoordinatePostiion locator = null;
+        try {
+            //tracker
+            locator = new RobotCoordinatePostiion(bot, new Point(startX, startY), 75);
+            locator.reverseHorEncoder();
+            Thread positionThread = new Thread(locator);
+            positionThread.start();
+            bot.moveToCoordinate(new Point(startX, startY), new Point(targetX, targetY), RobotDirection.Forward, SPEED, locator);
+        }
+        finally {
+            if (locator != null){
+                locator.stop();
+            }
+        }
     }
 
     private void strafe(){

@@ -17,18 +17,22 @@ public class RobotCoordinatePostiion implements Runnable {
 
     double verticalRightEncoderWheelPosition = 0, verticalLeftEncoderWheelPosition = 0, horEncoderWheelPosition = 0,  changeInRobotOrientation = 0;
     private double robotGlobalXCoordinatePosition = 0, robotGlobalYCoordinatePosition = 0, robotOrientationRadians = 0;
+    private double frontCenterX = 0;
+    private double frontCenterY = 0;
     private double previousVerticalRightEncoderWheelPosition = 0, previousVerticalLeftEncoderWheelPosition = 0, prevNormalEncoderWheelPosition = 0;
 
     private int verticalLeftEncoderPositionMultiplier = 1;
     private int verticalRightEncoderPositionMultiplier = 1;
     private int horEncoderPositionMultiplier = 1;
 
+    private double botHalfLength = bot.ROBOT_CENTER_Y* bot.COUNTS_PER_INCH_REV;
+
     public RobotCoordinatePostiion(YellowBot bot, Point startPos, int sleepTimeMS){
         this.bot = bot;
         config = bot.getCalibConfig();
         sleepTime = sleepTimeMS;
-        this.robotGlobalXCoordinatePosition = startPos.x;
-        this.robotGlobalYCoordinatePosition = startPos.y;
+        this.robotGlobalXCoordinatePosition = startPos.x * bot.COUNTS_PER_INCH_REV;
+        this.robotGlobalYCoordinatePosition = startPos.y * bot.COUNTS_PER_INCH_REV;
         this.robotEncoderWheelDistance = config.getWheelBaseSeparation() * bot.COUNTS_PER_INCH_REV;
         this.horizontalEncoderTickPerDegreeOffset = config.getHorizontalTicksDegree();
     }
@@ -53,6 +57,10 @@ public class RobotCoordinatePostiion implements Runnable {
 
         robotGlobalXCoordinatePosition = robotGlobalXCoordinatePosition + (p*Math.sin(robotOrientationRadians) + n*Math.cos(robotOrientationRadians));
         robotGlobalYCoordinatePosition = robotGlobalYCoordinatePosition + (p*Math.cos(robotOrientationRadians) - n*Math.sin(robotOrientationRadians));
+
+        //Front Center of the robot
+        setFrontCenterX(robotGlobalXCoordinatePosition + botHalfLength*Math.sin(robotOrientationRadians));
+        setFrontCenterY(robotGlobalYCoordinatePosition + botHalfLength*Math.cos(robotOrientationRadians));
 
         previousVerticalLeftEncoderWheelPosition = verticalLeftEncoderWheelPosition;
         previousVerticalRightEncoderWheelPosition = verticalRightEncoderWheelPosition;
@@ -87,7 +95,7 @@ public class RobotCoordinatePostiion implements Runnable {
     public double getYInches(){ return robotGlobalYCoordinatePosition/bot.COUNTS_PER_INCH_REV; }
 
 
-    public double returnOrientation(){ return Math.toDegrees(robotOrientationRadians) % 360; }
+    public double getOrientation(){ return Math.toDegrees(robotOrientationRadians) % 360; }
 
 
     public void reverseLeftEncoder(){
@@ -112,5 +120,30 @@ public class RobotCoordinatePostiion implements Runnable {
         }else{
             horEncoderPositionMultiplier = 1;
         }
+    }
+
+    public double getFrontCenterX() {
+        return frontCenterX;
+    }
+
+    public void setFrontCenterX(double frontCenterX) {
+        this.frontCenterX = frontCenterX;
+    }
+
+    public double getFrontCenterY() {
+        return frontCenterY;
+    }
+
+    public void setFrontCenterY(double frontCenterY) {
+        this.frontCenterY = frontCenterY;
+    }
+
+    public double getFrontCenterXInches() {
+        return getFrontCenterX()/bot.COUNTS_PER_INCH_REV;
+    }
+
+
+    public double getFrontCenterYInches() {
+        return getFrontCenterY()/bot.COUNTS_PER_INCH_REV;
     }
 }

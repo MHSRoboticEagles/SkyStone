@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.calibration;
 
 import org.firstinspires.ftc.teamcode.bots.RobotDirection;
+import org.firstinspires.ftc.teamcode.bots.RobotMovement;
 import org.firstinspires.ftc.teamcode.bots.RobotVeer;
 
 import java.io.Serializable;
@@ -12,6 +13,8 @@ public class MotorReductionBotCalib extends MotorReductionBot implements Seriali
     private double MRBaseline = 1;
     private RobotVeer veer = RobotVeer.NONE;
     private RobotDirection direction = RobotDirection.Forward;
+
+    private RobotMovement stats = new RobotMovement();
 
     private double LFHeadChange = 0;
     private double LBHeadChange = 0;
@@ -75,36 +78,6 @@ public class MotorReductionBotCalib extends MotorReductionBot implements Seriali
         this.RBHeadChange = RBHeadChange;
     }
 
-//    public void update(MotorReductionCalib calib){
-//        if (calib.getMotorName() == MotorName.LF){
-//            setLF(calib.getMotorReduction());
-//            setLFHeadChange(calib.getHeadChange());
-//        }
-//        else if (calib.getMotorName() == MotorName.LB){
-//            setLB(calib.getMotorReduction());
-//            setLBHeadChange(calib.getHeadChange());
-//        }
-//        else if (calib.getMotorName() == MotorName.RF){
-//            setRF(calib.getMotorReduction());
-//            setRFHeadChange(calib.getHeadChange());
-//        }
-//        else if (calib.getMotorName() == MotorName.RB){
-//            setRB(calib.getMotorReduction());
-//            setRBHeadChange(calib.getHeadChange());
-//        }
-//        else if (calib.getMotorName() == MotorName.LEFT_SIDE){
-//            setLF(calib.getMotorReduction());
-//            setLFHeadChange(calib.getHeadChange());
-//            setLB(calib.getMotorReduction());
-//            setLBHeadChange(calib.getHeadChange());
-//        }
-//        else if (calib.getMotorName() == MotorName.RIGHT_SIDE){
-//            setRF(calib.getMotorReduction());
-//            setRFHeadChange(calib.getHeadChange());
-//            setRB(calib.getMotorReduction());
-//            setRBHeadChange(calib.getHeadChange());
-//        }
-//    }
 
     public double getHeadChangeBaseline() {
         return headChangeBaseline;
@@ -138,37 +111,6 @@ public class MotorReductionBotCalib extends MotorReductionBot implements Seriali
         this.MRBaseline = MRBaseline;
     }
 
-//    public MotorReductionCalib analyze(){
-//        double bestChange = Math.abs(getHeadChangeBaseline());
-//        double effectiveMR = getMRBaseline();
-//        double remainingMR = effectiveMR;
-//        MotorReductionCalib calib = new MotorReductionCalib();
-//        if (Math.abs(this.LFHeadChange) > 0 && Math.abs(this.LFHeadChange) < bestChange){
-//            bestChange = Math.abs(LFHeadChange);
-//            calib.setMotorName(MotorName.LF);
-//        }
-//        if (Math.abs(this.LBHeadChange) > 0 && Math.abs(this.LBHeadChange) < bestChange){
-//            bestChange = Math.abs(LBHeadChange);
-//            calib.setMotorName(MotorName.LB);
-//        }
-//
-//        if (Math.abs(this.RFHeadChange) > 0 && Math.abs(this.RFHeadChange) < bestChange){
-//            bestChange = Math.abs(RFHeadChange);
-//            calib.setMotorName(MotorName.RF);
-//        }
-//
-//        if (Math.abs(this.RBHeadChange) > 0 && Math.abs(this.RBHeadChange) < bestChange){
-//            bestChange = Math.abs(RBHeadChange);
-//            calib.setMotorName(MotorName.RB);
-//        }
-//
-//        double changeEffect = (Math.abs(headChangeBaseline) - bestChange)/Math.abs(headChangeBaseline);
-//        double adjustedMR = 1 - ((1 - effectiveMR)/changeEffect);
-//        calib.setMotorReduction(adjustedMR);
-//
-//        return calib;
-//    }
-
     public MotorReductionBot getMR(){
         MotorReductionBot mrb = new MotorReductionBot();
         for(int x = 0; x < motors.length; x++){
@@ -178,7 +120,6 @@ public class MotorReductionBotCalib extends MotorReductionBot implements Seriali
         mrb.setDistanceRatio(this.getDistanceRatio());
         return mrb;
     }
-
 
     public double getOriginalHeadChange() {
         return originalHeadChange;
@@ -267,5 +208,31 @@ public class MotorReductionBotCalib extends MotorReductionBot implements Seriali
             return "*";
         }
         return " ";
+    }
+
+    public double getOverDriveLeft(){
+        double diff = 0;
+        double desired = Math.abs(this.getLeftOdoDistance());
+        double actual = Math.abs(this.getLeftOdoDistanceActual());
+        diff = actual - desired;
+        //negative if shorter than desired
+        return diff;
+    }
+
+    public double getOverDriveRight(){
+        double diff = 0;
+        double desired = Math.abs(this.getRightOdoDistance());
+        double actual = Math.abs(this.getRightOdoDistanceActual());
+        diff = actual - desired;
+        //negative if shorter than desired
+        return diff;
+    }
+
+    public RobotMovement getStats() {
+        return stats;
+    }
+
+    public void setStats(RobotMovement stats) {
+        this.stats = stats;
     }
 }

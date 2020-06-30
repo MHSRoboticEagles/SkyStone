@@ -3,7 +3,6 @@ package org.firstinspires.ftc.teamcode.bots;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -20,7 +19,7 @@ import org.firstinspires.ftc.teamcode.skills.Gyro;
  * Created by sjeltuhin on 9/12/17.
  */
 
-public class TieBot extends UberBot{
+public class TieBot {
     Telemetry telemetry;
     public DcMotor leftDriveBack = null;
     public DcMotor rightDriveBack = null;

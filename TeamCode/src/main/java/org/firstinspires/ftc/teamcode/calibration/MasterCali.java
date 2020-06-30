@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.calibration;
 
+import android.graphics.Point;
+
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -7,8 +9,10 @@ import com.qualcomm.robotcore.util.ReadWriteFile;
 
 import org.firstinspires.ftc.robotcore.internal.system.Deadline;
 import org.firstinspires.ftc.teamcode.bots.RobotDirection;
+import org.firstinspires.ftc.teamcode.bots.RobotMovement;
 import org.firstinspires.ftc.teamcode.bots.RobotVeer;
 import org.firstinspires.ftc.teamcode.bots.YellowBot;
+import org.firstinspires.ftc.teamcode.odometry.RobotCoordinatePostiion;
 import org.firstinspires.ftc.teamcode.skills.Led;
 
 import java.util.concurrent.TimeUnit;
@@ -42,7 +46,6 @@ public class MasterCali extends LinearOpMode {
     private int selectedMode = 0;
 
     private boolean speedSettingMode = false;
-    private boolean angleSettingMode = false;
     private boolean MRSettingMode = false;
     private boolean MRSettingModeBack = false;
     private boolean XSettingMode = false;
@@ -51,12 +54,14 @@ public class MasterCali extends LinearOpMode {
     private boolean strafeModeRight = false;
     private boolean diagModeLeft = false;
     private boolean diagModeRight = false;
+    private boolean startSettingMode = false;
 
-    private int desiredAngle = 45;
+    private boolean tenIncrement = false;
+
     private int desiredX = 30;
     private int desiredY = 30;
-    double startX = 30;
-    double startY = 24;
+    int startX = 30;
+    int startY = 24;
     private static int DIAG = 45;
     private double desiredSpeed = CALIB_SPEED;
 
@@ -163,6 +168,7 @@ public class MasterCali extends LinearOpMode {
         }
     }
 
+
     private void processCommands(){
         if (!gamepadRateLimit.hasExpired()) {
             return;
@@ -176,7 +182,7 @@ public class MasterCali extends LinearOpMode {
         }
 
         if (gamepad1.b){
-            angleSettingMode = !angleSettingMode;
+            startSettingMode = !startSettingMode;
             gamepadRateLimit.reset();
             showStatus();
         }
@@ -191,6 +197,11 @@ public class MasterCali extends LinearOpMode {
             YSettingMode = !YSettingMode;
             gamepadRateLimit.reset();
             showStatus();
+        }
+
+        if (gamepad1.left_bumper){
+            tenIncrement = !tenIncrement;
+            gamepadRateLimit.reset();
         }
 
         if (gamepad1.back){
@@ -219,16 +230,21 @@ public class MasterCali extends LinearOpMode {
                     desiredSpeed = desiredSpeed - 0.1;
                 }
             }
-            else if (angleSettingMode){
-                if (desiredAngle > 0){
-                    desiredAngle = desiredAngle - 5;
+            else if (XSettingMode){
+                if (startSettingMode){
+                    startX = startX - 5;
+                }
+                else {
+                    desiredX = desiredX - 5;
                 }
             }
-            else if (XSettingMode){
-                desiredX = desiredX - 5;
-            }
             else if (YSettingMode){
-                desiredY = desiredY - 5;
+                if (startSettingMode){
+                    startY = startY - 5;
+                }
+                else {
+                    desiredY = desiredY - 5;
+                }
             }
             else if (MRSettingMode){
                 templateMRForward.decrementSelectedMR();
@@ -263,16 +279,21 @@ public class MasterCali extends LinearOpMode {
                     desiredSpeed = desiredSpeed + 0.1;
                 }
             }
-            else if (angleSettingMode){
-                if (desiredAngle < 90){
-                    desiredAngle = desiredAngle + 5;
+            else if (XSettingMode){
+                if (startSettingMode){
+                    startX = startX + 5;
+                }
+                else {
+                    desiredX = desiredX + 5;
                 }
             }
-            else if (XSettingMode){
-                desiredX = desiredX + 5;
-            }
             else if (YSettingMode){
-                desiredY = desiredY + 5;
+                if (startSettingMode){
+                    startY = startY + 5;
+                }
+                else {
+                    desiredY = desiredY + 5;
+                }
             }
             else if (MRSettingMode){
                 templateMRForward.inrementSelectedMR();
@@ -393,17 +414,25 @@ public class MasterCali extends LinearOpMode {
 
     private void showStatus(){
 
-        if (speedSettingMode){
+        if (speedSettingMode) {
             telemetry.addData("Speed", desiredSpeed);
         }
-        else if (angleSettingMode){
-            telemetry.addData("Angle", desiredAngle);
-        }
         else if (XSettingMode){
-            telemetry.addData("X", desiredX);
+            if (startSettingMode){
+                telemetry.addData("Start X", startX);
+            }
+            else {
+                telemetry.addData("X", desiredX);
+            }
         }
         else if (YSettingMode){
-            telemetry.addData("Y", desiredY);
+            if (startSettingMode){
+                telemetry.addData("Start Y", startY);
+            }
+            else{
+                telemetry.addData("Y", desiredY);
+            }
+
         }
         else if (MRSettingMode){
             showMotorReductionCalib(templateMRForward);
@@ -433,13 +462,31 @@ public class MasterCali extends LinearOpMode {
     }
 
     private void calibCurve(){
+        RobotCoordinatePostiion locator = null;
+        try {
+            //tracker
+            locator = new RobotCoordinatePostiion(bot, new Point(startX, startY), 75);
+            locator.reverseHorEncoder();
+            Thread positionThread = new Thread(locator);
+            positionThread.start();
+            bot.moveToCoordinate(new Point(startX, startY), new Point(desiredX, desiredY), RobotDirection.Forward, desiredSpeed, locator);
+            timer.reset();
+            while (timer.milliseconds() < 5000 && opModeIsActive()) {
 
-        bot.moveToCoordinate(startX, startY,desiredX,desiredY, RobotDirection.Forward, 45, CALIB_SPEED_HIGH);
+            }
+            bot.moveToCoordinate(new Point((int)(Math.round(locator.getXInches())), (int)Math.round(locator.getYInches())), new Point(startX, startY), RobotDirection.Backward, desiredSpeed, locator);
+        }
+        finally {
+            if (locator != null){
+                locator.stop();
+            }
+        }
     }
 
     private void calibMove(){
         moveBot(templateMRForward, templateMRBack);
         restoreHead();
+        led.none();
         saveConfigMove(templateMRForward, templateMRBack);
         showMotorReductionCalib(templateMRForward);
         showMotorReductionCalib(templateMRBack);
@@ -455,7 +502,10 @@ public class MasterCali extends LinearOpMode {
 
         double leftOdo = bot.getLeftOdemeter();
         double rightOdo = bot.getRightOdemeter();
-        bot.moveToCalib(CALIB_SPEED_HIGH, CALIB_SPEED_HIGH, desiredX, mrForward, 0, led);
+        calibF.setLeftOdoDistance(desiredX*bot.COUNTS_PER_INCH_REV);
+        calibF.setRightOdoDistance(desiredX*bot.COUNTS_PER_INCH_REV);
+        RobotMovement statsF = bot.moveToCalib(desiredSpeed, desiredSpeed, desiredX, mrForward, calibF.getBreakPoint(desiredSpeed), led);
+        calibF.setStats(statsF);
 
         timer.reset();
         while(timer.milliseconds() < 1000 && opModeIsActive()){
@@ -486,8 +536,11 @@ public class MasterCali extends LinearOpMode {
         currentHead = bot.getGyroHeading();
         leftOdo = bot.getLeftOdemeter();
         rightOdo = bot.getRightOdemeter();
+        calibB.setLeftOdoDistance(desiredX*bot.COUNTS_PER_INCH_REV);
+        calibB.setRightOdoDistance(desiredX*bot.COUNTS_PER_INCH_REV);
 
-        bot.moveToCalib(CALIB_SPEED_HIGH, CALIB_SPEED_HIGH, -desiredX, mrBack, 0, led);
+        RobotMovement statsB =  bot.moveToCalib(desiredSpeed, desiredSpeed, -desiredX, mrBack, calibB.getBreakPoint(desiredSpeed), led);
+        calibB.setStats(statsB);
 
         timer.reset();
         while(timer.milliseconds() < 1000 && opModeIsActive()){
@@ -515,356 +568,31 @@ public class MasterCali extends LinearOpMode {
     }
 
 
-//    private void calibMoveMultiStep(){
-//        MotorReductionBotCalib botCalibForward = new MotorReductionBotCalib();
-//        botCalibForward.setDirection(RobotDirection.Forward);
-//
-//        MotorReductionBotCalib botCalibBack = new MotorReductionBotCalib();
-//        botCalibBack.setDirection(RobotDirection.Backward);
-//
-//
-//        MotorReductionCalib calibF = new MotorReductionCalib();
-//        MotorReductionCalib calibB = new MotorReductionCalib();
-//
-//        //baseline
-//        move(calibF, calibB);
-//        calibF.computeReduction();
-//        calibB.computeReduction();
-//
-//        botCalibForward.setHeadChangeBaseline(calibF.getHeadChange());
-//        botCalibForward.setVeer(calibF.getVeer());
-//        botCalibForward.setMRBaseline(calibF.getMotorReduction());
-//
-//        botCalibBack.setHeadChangeBaseline(calibB.getHeadChange());
-//        botCalibBack.setVeer(calibB.getVeer());
-//        botCalibBack.setMRBaseline(calibB.getMotorReduction());
-//
-//        double originalMRForward = calibF.getMotorReduction();
-//        double originalMRBack = calibB.getMotorReduction();
-//
-//
-//        double initialMRForward = 1 - ((1 - calibF.getMotorReduction()) * 2);
-//        double initialMRBack = 1 - ((1 - calibB.getMotorReduction()) * 2);
-//
-//        //front motor
-//        if (botCalibForward.getVeer() == RobotVeer.RIGHT) {
-//            calibF.setMotorName(MotorName.LF);
-//        }
-//        else {
-//            calibF.setMotorName(MotorName.RF);
-//        }
-//        calibF.setMotorReduction(initialMRForward);
-//
-//        if (botCalibBack.getVeer() == RobotVeer.RIGHT) {
-//            calibB.setMotorName(MotorName.LF);
-//        }
-//        else {
-//            calibB.setMotorName(MotorName.RF);
-//        }
-//        calibB.setMotorReduction(initialMRBack);
-//
-//        move(calibF, calibB);
-//        botCalibForward.update(calibF);
-//        botCalibBack.update(calibB);
-//
-//        //back motor
-//
-//        if (botCalibForward.getVeer() == RobotVeer.RIGHT) {
-//            calibF.setMotorName(MotorName.LB);
-//        }
-//        else {
-//            calibF.setMotorName(MotorName.RB);
-//        }
-//        calibF.setMotorReduction(initialMRForward);
-//
-//        if (botCalibBack.getVeer() == RobotVeer.RIGHT) {
-//            calibB.setMotorName(MotorName.LB);
-//        }
-//        else {
-//            calibB.setMotorName(MotorName.RB);
-//        }
-//        calibB.setMotorReduction(initialMRBack);
-//
-//        move(calibF, calibB);
-//        botCalibForward.update(calibF);
-//        botCalibBack.update(calibB);
-//
-//        //both motors
-//
-//        MotorReductionBotCalib botCalibForwardBoth = new MotorReductionBotCalib();
-//        botCalibForward.setDirection(RobotDirection.Forward);
-//
-//        MotorReductionBotCalib botCalibBackBoth = new MotorReductionBotCalib();
-//        botCalibBack.setDirection(RobotDirection.Backward);
-//
-//        if (botCalibForward.getVeer() == RobotVeer.RIGHT) {
-//            calibF.setMotorName(MotorName.LEFT_SIDE);
-//        }
-//        else {
-//            calibF.setMotorName(MotorName.RIGHT_SIDE);
-//        }
-//        calibF.setMotorReduction(originalMRForward);
-//
-//        if (botCalibBack.getVeer() == RobotVeer.RIGHT) {
-//            calibB.setMotorName(MotorName.LEFT_SIDE);
-//        }
-//        else {
-//            calibB.setMotorName(MotorName.RIGHT_SIDE);
-//        }
-//        calibB.setMotorReduction(originalMRBack);
-//
-//        move(calibF, calibB);
-//        botCalibForwardBoth.update(calibF);
-//        botCalibBackBoth.update(calibB);
-//
-//
-//
-//        //analyze
-//        calibF  = botCalibForward.analyze();
-//        calibB  = botCalibBack.analyze();
-//
-//        MotorReductionBot mrForwardFinal = new MotorReductionBot(calibF);
-//        MotorReductionBot mrBackFinal = new MotorReductionBot(calibB);
-//
-//        move(calibF, calibB);
-//        botCalibForward.update(calibF);
-//        botCalibBack.update(calibB);
-//
-//        timer.reset();
-//        while(timer.milliseconds() < 1000 && opModeIsActive()){
-//        }
-//        restoreHead();
-//
-//        // show results
-//        showMotorReductionCalib(botCalibForward);
-//        showMotorReductionCalib(botCalibBack);
-//        telemetry.addData("Both motors", "");
-//        showMotorReductionCalib(botCalibForwardBoth);
-//        showMotorReductionCalib(botCalibBackBoth);
-//        telemetry.update();
-//
-//
-//        saveConfigMove(mrForwardFinal, mrBackFinal);
-////
-////
-////        telemetry.addData("Calib Move","Complete");
-////        showMotorReduction(mr);
-////        showMotorReductionCalib(botCalib);
-////        telemetry.update();
-//
-//    }
-
-//    private void move(MotorReductionCalib calibF, MotorReductionCalib calibB){
-//        led.none();
-//        MotorReductionBot mrForward = new MotorReductionBot(calibF);
-//        MotorReductionBot mrBack = new MotorReductionBot(calibB);
-//
-//        showMotorReduction(mrForward);
-//        showMotorReduction(mrBack);
-//        telemetry.update();
-//
-//        double currentHead = bot.getGyroHeading();
-//
-//        double leftOdo = bot.getLeftOdemeter();
-//        double rightOdo = bot.getRightOdemeter();
-//        bot.moveToCalib(CALIB_SPEED_HIGH, CALIB_SPEED_HIGH, desiredX, mrForward, 0, led);
-//
-//        timer.reset();
-//        while(timer.milliseconds() < 1000 && opModeIsActive()){
-//
-//        }
-//
-//        double actualHead = bot.getGyroHeading();
-//        double headChange = actualHead - currentHead;
-//
-//        double leftDistance = bot.getLeftOdemeter() - leftOdo;
-//        double rightDistance = bot.getRightOdemeter() - rightOdo;
-//        calibF.setLeftOdoDistanceActual(leftDistance);
-//        calibF.setRightOdoDistanceActual(rightDistance);
-//        calibF.setHeadChange(headChange);
-//
-//        if (Math.abs(headChange) > MARGIN_ERROR_DEGREES){
-//            led.needAdjustment();
-//        }
-//        else{
-//            led.OK();
-//        }
-//
-//
-//        timer.reset();
-//        while(timer.milliseconds() < 1000 && opModeIsActive()){
-//        }
-//        currentHead = bot.getGyroHeading();
-//        leftOdo = bot.getLeftOdemeter();
-//        rightOdo = bot.getRightOdemeter();
-//
-//        bot.moveToCalib(CALIB_SPEED_HIGH, CALIB_SPEED_HIGH, -desiredX, mrBack, 0, led);
-//
-//        timer.reset();
-//        while(timer.milliseconds() < 1000 && opModeIsActive()){
-//
-//        }
-//
-//        actualHead = bot.getGyroHeading();
-//        headChange = actualHead - currentHead;
-//
-//        calibB.setHeadChange(headChange);
-//
-//        if (Math.abs(headChange) > MARGIN_ERROR_DEGREES){
-//            led.needAdjustment();
-//        }
-//        else{
-//            led.OK();
-//        }
-//
-//        leftDistance = Math.abs(bot.getLeftOdemeter() - leftOdo);
-//        rightDistance = Math.abs(bot.getRightOdemeter() - rightOdo);
-//
-//        calibB.setLeftOdoDistanceActual(leftDistance);
-//        calibB.setRightOdoDistanceActual(rightDistance);
-//
-//    }
 
     private void calibBreak(){
-        boolean done = false;
-        BotCalibConfig config = bot.getCalibConfig();
-        if (config == null || config.getMoveMRForward() == null){
-            telemetry.addData("Error", "Motor Reduction missing. Must run move calibration first");
-        }
-        else {
-            MotorReductionBot mr = config.getMoveMRForward();
-            double overRunOriginal = movePrecision(mr);
-            double distance = desiredX * bot.COUNTS_PER_INCH_REV;
-            double breakPointOriginal = overRunOriginal/distance;
-            telemetry.addData("breakPointOriginal", breakPointOriginal);
-            telemetry.addData("error (inches) original", overRunOriginal / bot.COUNTS_PER_INCH_REV);
-            telemetry.update();
+        BotStatsConfig statsConfig = BotStatsConfig.loadConfig(telemetry);
+        int selectedIndex = 0;
+        while(selectedIndex < MotorReductionBot.POWER_SAMPLES.length){
+            double power = MotorReductionBot.POWER_SAMPLES[selectedIndex];
+            RobotMovement statsF =  bot.moveToCalib(power, power, desiredX, templateMRForward, 0, led);
+            templateMRForward.setBreakPoint(statsF.getSlowDownDistanceRaw(), power);
+            statsConfig.setStatsForward(power, statsF);
 
-            while (!done) {
-                BreakCalib breakCalib = moveBreakTest(mr, overRunOriginal, breakPointOriginal);
-                telemetry.addData("breakPoint", breakCalib.getBreakPoint());
-                double errorInches = breakCalib.getOverRun() / bot.COUNTS_PER_INCH_REV;
-                telemetry.addData("error (inches)", errorInches);
-                telemetry.update();
-                done = breakCalib.isComplete();
-                overRunOriginal = breakCalib.getOverRun();
-                breakPointOriginal = breakCalib.getBreakPoint();
+            timer.reset();
+            while (timer.milliseconds() < 1000 && opModeIsActive()) {
 
-                timer.reset();
-                while(timer.milliseconds() < 1000 && opModeIsActive()){
-
-                }
             }
+            RobotMovement statsB =  bot.moveToCalib(power, power, -desiredX, templateMRBack, 0, led);
+            templateMRBack.setBreakPoint(statsB.getSlowDownDistanceRaw(), power);
+            statsConfig.setStatsBack(power, statsB);
+            selectedIndex++;
 
-            telemetry.addData("Calib", "Complete");
         }
-        telemetry.update();
-
+        saveConfigBreak(templateMRForward, templateMRBack);
+        statsConfig.saveConfig(telemetry);
     }
 
-    private double movePrecision(MotorReductionBot mr){
-        double breakPoint = 0;
-        led.none();
 
-        double leftOdo = bot.getLeftOdemeter();
-        double rightOdo = bot.getRightOdemeter();
-
-        bot.moveToCalib(desiredSpeed, desiredSpeed, desiredX, mr, breakPoint,led);
-
-        timer.reset();
-        while(timer.milliseconds() < 1000 && opModeIsActive()){
-            telemetry.addData("Calib","Waiting for next step...");
-            telemetry.update();
-        }
-
-
-        double leftDistanceActual = bot.getLeftOdemeter() - leftOdo;
-        double rightDistanceActual = bot.getRightOdemeter() - rightOdo;
-        double longest = leftDistanceActual;
-        if (rightDistanceActual > longest){
-            longest = rightDistanceActual;
-        }
-
-        double distance = desiredX * bot.COUNTS_PER_INCH_REV;
-
-        double overdrive = longest - distance;
-
-        timer.reset();
-        while(timer.milliseconds() < 1000 && opModeIsActive()){
-            telemetry.addData("Calib","Waiting for next step...");
-            telemetry.update();
-        }
-
-        restoreHead();
-
-        bot.moveToCalib(desiredSpeed, desiredSpeed, -desiredX, mr, breakPoint, led);
-
-        timer.reset();
-        while(timer.milliseconds() < 1000 && opModeIsActive()){
-            telemetry.addData("Calib","Wait...");
-            telemetry.update();
-        }
-
-        restoreHead();
-        return overdrive;
-    }
-
-    private BreakCalib moveBreakTest(MotorReductionBot mr, double overdriveOriginal, double breakPoint){
-        led.none();
-        BreakCalib breakCalib = new BreakCalib();
-
-        double leftOdo = bot.getLeftOdemeter();
-        double rightOdo = bot.getRightOdemeter();
-        double distance = desiredX * bot.COUNTS_PER_INCH_REV;
-
-        bot.moveToCalib(desiredSpeed, desiredSpeed, desiredX, mr, breakPoint, led);
-
-        timer.reset();
-        while(timer.milliseconds() < 1000 && opModeIsActive()){
-        }
-
-        double leftDistanceActual = bot.getLeftOdemeter() - leftOdo;
-        double rightDistanceActual = bot.getRightOdemeter() - rightOdo;
-        double longest = leftDistanceActual;
-        if (longest < rightDistanceActual){
-            longest = rightDistanceActual;
-        }
-
-        breakCalib.setOverRun(longest - distance);
-
-        if (breakCalib.getOverRun()/bot.COUNTS_PER_INCH_REV >=-2 && breakCalib.getOverRun()/bot.COUNTS_PER_INCH_REV <=2){
-            led.OK();
-            breakCalib.isComplete();
-        }else{
-            led.needAdjustment();
-            if (longest < distance){
-                //breaking too soon
-                double needLess  = breakCalib.getOverRun()/overdriveOriginal;
-                breakCalib.setBreakPoint(breakPoint + breakPoint * needLess);
-            }
-            else{
-                //this is the effect of the current breakPoint
-                double needMore  = (overdriveOriginal - breakCalib.getOverRun())/overdriveOriginal;
-                breakCalib.setBreakPoint(breakPoint + breakPoint * needMore);
-            }
-        }
-
-        timer.reset();
-        while(timer.milliseconds() < 1000 && opModeIsActive()){
-        }
-
-        restoreHead();
-
-        bot.moveToCalib(desiredSpeed, desiredSpeed, -desiredX, mr, breakPoint, led);
-
-        timer.reset();
-        while(timer.milliseconds() < 1000 && opModeIsActive()){
-
-        }
-
-        restoreHead();
-        return breakCalib;
-    }
 
     private void calibSpin(){
         double currentHead = bot.getGyroHeading();
@@ -979,6 +707,7 @@ public class MasterCali extends LinearOpMode {
     private void calibStrafe(){
         strafeBot(templateStrafeLeft, templateStrafeRight);
         restoreHead();
+        led.none();
         saveConfigStrafe(templateStrafeLeft, templateStrafeRight);
         showMotorReductionCalib(templateStrafeLeft);
         showMotorReductionCalib(templateStrafeRight);
@@ -1531,20 +1260,32 @@ public class MasterCali extends LinearOpMode {
 
         MotorReductionBot originalBack = config.getMoveMRBack();
 
-        boolean changed = false;
+
         if (mrForward.compare(originalForward)){
             config.setMoveMRForward(mrForward);
-            changed = true;
         }
 
         if (mrBack.compare(originalBack)) {
             config.setMoveMRBack(mrBack);
-            changed = true;
         }
 
-        if (changed) {
-            ReadWriteFile.writeFile(bot.getCalibConfigFile(), config.serialize());
+        ReadWriteFile.writeFile(bot.getCalibConfigFile(), config.serialize());
+    }
+
+    private void saveConfigBreak(MotorReductionBot mrForward, MotorReductionBot mrBack){
+        BotCalibConfig config = bot.getCalibConfig();
+        if (config == null){
+            config = new BotCalibConfig();
         }
+        MotorReductionBot originalForward = config.getMoveMRForward();
+
+        MotorReductionBot originalBack = config.getMoveMRBack();
+
+
+        originalForward.updateBreakSamples(mrForward);
+        originalBack.updateBreakSamples(mrBack);
+
+        ReadWriteFile.writeFile(bot.getCalibConfigFile(), config.serialize());
     }
 
     private void saveConfigStrafe(MotorReductionBot mrLeft, MotorReductionBot mrRight){
@@ -1617,13 +1358,17 @@ public class MasterCali extends LinearOpMode {
         }
         telemetry.addData("Calib", mr.getDirection().name());
         telemetry.addData("*  ", "%s: %.2f Dist; %.2f ", veer, mr.getHeadChange(), mr.getDistanceRatio());
+        telemetry.addData("*  ", "L:%.2f R: %.2f ", mr.getOverDriveLeft()/bot.COUNTS_PER_INCH_REV, mr.getOverDriveRight()/bot.COUNTS_PER_INCH_REV);
         telemetry.addData("*  ", "--------------------");
         telemetry.addData("*  ","%.2f%s||--  --||%s%.2f", mr.getLF(), mr.getSelectedIndicator(0), mr.getSelectedIndicator(1), mr.getRF());
         telemetry.addData("*  ", "             ||");
         telemetry.addData("*  ", "             ||");
         telemetry.addData("*  ","%.2f%s||--  --||%s%.2f", mr.getLB(), mr.getSelectedIndicator(3), mr.getSelectedIndicator(2), mr.getRB());
         telemetry.addData("*  ", "--------------------");
-        telemetry.addData("   ", "                    ");
+        telemetry.addData("   ", "Stats:              ");
+        telemetry.addData("   ", "Speed: Top %.2f, Average: %.2f", mr.getStats().getFullSpeed(), mr.getStats().getAverageSpeed());
+        telemetry.addData("   ", "Dist: T: %.2f, A: %.2f, S: %.2f, Delta: %.2f", mr.getStats().getTotalDistance(), mr.getStats().getAccelerateDistance(), mr.getStats().getSlowDownDistance(), mr.getStats().getSlowDownDelta());
+        telemetry.addData("   ", "Time: T: %.2f, A: %.2f, S: %.2f", mr.getStats().getTotalTime(), mr.getStats().getAccelerateTime(), mr.getStats().getSlowDownTime());
     }
 
 }

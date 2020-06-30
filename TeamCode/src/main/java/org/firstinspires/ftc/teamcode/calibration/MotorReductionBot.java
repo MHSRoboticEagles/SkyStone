@@ -1,17 +1,22 @@
 package org.firstinspires.ftc.teamcode.calibration;
 
+import org.firstinspires.ftc.teamcode.bots.YellowBot;
+
 import java.io.Serializable;
 
-import static org.firstinspires.ftc.teamcode.calibration.MotorReduction.DEFAULT_REDUCTION;
 
 public class MotorReductionBot implements Serializable {
 
+    public static double DEFAULT_REDUCTION = 1;
     protected int selectedIndex = 0;
     private double distanceRatio = 1;
     private double headChange = 0;
 
     protected MotorName [] motors = new MotorName[]{MotorName.LF, MotorName.RF, MotorName.RB, MotorName.LB};
     protected double [] MRs = new double[] {DEFAULT_REDUCTION, DEFAULT_REDUCTION, DEFAULT_REDUCTION, DEFAULT_REDUCTION};
+
+    public static double [] POWER_SAMPLES = new double[]{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
+    protected double [] breakSamples = new double[]{0, 0, 0, 0, 0, 0, 0, 0, 0};
 
     public MotorReductionBot(){
 
@@ -108,5 +113,44 @@ public class MotorReductionBot implements Serializable {
             return true;
         }
         return Math.abs(this.headChange) <= Math.abs(another.getHeadChange());
+    }
+
+    public double getBreakPoint(double power) {
+        int index = getPowerIndex(power);
+        if (index < 0){
+            return 0;
+        }
+        else{
+            return this.breakSamples[index];
+        }
+    }
+
+    public double getBreakPointInches(double power) {
+        double raw = getBreakPoint(power);
+        return raw/YellowBot.COUNTS_PER_INCH_REV;
+    }
+
+
+    public void setBreakPoint(double breakPoint, double power) {
+        int index = getPowerIndex(power);
+        this.breakSamples[index] = breakPoint;
+    }
+
+    public static int getPowerIndex(double power){
+        int index = -1;
+        for (int i = 0; i < POWER_SAMPLES.length; i++){
+            if (power == POWER_SAMPLES[i]){
+                index = i;
+                break;
+            }
+        }
+        return index;
+    }
+
+    public void updateBreakSamples(MotorReductionBot input){
+        for (int i = 0; i < POWER_SAMPLES.length; i++){
+            double power = POWER_SAMPLES[i];
+            this.setBreakPoint(input.getBreakPoint(power), power);
+        }
     }
 }
