@@ -8,5 +8,6 @@ public enum RobotDirection {
     Forward,
     Backward,
     Left,
-    Right
+    Right,
+    Optimal
 }

@@ -370,7 +370,7 @@ public class MasterOdo extends LinearOpMode {
         RobotCoordinatePostiion locator = null;
         try {
             //tracker
-            locator = new RobotCoordinatePostiion(bot, new Point(startX, startY), 75);
+            locator = new RobotCoordinatePostiion(bot, new Point(startX, startY), 0,75);
             locator.reverseHorEncoder();
             Thread positionThread = new Thread(locator);
             positionThread.start();

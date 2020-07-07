@@ -3,12 +3,20 @@ package org.firstinspires.ftc.teamcode.skills;
 import com.qualcomm.hardware.rev.RevBlinkinLedDriver;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
+
 public class Led {
     RevBlinkinLedDriver blinkinLedDriver;
     RevBlinkinLedDriver.BlinkinPattern pattern;
 
-    public void init(HardwareMap hwMap){
+    public void init(HardwareMap hwMap, Telemetry telemetry){
         blinkinLedDriver = hwMap.get(RevBlinkinLedDriver.class, "led");
+        if (blinkinLedDriver == null){
+            telemetry.addData("Led", "Failed to initialize");
+        }
+        else{
+            telemetry.addData("Led", "Initialized OK");
+        }
     }
 
     protected void setPattern(RevBlinkinLedDriver.BlinkinPattern p){

@@ -14,6 +14,7 @@ public class RobotMovement {
     private double slowDownTime;
     private double slowDownDistance;
     private double motorPower;
+    private double slowDownDelay = 0;
 
     ElapsedTime fullSpeedTimer = new ElapsedTime();
     double startingPoint = 0;
@@ -135,14 +136,17 @@ public class RobotMovement {
     }
 
     //slow down
-    public void startSlowDownTimer(double slowdownPoint){
-        this.slowDownPoint = slowdownPoint;
+    public void startSlowDownTimer(double slowdownPointActual, double slowdownPointDesired){
+        this.slowDownPoint = slowdownPointActual;
+        if (Math.abs(slowdownPointDesired) < Math.abs(slowdownPointActual)){
+            this.slowDownDelay =  Math.abs(slowdownPointActual) - Math.abs(slowdownPointDesired);
+        }
         slowDownTimer.reset();
     }
 
     public void stopSlowdownTimer(double stopPoint){
         setSlowDownTime(slowDownTimer.milliseconds());
-        this.setSlowDownDistance(Math.abs(stopPoint - slowDownPoint)/YellowBot.COUNTS_PER_INCH_REV);
+        this.setSlowDownDistance((Math.abs(stopPoint - slowDownPoint) + this.slowDownDelay)/YellowBot.COUNTS_PER_INCH_REV);
     }
 
     //totals

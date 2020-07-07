@@ -32,6 +32,8 @@ public class MotorReductionBotCalib extends MotorReductionBot implements Seriali
     private double horOdoDistance;
     private double horOdoDistanceActual;
 
+    private double distanceFromTarget;
+
     public MotorReductionBotCalib(){
 
     }
@@ -40,6 +42,10 @@ public class MotorReductionBotCalib extends MotorReductionBot implements Seriali
         if (mrb != null) {
             for (int x = 0; x < mrb.motors.length; x++) {
                 this.MRs[x] = mrb.MRs[x];
+            }
+
+            for (int x = 0; x < mrb.breakSamples.length; x++) {
+                this.breakSamples[x] = mrb.breakSamples[x];
             }
         }
     }
@@ -234,5 +240,13 @@ public class MotorReductionBotCalib extends MotorReductionBot implements Seriali
 
     public void setStats(RobotMovement stats) {
         this.stats = stats;
+    }
+
+    public double getDistanceFromTarget() {
+        return distanceFromTarget;
+    }
+
+    public void setDistanceFromTarget(double distanceFromTarget) {
+        this.distanceFromTarget = distanceFromTarget;
     }
 }

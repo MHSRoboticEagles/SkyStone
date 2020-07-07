@@ -8,11 +8,14 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.ReadWriteFile;
 
 import org.firstinspires.ftc.robotcore.internal.system.Deadline;
+import org.firstinspires.ftc.teamcode.bots.BotMoveProfile;
+import org.firstinspires.ftc.teamcode.bots.BotMoveRequest;
 import org.firstinspires.ftc.teamcode.bots.RobotDirection;
 import org.firstinspires.ftc.teamcode.bots.RobotMovement;
 import org.firstinspires.ftc.teamcode.bots.RobotVeer;
 import org.firstinspires.ftc.teamcode.bots.YellowBot;
 import org.firstinspires.ftc.teamcode.odometry.RobotCoordinatePostiion;
+import org.firstinspires.ftc.teamcode.skills.Geometry;
 import org.firstinspires.ftc.teamcode.skills.Led;
 
 import java.util.concurrent.TimeUnit;
@@ -50,18 +53,26 @@ public class MasterCali extends LinearOpMode {
     private boolean MRSettingModeBack = false;
     private boolean XSettingMode = false;
     private boolean YSettingMode = false;
+    private boolean XFromSettingMode = true;
+    private boolean YFromSettingMode = false;
     private boolean strafeModeLeft = false;
     private boolean strafeModeRight = false;
     private boolean diagModeLeft = false;
     private boolean diagModeRight = false;
-    private boolean startSettingMode = false;
+
+    private boolean bpSettingMode = false;
+    private boolean routeSettingMode  = false;
+
 
     private boolean tenIncrement = false;
+
+    private double breakPointOverride = 0;
+    private double lastOrientation = 0;
 
     private int desiredX = 30;
     private int desiredY = 30;
     int startX = 30;
-    int startY = 24;
+    int startY = 25;
     private static int DIAG = 45;
     private double desiredSpeed = CALIB_SPEED;
 
@@ -110,7 +121,6 @@ public class MasterCali extends LinearOpMode {
 
             telemetry.addData("Master Cali", "Ready to calibrate....");
             telemetry.update();
-
 
             waitForStart();
             showStatus();
@@ -182,26 +192,41 @@ public class MasterCali extends LinearOpMode {
         }
 
         if (gamepad1.b){
-            startSettingMode = !startSettingMode;
+            bpSettingMode = !bpSettingMode;
             gamepadRateLimit.reset();
             showStatus();
         }
 
         if (gamepad1.x){
-            XSettingMode = !XSettingMode;
+            routeSettingMode = !routeSettingMode;
             gamepadRateLimit.reset();
             showStatus();
         }
 
         if (gamepad1.y){
-            YSettingMode = !YSettingMode;
+            routeSettingMode = !routeSettingMode;
             gamepadRateLimit.reset();
             showStatus();
         }
 
+
         if (gamepad1.left_bumper){
             tenIncrement = !tenIncrement;
             gamepadRateLimit.reset();
+        }
+
+        if (gamepad1.right_bumper){
+            //swap to and from coordinates
+            if (routeSettingMode){
+                int tempX = desiredX;
+                int tempY = desiredY;
+                desiredX = startX;
+                desiredY = startY;
+                startX = tempX;
+                startY = tempY;
+                gamepadRateLimit.reset();
+                showStatus();
+            }
         }
 
         if (gamepad1.back){
@@ -228,21 +253,25 @@ public class MasterCali extends LinearOpMode {
             if (speedSettingMode){
                 if (desiredSpeed > 0){
                     desiredSpeed = desiredSpeed - 0.1;
+                    desiredSpeed = Math.round(desiredSpeed*10)/10.0;
                 }
             }
-            else if (XSettingMode){
-                if (startSettingMode){
+            else if (bpSettingMode){
+                if (breakPointOverride > 0){
+                    breakPointOverride = breakPointOverride - 1;
+                }
+            }
+            else if (routeSettingMode){
+                if (XFromSettingMode){
                     startX = startX - 5;
                 }
-                else {
+                else if (XSettingMode) {
                     desiredX = desiredX - 5;
                 }
-            }
-            else if (YSettingMode){
-                if (startSettingMode){
+                if (YFromSettingMode){
                     startY = startY - 5;
                 }
-                else {
+                else if (YSettingMode) {
                     desiredY = desiredY - 5;
                 }
             }
@@ -277,21 +306,23 @@ public class MasterCali extends LinearOpMode {
             if (speedSettingMode){
                 if (desiredSpeed < 1){
                     desiredSpeed = desiredSpeed + 0.1;
+                    desiredSpeed = Math.round(desiredSpeed*10)/10.0;
                 }
             }
-            else if (XSettingMode){
-                if (startSettingMode){
+            else if (bpSettingMode){
+                breakPointOverride = breakPointOverride + 1;
+            }
+            else if (routeSettingMode){
+                if (XFromSettingMode){
                     startX = startX + 5;
                 }
-                else {
+                else if (XSettingMode) {
                     desiredX = desiredX + 5;
                 }
-            }
-            else if (YSettingMode){
-                if (startSettingMode){
+                if (YFromSettingMode){
                     startY = startY + 5;
                 }
-                else {
+                else if (YSettingMode) {
                     desiredY = desiredY + 5;
                 }
             }
@@ -352,6 +383,27 @@ public class MasterCali extends LinearOpMode {
                 gamepadRateLimit.reset();
                 showStatus();
             }
+            else if (routeSettingMode){
+                if (XFromSettingMode){
+                    XFromSettingMode = false;
+                    YFromSettingMode = true;
+                }
+                else if (YFromSettingMode){
+                    YFromSettingMode = false;
+                    XSettingMode = true;
+                }
+                else if (XSettingMode){
+                    XSettingMode = false;
+                    YSettingMode = true;
+                }
+                else if (YSettingMode){
+                    YSettingMode = false;
+                    XFromSettingMode = true;
+                }
+                gamepadRateLimit.reset();
+                showStatus();
+            }
+
         }
 
         if (gamepad1.dpad_right){
@@ -385,6 +437,26 @@ public class MasterCali extends LinearOpMode {
                 gamepadRateLimit.reset();
                 showStatus();
             }
+            else if (routeSettingMode){
+                if (XFromSettingMode){
+                    XFromSettingMode = false;
+                    XSettingMode = true;
+                }
+                else if (XSettingMode){
+                    XSettingMode = false;
+                    YSettingMode = true;
+                }
+                else if (YSettingMode){
+                    YSettingMode = false;
+                    YFromSettingMode = true;
+                }
+                else if (YFromSettingMode){
+                    YFromSettingMode = false;
+                    XFromSettingMode = true;
+                }
+                gamepadRateLimit.reset();
+                showStatus();
+            }
         }
 
         if (gamepad1.start){
@@ -412,27 +484,26 @@ public class MasterCali extends LinearOpMode {
         }
     }
 
+    private void showRoute(){
+        String fromX = XFromSettingMode ? "*" : " ";
+        String toX = XSettingMode ? "*" : " ";
+        String fromY = YFromSettingMode ? "*" : " ";
+        String toY = YSettingMode ? "*" : " ";
+
+        telemetry.addData("From", "%d%s : %d%s", startX, fromX, startY, fromY);
+        telemetry.addData("To", "%d%s : %d%s", desiredX, toX, desiredY, toY);
+    }
+
     private void showStatus(){
 
         if (speedSettingMode) {
             telemetry.addData("Speed", desiredSpeed);
         }
-        else if (XSettingMode){
-            if (startSettingMode){
-                telemetry.addData("Start X", startX);
-            }
-            else {
-                telemetry.addData("X", desiredX);
-            }
+        else if (routeSettingMode){
+            showRoute();
         }
-        else if (YSettingMode){
-            if (startSettingMode){
-                telemetry.addData("Start Y", startY);
-            }
-            else{
-                telemetry.addData("Y", desiredY);
-            }
-
+        else if (bpSettingMode){
+            telemetry.addData("Break Point", breakPointOverride);
         }
         else if (MRSettingMode){
             showMotorReductionCalib(templateMRForward);
@@ -465,16 +536,29 @@ public class MasterCali extends LinearOpMode {
         RobotCoordinatePostiion locator = null;
         try {
             //tracker
-            locator = new RobotCoordinatePostiion(bot, new Point(startX, startY), 75);
+            locator = new RobotCoordinatePostiion(bot, new Point(startX, startY), lastOrientation,75);
             locator.reverseHorEncoder();
             Thread positionThread = new Thread(locator);
             positionThread.start();
-            bot.moveToCoordinate(new Point(startX, startY), new Point(desiredX, desiredY), RobotDirection.Forward, desiredSpeed, locator);
-            timer.reset();
-            while (timer.milliseconds() < 5000 && opModeIsActive()) {
 
-            }
-            bot.moveToCoordinate(new Point((int)(Math.round(locator.getXInches())), (int)Math.round(locator.getYInches())), new Point(startX, startY), RobotDirection.Backward, desiredSpeed, locator);
+            BotMoveProfile profile = bot.bestRoute(new Point(startX, startY), new Point(desiredX, desiredY), RobotDirection.Optimal, desiredSpeed, locator);
+
+            telemetry.addData("Profiler", profile.toString());
+
+            bot.moveCurveCalib(profile, locator);
+
+            telemetry.addData("Target X", desiredX);
+            telemetry.addData("Target Y", desiredY);
+            telemetry.addData("Distance", Geometry.getDistance(locator.getXInches(), locator.getYInches(), desiredX, desiredY));
+            telemetry.addData("Actual X", locator.getXInches());
+            telemetry.addData("Actual Y", locator.getYInches());
+            telemetry.addData("Head", locator.getOrientation());
+            telemetry.update();
+            lastOrientation = locator.getOrientation();
+        }
+        catch (Exception ex){
+            telemetry.addData("Error", ex.getMessage());
+            telemetry.update();
         }
         finally {
             if (locator != null){
@@ -484,16 +568,28 @@ public class MasterCali extends LinearOpMode {
     }
 
     private void calibMove(){
-        moveBot(templateMRForward, templateMRBack);
-        restoreHead();
-        led.none();
-        saveConfigMove(templateMRForward, templateMRBack);
-        showMotorReductionCalib(templateMRForward);
-        showMotorReductionCalib(templateMRBack);
-        telemetry.update();
+        RobotCoordinatePostiion locator = null;
+        try {
+            locator = new RobotCoordinatePostiion(bot, new Point(startX, startY), lastOrientation,75);
+            locator.reverseHorEncoder();
+            Thread positionThread = new Thread(locator);
+            positionThread.start();
+            moveBot(templateMRForward, templateMRBack, locator);
+            restoreHead();
+            led.none();
+//            saveConfigMove(templateMRForward, templateMRBack);
+            showMotorReductionCalib(templateMRForward);
+            showMotorReductionCalib(templateMRBack);
+            telemetry.update();
+        }
+        finally {
+            if (locator != null){
+                locator.stop();
+            }
+        }
     }
 
-    private void moveBot(MotorReductionBotCalib calibF, MotorReductionBotCalib calibB){
+    private void moveBot(MotorReductionBotCalib calibF, MotorReductionBotCalib calibB, RobotCoordinatePostiion locator){
         led.none();
         MotorReductionBot mrForward = calibF.getMR();
         MotorReductionBot mrBack = calibB.getMR();
@@ -504,13 +600,19 @@ public class MasterCali extends LinearOpMode {
         double rightOdo = bot.getRightOdemeter();
         calibF.setLeftOdoDistance(desiredX*bot.COUNTS_PER_INCH_REV);
         calibF.setRightOdoDistance(desiredX*bot.COUNTS_PER_INCH_REV);
-        RobotMovement statsF = bot.moveToCalib(desiredSpeed, desiredSpeed, desiredX, mrForward, calibF.getBreakPoint(desiredSpeed), led);
+        double bF = calibF.getBreakPoint(desiredSpeed);
+        if (breakPointOverride > 0){
+            bF = breakPointOverride * bot.COUNTS_PER_INCH_REV;
+        }
+        int distance = Math.abs(desiredY - startY);
+        RobotMovement statsF = bot.moveToCalib(desiredSpeed, desiredSpeed, distance, mrForward, bF, led);
         calibF.setStats(statsF);
 
         timer.reset();
         while(timer.milliseconds() < 1000 && opModeIsActive()){
 
         }
+        restoreHead();
 
         double actualHead = bot.getGyroHeading();
         double headChange = Math.abs(actualHead - currentHead);
@@ -521,6 +623,7 @@ public class MasterCali extends LinearOpMode {
         calibF.setRightOdoDistanceActual(rightDistance);
         calibF.setHeadChange(headChange);
         calibF.process(false);
+        calibF.setDistanceFromTarget( Geometry.getDistance(locator.getXInches(), locator.getYInches(), startX, desiredY));
 
         if (Math.abs(headChange) > MARGIN_ERROR_DEGREES){
             led.needAdjustment();
@@ -539,8 +642,19 @@ public class MasterCali extends LinearOpMode {
         calibB.setLeftOdoDistance(desiredX*bot.COUNTS_PER_INCH_REV);
         calibB.setRightOdoDistance(desiredX*bot.COUNTS_PER_INCH_REV);
 
-        RobotMovement statsB =  bot.moveToCalib(desiredSpeed, desiredSpeed, -desiredX, mrBack, calibB.getBreakPoint(desiredSpeed), led);
+
+        double bB = calibB.getBreakPoint(desiredSpeed);
+        if (breakPointOverride > 0){
+            bF = breakPointOverride * bot.COUNTS_PER_INCH_REV;
+        }
+
+        telemetry.addData("Forw Location", "x:%.2f  y: %.2f ", locator.getXInches(), locator.getYInches());
+
+
+        RobotMovement statsB =  bot.moveToCalib(desiredSpeed, desiredSpeed, -distance, mrBack, bB, led);
         calibB.setStats(statsB);
+        telemetry.addData("Actual BP Forw", bF);
+        telemetry.addData("Actual BP Back", bB);
 
         timer.reset();
         while(timer.milliseconds() < 1000 && opModeIsActive()){
@@ -551,6 +665,9 @@ public class MasterCali extends LinearOpMode {
         headChange = Math.abs(actualHead - currentHead);
 
         calibB.setHeadChange(headChange);
+        calibB.setDistanceFromTarget( Geometry.getDistance(locator.getXInches(), locator.getYInches(), startX, startY));
+
+        telemetry.addData("Back Location", "x:%.2f  y: %.2f ", locator.getXInches(), locator.getYInches());
 
         if (Math.abs(headChange) > MARGIN_ERROR_DEGREES){
             led.needAdjustment();
@@ -1357,7 +1474,7 @@ public class MasterCali extends LinearOpMode {
             veer = "-->";
         }
         telemetry.addData("Calib", mr.getDirection().name());
-        telemetry.addData("*  ", "%s: %.2f Dist; %.2f ", veer, mr.getHeadChange(), mr.getDistanceRatio());
+        telemetry.addData("*  ", "%s: %.2f D/ratio; %.2f; FromTarget: %.2f", veer, mr.getHeadChange(), mr.getDistanceRatio(), mr.getDistanceFromTarget());
         telemetry.addData("*  ", "L:%.2f R: %.2f ", mr.getOverDriveLeft()/bot.COUNTS_PER_INCH_REV, mr.getOverDriveRight()/bot.COUNTS_PER_INCH_REV);
         telemetry.addData("*  ", "--------------------");
         telemetry.addData("*  ","%.2f%s||--  --||%s%.2f", mr.getLF(), mr.getSelectedIndicator(0), mr.getSelectedIndicator(1), mr.getRF());
