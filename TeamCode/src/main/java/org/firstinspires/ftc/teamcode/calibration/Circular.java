@@ -99,9 +99,9 @@ public class Circular extends LinearOpMode {
         double finalHead = bot.getGyroHeading();
         double actualAngle = Math.abs(finalHead - currentHead);
 
-        rightLong = bot.getRightOdemeter();
+        rightLong = bot.getRightOdometer();
 
-        double dLeft = bot.getLeftOdemeter();
+        double dLeft = bot.getLeftOdometer();
         double dCenter = (dLeft + rightLong)/2;
         double dCenterInches = dCenter/bot.COUNTS_PER_INCH_REV;
         double inchPerDegree = dCenterInches/actualAngle;
@@ -113,8 +113,8 @@ public class Circular extends LinearOpMode {
     private void turnRight(){
         double currentHead = bot.getGyroHeading();
         double desiredHead = currentHead - 90;
-        double startLeft = bot.getLeftOdemeter();
-        double startRight = bot.getRightOdemeter();
+        double startLeft = bot.getLeftOdometer();
+        double startRight = bot.getRightOdometer();
         while (bot.getGyroHeading() > desiredHead && opModeIsActive()){
             if (bot.getGyroHeading() > desiredHead/2){
                 bot.turnRight(bot.CALIB_SPEED, true);
@@ -136,8 +136,8 @@ public class Circular extends LinearOpMode {
         double finalHead = bot.getGyroHeading();
         double actualAngle = currentHead - finalHead;
 
-        leftLong = bot.getLeftOdemeter() - startLeft;
-        double right = bot.getRightOdemeter() - startRight;
+        leftLong = bot.getLeftOdometer() - startLeft;
+        double right = bot.getRightOdometer() - startRight;
 
         double dCenter = (leftLong + right)/2;
         double dCenterInches = dCenter/bot.COUNTS_PER_INCH_REV;

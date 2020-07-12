@@ -33,7 +33,6 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.bots.TieBot;
 import org.firstinspires.ftc.teamcode.bots.YellowBot;
 
 
@@ -119,7 +118,7 @@ public class YellowDrive extends LinearOpMode {
 
                 // get gyroscope data
                 telemetry.addData("Heading", robot.getGyroHeading());
-                telemetry.addData("Horiz encoder", robot.getHorizontalOdemeter());
+                telemetry.addData("Horiz encoder", robot.getHorizontalOdometer());
 
 
                 telemetry.update();

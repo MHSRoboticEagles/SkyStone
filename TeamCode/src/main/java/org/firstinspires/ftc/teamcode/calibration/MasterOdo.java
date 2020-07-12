@@ -321,13 +321,13 @@ public class MasterOdo extends LinearOpMode {
             this.led.move();
         }
         startHead = bot.getGyroHeading();
-        double leftStart = bot.getLeftOdemeter();
-        double rightStart = bot.getRightOdemeter();
+        double leftStart = bot.getLeftOdometer();
+        double rightStart = bot.getRightOdometer();
         leftTarget = bot.getLeftTarget(DISTANCE_Y);
         rightTarget = bot.getRightTarget(DISTANCE_Y);
         bot.moveTo(SPEED, SPEED, DISTANCE_Y);
-        this.left = bot.getLeftOdemeter() - leftStart;
-        this.right = bot.getRightOdemeter() - rightStart;
+        this.left = bot.getLeftOdometer() - leftStart;
+        this.right = bot.getRightOdometer() - rightStart;
 
         double ratio = right/left;
 
@@ -489,7 +489,7 @@ public class MasterOdo extends LinearOpMode {
         telemetry.addData("startHead", startHead);
         telemetry.addData("nextHead", nextHead);
         telemetry.addData("Speed", SPEED);
-        telemetry.addData("Horizontal", bot.getHorizontalOdemeter());
+        telemetry.addData("Horizontal", bot.getHorizontalOdometer());
 
         telemetry.update();
     }

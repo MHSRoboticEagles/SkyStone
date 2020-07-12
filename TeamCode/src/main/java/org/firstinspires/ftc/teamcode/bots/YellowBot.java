@@ -20,7 +20,7 @@ import org.firstinspires.ftc.teamcode.skills.Led;
 
 import java.io.File;
 
-public class YellowBot {
+public class YellowBot implements OdoBot{
     public static double CALIB_SPEED = 0.5;
     private DcMotor frontLeft = null;
     private DcMotor frontRight = null;
@@ -80,6 +80,7 @@ public class YellowBot {
             backLeft = hwMap.get(DcMotor.class, "backLeft");
             backRight = hwMap.get(DcMotor.class, "backRight");
 
+
             resetEncoders();
 
 
@@ -110,6 +111,11 @@ public class YellowBot {
             throw new Exception("Issues accessing one of drive motors. Check the controller config", ex);
         }
     }
+
+    public Telemetry getTelemetry(){
+        return this.telemetry;
+    }
+
 
     protected void resetEncoders(){
         if (frontLeft != null && frontRight!= null && backLeft != null && backRight != null)
@@ -142,17 +148,17 @@ public class YellowBot {
 
     }
 
-    public double getLeftOdemeter(){
+    public double getLeftOdometer(){
         return   frontLeft.getCurrentPosition();
 
     }
 
-    public double getRightOdemeter(){
+    public double getRightOdometer(){
         return   frontRight.getCurrentPosition();
 
     }
 
-    public double getHorizontalOdemeter(){
+    public double getHorizontalOdometer(){
         return  backLeft.getCurrentPosition();
 
     }
@@ -210,9 +216,9 @@ public class YellowBot {
 
             double distance = inches * COUNTS_PER_INCH_REV;
 
-            double startingPoint = this.getLeftOdemeter();
+            double startingPoint = this.getLeftOdometer();
 
-            double leftTarget = this.getLeftOdemeter() + distance;
+            double leftTarget = this.getLeftOdometer() + distance;
 
             double cutOff = ROBOT_LENGTH_Y* COUNTS_PER_INCH_REV;
             //at top speed the slow-down should start at a 23% greater distance than at half speed.
@@ -267,7 +273,7 @@ public class YellowBot {
             boolean stop = false;
             int step = 0;
             while (!stop && owner.opModeIsActive()) {
-                double leftreading = this.getLeftOdemeter();
+                double leftreading = this.getLeftOdometer();
                 stop =  (forward && leftreading >= leftTarget) ||
                         (forward == false && leftreading <= leftTarget);
                 if (stop){
@@ -315,8 +321,8 @@ public class YellowBot {
         }
     }
 
-    public RobotMovement moveToCalib(double leftspeed, double rightspeed, double inches, MotorReductionBot mr, double breakPoint, Led led){
-        RobotMovement stats = new RobotMovement();
+    public RobotMovementStats moveToCalib(double leftspeed, double rightspeed, double inches, MotorReductionBot mr, double breakPoint, Led led){
+        RobotMovementStats stats = new RobotMovementStats();
         if (frontLeft != null && frontRight!= null && backLeft != null && backRight != null) {
             double rightPower = rightspeed;
             double leftPower = leftspeed;
@@ -339,7 +345,7 @@ public class YellowBot {
 
             double distance = inches * COUNTS_PER_INCH_REV;
 
-            double startingPoint = this.getLeftOdemeter();
+            double startingPoint = this.getLeftOdometer();
 
 
             double slowdownMark = startingPoint + (distance - breakPoint);
@@ -347,7 +353,7 @@ public class YellowBot {
             double leftTarget = startingPoint + distance;
 
 
-            double minSpeed = 0.01;
+            double minSpeed = 0.1;
 
             double speedDropStep = 0.05;
 
@@ -373,7 +379,7 @@ public class YellowBot {
             boolean slowDown = false;
             int step = 0;
             while (!stop && owner.opModeIsActive()) {
-                double leftreading = this.getLeftOdemeter();
+                double leftreading = this.getLeftOdometer();
                 if ((forward && leftreading >= slowdownMark) ||
                         (forward == false && leftreading <= slowdownMark)){
 
@@ -439,9 +445,9 @@ public class YellowBot {
                 this.backRight.setPower(rightPower * mr.getRB());
 
             }
-            stats.stopSlowdownTimer(this.getLeftOdemeter());
+            stats.stopSlowdownTimer(this.getLeftOdometer());
 
-            stats.computeTotals(this.getLeftOdemeter());
+            stats.computeTotals(this.getLeftOdometer());
 
             this.stop();
         }
@@ -472,13 +478,13 @@ public class YellowBot {
             double speedIncrementRight = speedIncrementLeft;
 
             if (leftPower > rightPower) {
-                startingPointLong = this.getLeftOdemeter();
-                startingPointShort = this.getRightOdemeter();
+                startingPointLong = this.getLeftOdometer();
+                startingPointShort = this.getRightOdometer();
                 speedIncrementRight = speedIncrementLeft * lowSpeedReduction;
             } else if (rightPower > leftPower) {
                 leftLong = false;
-                startingPointShort = this.getLeftOdemeter();
-                startingPointLong = this.getRightOdemeter();
+                startingPointShort = this.getLeftOdometer();
+                startingPointLong = this.getRightOdometer();
                 speedIncrementLeft = speedIncrementRight * lowSpeedReduction;
             }
 
@@ -510,7 +516,7 @@ public class YellowBot {
             double longTarget = startingPointLong + distanceLong;
 
 
-            double minSpeed = 0.01;
+            double minSpeed = 0.1;
 
             double speedDropStep = 0.05;
 
@@ -537,8 +543,8 @@ public class YellowBot {
 
             boolean stop = false;
             while (!stop && owner.opModeIsActive()) {
-                double longReading = leftLong == true ? this.getLeftOdemeter() : this.getRightOdemeter();
-                double shortReading = leftLong == true ? this.getRightOdemeter() : this.getLeftOdemeter();
+                double longReading = leftLong == true ? this.getLeftOdometer() : this.getRightOdometer();
+                double shortReading = leftLong == true ? this.getRightOdometer() : this.getLeftOdometer();
 
                 slowingDown = (forward && (longReading >= slowdownMarkLong || shortReading >= slowdownMarkShort)) ||
                         (forward == false && (longReading <= slowdownMarkLong || shortReading <= slowdownMarkShort));
@@ -639,7 +645,7 @@ public class YellowBot {
             double longTarget = profile.getLongTarget();
 
 
-            double minSpeed = 0.01;
+            double minSpeed = 0.1;
 
             double lastMileSpeed = 0.2;
 
@@ -650,9 +656,11 @@ public class YellowBot {
 
             if (originalLeft > originalRight) {
                 speedIncrementRight = speedIncrementLeft * profile.getSpeedRatio();
+                startPower = originalRight/2;
             } else if (originalRight > originalLeft) {
                 leftLong = false;
                 speedIncrementLeft = speedIncrementRight * profile.getSpeedRatio();
+                startPower = originalLeft/2;
             }
 
 
@@ -662,10 +670,10 @@ public class YellowBot {
             }
 
 
-            double realSpeedLF = originalLeft;  //startPower;
-            double realSpeedLB = originalLeft;  //startPower;
-            double realSpeedRF = originalRight; //startPower;
-            double realSpeedRB = originalRight; //startPower;
+            double realSpeedLF = startPower;
+            double realSpeedLB = startPower;
+            double realSpeedRF = startPower;
+            double realSpeedRB = startPower;
 
 
 
@@ -675,13 +683,23 @@ public class YellowBot {
 
             boolean stop = false;
             while (!stop && owner.opModeIsActive()) {
-                double longReading = leftLong == true ? this.getLeftOdemeter() : this.getRightOdemeter();
-                double shortReading = leftLong == true ? this.getRightOdemeter() : this.getLeftOdemeter();
+                double longReading = leftLong == true ? this.getLeftOdometer() : this.getRightOdometer();
+                double shortReading = leftLong == true ? this.getRightOdometer() : this.getLeftOdometer();
 
                 slowingDown = (forward && (longReading >= slowdownMarkLong || shortReading >= slowdownMarkShort)) ||
                         (forward == false && (longReading <= slowdownMarkLong || shortReading <= slowdownMarkShort));
                 if (slowingDown) {
                     //slowing down
+                    telemetry.addData("longReading", longReading);
+                    telemetry.addData("shortReading", shortReading);
+                    telemetry.addData("leftLong", leftLong);
+                    telemetry.addData("longTarget", longTarget);
+                    telemetry.addData("realSpeedRF", realSpeedRF);
+                    telemetry.addData("realSpeedRB", realSpeedRB);
+                    telemetry.addData("realSpeedLF", realSpeedLF);
+                    telemetry.addData("realSpeedLB", realSpeedLB);
+                    telemetry.update();
+
                     cruising = false;
                     if (forward) {
                         realSpeedRF = realSpeedRF + speedDropStep;
@@ -763,8 +781,8 @@ public class YellowBot {
                 }
 
                 this.frontLeft.setPower(realSpeedLF * mr.getLF());
-                this.backLeft.setPower(realSpeedLB * mr.getLB());
                 this.frontRight.setPower(realSpeedRF * mr.getRF());
+                this.backLeft.setPower(realSpeedLB * mr.getLB());
                 this.backRight.setPower(realSpeedRB * mr.getRB());
             }
 
@@ -796,7 +814,7 @@ public class YellowBot {
 
 
 
-        double startingPoint = this.getHorizontalOdemeter();
+        double startingPoint = this.getHorizontalOdometer();
 
         double slowdownDistance = horDistance * 0.4;
 
@@ -831,7 +849,7 @@ public class YellowBot {
 
         double speedDropStep = 0.1;
         while (!stop && this.owner.opModeIsActive()){
-            double currentReading = this.getHorizontalOdemeter();
+            double currentReading = this.getHorizontalOdometer();
             if ((targetIncrement && currentReading >= target) ||
                     (!targetIncrement && currentReading <= target)){
                 stop = true;
@@ -885,230 +903,13 @@ public class YellowBot {
     }
 
     public double getLeftTarget(double inches){
-        return this.getLeftOdemeter() + inches * COUNTS_PER_INCH_REV;
+        return this.getLeftOdometer() + inches * COUNTS_PER_INCH_REV;
     }
 
     public double getRightTarget(double inches){
-        return this.getRightOdemeter() + inches * COUNTS_PER_INCH_REV;
+        return this.getRightOdometer() + inches * COUNTS_PER_INCH_REV;
     }
 
-    public static double getRadius(double angleChange, double chord){
-        double alpha = 90 - angleChange;
-        double halfChord = chord / 2;
-        double cosAlpha = Math.cos(Math.toRadians(alpha));
-        double radius = 0;
-        if (cosAlpha != 0){
-            radius= halfChord / cosAlpha;
-        }
-        return radius;
-    }
-
-    public BotMoveProfile bestRoute(Point start, Point target, RobotDirection direction, double topSpeed, RobotCoordinatePostiion locator){
-        double currentX = start.x;
-        double currentY = start.y;
-        double currentHead = locator.getOrientation();
-
-        boolean clockwise = currentHead >= 0;
-        if (!clockwise){
-            currentHead = 360 + currentHead;
-        }
-
-        if (direction == RobotDirection.Backward) {
-            currentHead = (currentHead + 180) % 360;
-        }
-
-        boolean currentHeadInSquare4 = currentHead >=270 && currentHead <= 360;
-        boolean currentHeadInSquare1 = currentHead >=0 && currentHead <= 90;
-
-        //determine the new heading to the target
-        double distanceX = target.x - currentX;
-        double distanceY = target.y - currentY;
-        double targetVector = Math.toDegrees(Math.atan2(distanceY, distanceX));
-
-        if (distanceY == 0){
-            if (distanceX < 0){
-                targetVector = 270;
-            }
-            else{
-                targetVector = 90;
-            }
-        }
-        else if (distanceX == 0){
-            if(distanceY < 0){
-                targetVector = 180;
-            }
-            else{
-                targetVector = 0;
-            }
-        }
-        else{
-            //lower left
-            if (distanceX < 0 && distanceY < 0){
-                targetVector = (-targetVector) + 90;
-            }
-            //lower right
-            if (distanceX > 0 && distanceY < 0){
-                targetVector = (-targetVector) + 90;
-            }
-            //upper right
-            if (distanceX > 0 && distanceY > 0){
-                targetVector = 90 - targetVector;
-            }
-            //upper left
-            if (distanceX < 0 && distanceY > 0){
-                targetVector = 360 - (targetVector - 90);
-            }
-        }
-
-        boolean targetVectorInSquare1 = targetVector >= 0 && targetVector <= 90;
-        boolean targetVectorInSquare4 = targetVector >= 270 && targetVector <= 360;
-
-        double angleChange = Math.abs(targetVector - currentHead);
-        if (targetVectorInSquare1 && currentHeadInSquare4 || targetVectorInSquare4 && currentHeadInSquare1){
-            angleChange = 360 - angleChange;
-        }
-        if (angleChange > 90){
-            if (direction == RobotDirection.Optimal) {
-                currentHead = (currentHead + 180) % 360;
-                angleChange = Math.abs(targetVector - currentHead);
-                if (targetVectorInSquare1 && currentHeadInSquare4 || targetVectorInSquare4 && currentHeadInSquare1) {
-                    angleChange = 360 - angleChange;
-                }
-                direction = RobotDirection.Backward;
-            }
-            else {
-                //spin
-                telemetry.addData("Route",  "Spin");
-                return new BotMoveProfile();
-            }
-        }
-
-        if (direction == RobotDirection.Optimal){
-            direction = RobotDirection.Forward;
-        }
-
-        if (angleChange == 45){
-            //diag
-            telemetry.addData("Route",  "Diag");
-            return new BotMoveProfile();
-        }
-
-        double chord = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
-
-        boolean reduceLeft = false;
-
-        if (targetVector < currentHead) {
-            reduceLeft = true;
-        }
-
-        if (targetVectorInSquare1 && currentHeadInSquare4 || targetVectorInSquare4 && currentHeadInSquare1 || direction == RobotDirection.Backward){
-            reduceLeft = !reduceLeft;
-        }
-
-        telemetry.addData("Target Vector", targetVector);
-        telemetry.addData("Angle Change", angleChange);
-
-
-
-        //check radius.
-        double radius = getRadius(angleChange, chord);
-
-        if ((reduceLeft && radius <= this.botConfig.getMinRadiusLeft()) ||
-                (reduceLeft == false && radius <= this.botConfig.getMinRadiusRight())) {
-            telemetry.addData("Radius", "Too small. Cannot turn. Attempt to strafe");
-            // if possible, strafe
-            //if not spin
-            return new BotMoveProfile();
-        }
-
-        BotMoveProfile profile = buildMoveProfile(chord, topSpeed, radius,angleChange,reduceLeft,direction);
-        //build request
-        BotMoveRequest rq = new BotMoveRequest();
-        rq.setTarget(target);
-        rq.setTopSpeed(topSpeed);
-        rq.setDirection(direction);
-        rq.setMotorReduction(profile.getMotorReduction());
-        profile.setTarget(rq);
-        return profile;
-    }
-
-    public BotMoveProfile buildMoveProfile(double chord, double topSpeed, double radius, double angleChange, boolean reduceLeft, RobotDirection direction){
-        double longArch = chord;
-        double shortArch = chord;
-        double speedRatio = 1;
-        double lowSpeed = topSpeed;
-
-        if (angleChange > 0) {
-            double theta = Math.toRadians(angleChange * 2);
-            //double centerArch = theta * radius;
-            double wheelDistFromCenter = this.botConfig.getWheelBaseSeparation() / 2;
-            longArch = theta * (radius + wheelDistFromCenter);
-            shortArch = theta * (radius - wheelDistFromCenter);
-            speedRatio = shortArch / longArch;
-            lowSpeed = topSpeed * speedRatio;
-        }
-
-
-        double leftSpeed, rightSpeed;
-        if (reduceLeft) {
-            leftSpeed = lowSpeed;
-            rightSpeed = topSpeed;
-        } else {
-            leftSpeed = topSpeed;
-            rightSpeed = lowSpeed;
-        }
-
-        if (direction == RobotDirection.Backward){
-            shortArch = -shortArch;
-            longArch = -longArch;
-        }
-        else{
-            rightSpeed = -rightSpeed;
-            leftSpeed = -leftSpeed;
-        }
-
-
-        double distanceLong = longArch * YellowBot.COUNTS_PER_INCH_REV;
-        double distanceShort = shortArch * YellowBot.COUNTS_PER_INCH_REV;
-
-        boolean leftLong = true;
-        double startingPointLong = 0, startingPointShort = 0;
-
-
-        if (leftSpeed > rightSpeed) {
-            startingPointLong = this.getLeftOdemeter();
-            startingPointShort = this.getRightOdemeter();
-        } else if (rightSpeed > leftSpeed) {
-            leftLong = false;
-            startingPointShort = this.getLeftOdemeter();
-            startingPointLong = this.getRightOdemeter();
-        }
-
-        double averagePower = (Math.abs(rightSpeed) + Math.abs(leftSpeed))/2;
-        averagePower = Math.round(averagePower*10)/10.0;
-
-        MotorReductionBot mr = this.getCalibConfig().getMoveMRForward();
-        if (direction == RobotDirection.Backward) {
-            mr = this.getCalibConfig().getMoveMRBack();
-        }
-        double breakPoint = mr.getBreakPoint(averagePower);
-
-        double slowdownMarkLong = startingPointLong + (distanceLong - breakPoint);
-        double slowdownMarkShort = startingPointShort + (distanceShort - breakPoint);
-
-        double longTarget = startingPointLong + distanceLong;
-
-        BotMoveProfile profile = new BotMoveProfile();
-        profile.setLeftLong(leftLong);
-        profile.setSlowdownMarkLong(slowdownMarkLong);
-        profile.setSlowdownMarkShort(slowdownMarkShort);
-        profile.setLongTarget(longTarget);
-        profile.setRealSpeedLeft(leftSpeed);
-        profile.setRealSpeedRight(rightSpeed);
-        profile.setMotorReduction(mr);
-        profile.setDirection(direction);
-        return profile;
-    }
 
 
     public void moveToCoordinate(Point start, Point target, RobotDirection direction, double topSpeed, RobotCoordinatePostiion locator){
@@ -1321,7 +1122,7 @@ public class YellowBot {
         double leftPerDegree = Double.parseDouble(ReadWriteFile.readFile(leftSpinPerDegFile).trim());
         double rightPerDegree = Double.parseDouble(ReadWriteFile.readFile(rightSpinPerDegFile).trim());
 
-        double targetPos = this.getLeftOdemeter() + leftPerDegree * degrees;
+        double targetPos = this.getLeftOdometer() + leftPerDegree * degrees;
 
         double power = Range.clip(speed, -1.0, 1.0);
 
@@ -1333,7 +1134,7 @@ public class YellowBot {
         this.frontRight.setPower(power);
         this.backLeft.setPower(-power);
         this.backRight.setPower(power);
-        while (this.getLeftOdemeter() > targetPos && owner.opModeIsActive()){
+        while (this.getLeftOdometer() > targetPos && owner.opModeIsActive()){
 
         }
 
@@ -1398,7 +1199,7 @@ public class YellowBot {
     }
 
     public double strafeTo(double speed, double inches, boolean left) {
-        double currentPos = this.getHorizontalOdemeter();
+        double currentPos = this.getHorizontalOdometer();
         double distance = inches * COUNTS_PER_INCH_REV;
 
         MotorReductionBot calib = null;
@@ -1422,7 +1223,7 @@ public class YellowBot {
         boolean stop = false;
 
         while (!stop && this.owner.opModeIsActive()){
-            currentPos = this.getHorizontalOdemeter();
+            currentPos = this.getHorizontalOdometer();
             if((left && currentPos >= target) || (left == false && currentPos <= target)){
                 stop = true;
             }
@@ -1442,14 +1243,14 @@ public class YellowBot {
         }
 
         stop();
-        double newPos = this.getHorizontalOdemeter();
+        double newPos = this.getHorizontalOdometer();
         double diff = Math.abs(newPos - target);
         overage = diff/distance*100;
         return overage;
     }
 
     public double strafeToCalib(double speed, double inches, boolean left, MotorReductionBot calib) {
-        double currentPos = this.getHorizontalOdemeter();
+        double currentPos = this.getHorizontalOdometer();
         double distance = inches * COUNTS_PER_INCH_REV;
 
 
@@ -1464,7 +1265,7 @@ public class YellowBot {
         boolean stop = false;
 
         while (!stop && this.owner.opModeIsActive()){
-            currentPos = this.getHorizontalOdemeter();
+            currentPos = this.getHorizontalOdometer();
             if((left && currentPos >= target) || (left == false && currentPos <= target)){
                 stop = true;
             }
@@ -1484,7 +1285,7 @@ public class YellowBot {
         }
 
         stop();
-        double newPos = this.getHorizontalOdemeter();
+        double newPos = this.getHorizontalOdometer();
         double diff = Math.abs(newPos - target);
         overage = diff/distance*100;
         return overage;
@@ -1524,9 +1325,9 @@ public class YellowBot {
         if (backLeft != null && backRight!= null && frontLeft != null && frontRight != null) {
 
 
-            double leftOdoStart = getLeftOdemeter();
-            double rightOdoStart = getRightOdemeter();
-            double horOdoStart = getHorizontalOdemeter();
+            double leftOdoStart = getLeftOdometer();
+            double rightOdoStart = getRightOdometer();
+            double horOdoStart = getHorizontalOdometer();
 
             double distance = Math.abs(diagInches * COUNTS_PER_INCH_REV);
 
@@ -1548,9 +1349,9 @@ public class YellowBot {
 
 
             while(!stop && owner.opModeIsActive()){
-                double leftOdo = getLeftOdemeter();
-                double rightOdo = getRightOdemeter();
-                double horOdo = getHorizontalOdemeter();
+                double leftOdo = getLeftOdometer();
+                double rightOdo = getRightOdometer();
+                double horOdo = getHorizontalOdometer();
                 double leftDistActual = Math.abs(leftOdo - leftOdoStart);
                 double rightDistActual = Math.abs(rightOdo - rightOdoStart);
                 double horDistActual = Math.abs(horOdo - horOdoStart);
@@ -1606,9 +1407,9 @@ public class YellowBot {
 
 
 
-            double leftOdoStart = getLeftOdemeter();
-            double rightOdoStart = getRightOdemeter();
-            double horOdoStart = getHorizontalOdemeter();
+            double leftOdoStart = getLeftOdometer();
+            double rightOdoStart = getRightOdometer();
+            double horOdoStart = getHorizontalOdometer();
 
             double distance = Math.abs(diagInches * COUNTS_PER_INCH_REV);
 
@@ -1630,9 +1431,9 @@ public class YellowBot {
 
 
             while(!stop && owner.opModeIsActive()){
-                double leftOdo = getLeftOdemeter();
-                double rightOdo = getRightOdemeter();
-                double horOdo = getHorizontalOdemeter();
+                double leftOdo = getLeftOdometer();
+                double rightOdo = getRightOdometer();
+                double horOdo = getHorizontalOdometer();
                 double leftDistActual = Math.abs(leftOdo - leftOdoStart);
                 double rightDistActual = Math.abs(rightOdo - rightOdoStart);
                 double horDistActual = Math.abs(horOdo - horOdoStart);

@@ -1,7 +1,7 @@
 package org.firstinspires.ftc.teamcode.calibration;
 
 import org.firstinspires.ftc.teamcode.bots.RobotDirection;
-import org.firstinspires.ftc.teamcode.bots.RobotMovement;
+import org.firstinspires.ftc.teamcode.bots.RobotMovementStats;
 import org.firstinspires.ftc.teamcode.bots.RobotVeer;
 
 import java.io.Serializable;
@@ -14,7 +14,7 @@ public class MotorReductionBotCalib extends MotorReductionBot implements Seriali
     private RobotVeer veer = RobotVeer.NONE;
     private RobotDirection direction = RobotDirection.Forward;
 
-    private RobotMovement stats = new RobotMovement();
+    private RobotMovementStats stats = new RobotMovementStats();
 
     private double LFHeadChange = 0;
     private double LBHeadChange = 0;
@@ -234,11 +234,11 @@ public class MotorReductionBotCalib extends MotorReductionBot implements Seriali
         return diff;
     }
 
-    public RobotMovement getStats() {
+    public RobotMovementStats getStats() {
         return stats;
     }
 
-    public void setStats(RobotMovement stats) {
+    public void setStats(RobotMovementStats stats) {
         this.stats = stats;
     }
 

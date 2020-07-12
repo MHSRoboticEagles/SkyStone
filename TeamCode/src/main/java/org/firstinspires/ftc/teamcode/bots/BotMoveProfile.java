@@ -1,6 +1,11 @@
 package org.firstinspires.ftc.teamcode.bots;
 
+import android.graphics.Point;
+
+import org.firstinspires.ftc.teamcode.calibration.BotCalibConfig;
 import org.firstinspires.ftc.teamcode.calibration.MotorReductionBot;
+import org.firstinspires.ftc.teamcode.odometry.RobotCoordinatePostiion;
+import org.firstinspires.ftc.teamcode.skills.Geometry;
 
 public class BotMoveProfile {
     private double realSpeedLeft = 0;
@@ -13,11 +18,30 @@ public class BotMoveProfile {
     private RobotDirection direction;
     private MotorReductionBot motorReduction = null;
     private BotMoveRequest target = new BotMoveRequest();
+    private MoveStrategy strategy = MoveStrategy.Curve;
 
+    private double currentHead = 0;
+    private double targetVector = 0;
+    private double angleChange = 0;
+
+    private Point start;
+    private Point destination;
+    private Point actual;
+
+    public static double MOTOR_WHEEL_OFFSET = 0.5;
+
+    public BotMoveProfile(){
+
+    }
+
+    public BotMoveProfile(MoveStrategy strategy){
+        super();
+        this.setStrategy(strategy);
+    }
 
     @Override
     public String toString() {
-        return String.format("Direction: %s \nL:%.2f  R:%.2f\n Slowdownns: %.2f %.2f", direction.name(), realSpeedLeft, realSpeedRight, slowdownMarkLong,slowdownMarkShort);
+        return String.format("Direction: %s \nL:%.2f  R:%.2f\n Slowdownns: %.2f %.2f\nHead: %.2f Target: %.2f Change: %.2f\nFrom: %d %d\nTo: %d %d\nActual: %d %d", direction.name(), realSpeedLeft, realSpeedRight, slowdownMarkLong,slowdownMarkShort, currentHead, targetVector, angleChange, start.x, start.y, destination.x, destination.y, actual.x, actual.y);
     }
 
     public double getRealSpeedLeft() {
@@ -98,5 +122,273 @@ public class BotMoveProfile {
 
     public void setTarget(BotMoveRequest target) {
         this.target = target;
+    }
+
+    public double getCurrentHead() {
+        return currentHead;
+    }
+
+    public void setCurrentHead(double currentHead) {
+        this.currentHead = currentHead;
+    }
+
+    public double getTargetVector() {
+        return targetVector;
+    }
+
+    public void setTargetVector(double targetVector) {
+        this.targetVector = targetVector;
+    }
+
+    public double getAngleChange() {
+        return angleChange;
+    }
+
+    public void setAngleChange(double angleChange) {
+        this.angleChange = angleChange;
+    }
+
+    public Point getStart() {
+        return start;
+    }
+
+    public void setStart(Point start) {
+        this.start = start;
+    }
+
+    public Point getDestination() {
+        return destination;
+    }
+
+    public void setDestination(Point destination) {
+        this.destination = destination;
+    }
+
+    public Point getActual() {
+        return actual;
+    }
+
+    public void setActual(Point actual) {
+        this.actual = actual;
+    }
+
+    public static BotMoveProfile bestRoute(OdoBot bot, double currentX, double currentY, Point target, RobotDirection direction, double topSpeed, RobotCoordinatePostiion locator){
+        double currentHead = locator.getOrientation();
+
+        boolean clockwise = currentHead >= 0;
+        if (!clockwise){
+            currentHead = 360 + currentHead;
+        }
+
+        if (direction == RobotDirection.Backward) {
+            currentHead = (currentHead + 180) % 360;
+        }
+
+        boolean currentHeadInSquare4 = currentHead >=270 && currentHead <= 360;
+        boolean currentHeadInSquare1 = currentHead >=0 && currentHead <= 90;
+
+        //determine the new heading to the target
+        double distanceX = target.x - currentX;
+        double distanceY = target.y - currentY;
+        double targetVector = Math.toDegrees(Math.atan2(distanceY, distanceX));
+
+        if (distanceY == 0){
+            if (distanceX < 0){
+                targetVector = 270;
+            }
+            else{
+                targetVector = 90;
+            }
+        }
+        else if (distanceX == 0){
+            if(distanceY < 0){
+                targetVector = 180;
+            }
+            else{
+                targetVector = 0;
+            }
+        }
+        else{
+            //lower left
+            if (distanceX < 0 && distanceY < 0){
+                targetVector = (-targetVector) + 90;
+            }
+            //lower right
+            if (distanceX > 0 && distanceY < 0){
+                targetVector = (-targetVector) + 90;
+            }
+            //upper right
+            if (distanceX > 0 && distanceY > 0){
+                targetVector = 90 - targetVector;
+            }
+            //upper left
+            if (distanceX < 0 && distanceY > 0){
+                targetVector = 360 - (targetVector - 90);
+            }
+        }
+
+        boolean targetVectorInSquare1 = targetVector >= 0 && targetVector <= 90;
+        boolean targetVectorInSquare4 = targetVector >= 270 && targetVector <= 360;
+
+        double angleChange = Math.abs(targetVector - currentHead);
+        if (targetVectorInSquare1 && currentHeadInSquare4 || targetVectorInSquare4 && currentHeadInSquare1){
+            angleChange = 360 - angleChange;
+        }
+        if (angleChange > 90){
+            if (direction == RobotDirection.Optimal) {
+                currentHead = (currentHead + 180) % 360;
+                angleChange = Math.abs(targetVector - currentHead);
+                if (targetVectorInSquare1 && currentHeadInSquare4 || targetVectorInSquare4 && currentHeadInSquare1) {
+                    angleChange = 360 - angleChange;
+                }
+                direction = RobotDirection.Backward;
+            }
+            else {
+                //spin
+                bot.getTelemetry().addData("Route",  "Spin");
+                return new BotMoveProfile(MoveStrategy.Spin);
+            }
+        }
+
+        if (direction == RobotDirection.Optimal){
+            direction = RobotDirection.Forward;
+        }
+
+        if (angleChange >= 42 && angleChange <= 48){
+            //diag
+            bot.getTelemetry().addData("Route",  "Diag");
+            return new BotMoveProfile(MoveStrategy.Diag);
+        }
+
+        double chord = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+
+        boolean reduceLeft = false;
+
+        if (targetVector < currentHead) {
+            reduceLeft = true;
+        }
+
+        if (targetVectorInSquare1 && currentHeadInSquare4 || targetVectorInSquare4 && currentHeadInSquare1 || direction == RobotDirection.Backward){
+            reduceLeft = !reduceLeft;
+        }
+
+        bot.getTelemetry().addData("Target Vector", targetVector);
+        bot.getTelemetry().addData("Angle Change", angleChange);
+
+
+
+        //check radius.
+        double radius = Geometry.getRadius(angleChange, chord);
+
+        if ((reduceLeft && radius <= bot.getCalibConfig().getMinRadiusLeft()) ||
+                (reduceLeft == false && radius <= bot.getCalibConfig().getMinRadiusRight())) {
+            bot.getTelemetry().addData("Radius", "Too small. Cannot turn. Attempt to strafe");
+            // if possible, strafe
+            //if not spin
+            return new BotMoveProfile(MoveStrategy.Strafe);
+        }
+
+        BotMoveProfile profile = buildMoveProfile(bot, chord, topSpeed, radius, angleChange, reduceLeft, direction);
+        //build request
+        BotMoveRequest rq = new BotMoveRequest();
+        rq.setTarget(target);
+        rq.setTopSpeed(topSpeed);
+        rq.setDirection(direction);
+        rq.setMotorReduction(profile.getMotorReduction());
+        profile.setTarget(rq);
+        profile.setAngleChange(angleChange);
+        profile.setCurrentHead(currentHead);
+        profile.setTargetVector(targetVector);
+        return profile;
+    }
+
+    public static BotMoveProfile buildMoveProfile(OdoBot bot, double chord, double topSpeed, double radius, double angleChange, boolean reduceLeft, RobotDirection direction){
+        double longArch = chord;
+        double shortArch = chord;
+        double speedRatio = 1;
+        double lowSpeed = topSpeed;
+        BotCalibConfig botConfig = bot.getCalibConfig();
+
+        if (angleChange > 0) {
+            double theta = Math.toRadians(angleChange * 2);
+            //double centerArch = theta * radius;
+            double wheelDistFromCenter = botConfig.getWheelBaseSeparation() / 2;
+            longArch = theta * (radius + wheelDistFromCenter);
+            shortArch = theta * (radius - wheelDistFromCenter);
+            //for speed, the ratio is greater as the spread between the motorized wheels is wider by MOTOR_WHEEL_OFFSET on each side
+            double longArchMotor = longArch + MOTOR_WHEEL_OFFSET;
+            double shortArchMotor = shortArch - MOTOR_WHEEL_OFFSET;
+            speedRatio = shortArchMotor / longArchMotor;
+            lowSpeed = topSpeed * speedRatio;
+        }
+
+
+        double leftSpeed, rightSpeed;
+        if (reduceLeft) {
+            leftSpeed = lowSpeed;
+            rightSpeed = topSpeed;
+        } else {
+            leftSpeed = topSpeed;
+            rightSpeed = lowSpeed;
+        }
+
+        if (direction == RobotDirection.Backward){
+            shortArch = -shortArch;
+            longArch = -longArch;
+        }
+        else{
+            rightSpeed = -rightSpeed;
+            leftSpeed = -leftSpeed;
+        }
+
+
+        double distanceLong = longArch * YellowBot.COUNTS_PER_INCH_REV;
+        double distanceShort = shortArch * YellowBot.COUNTS_PER_INCH_REV;
+
+        boolean leftLong = true;
+        double startingPointLong = 0, startingPointShort = 0;
+
+
+        if (leftSpeed > rightSpeed) {
+            startingPointLong = bot.getLeftOdometer();
+            startingPointShort = bot.getRightOdometer();
+        } else if (rightSpeed > leftSpeed) {
+            leftLong = false;
+            startingPointShort = bot.getLeftOdometer();
+            startingPointLong = bot.getRightOdometer();
+        }
+
+        double averagePower = (Math.abs(rightSpeed) + Math.abs(leftSpeed))/2;
+        averagePower = Math.round(averagePower*10)/10.0;
+
+        MotorReductionBot mr = botConfig.getMoveMRForward();
+        if (direction == RobotDirection.Backward) {
+            mr = botConfig.getMoveMRBack();
+        }
+        double breakPoint = mr.getBreakPoint(averagePower);
+
+        double slowdownMarkLong = startingPointLong + (distanceLong - breakPoint);
+        double slowdownMarkShort = startingPointShort + (distanceShort - breakPoint);
+
+        double longTarget = startingPointLong + distanceLong;
+
+        BotMoveProfile profile = new BotMoveProfile();
+        profile.setLeftLong(leftLong);
+        profile.setSlowdownMarkLong(slowdownMarkLong);
+        profile.setSlowdownMarkShort(slowdownMarkShort);
+        profile.setLongTarget(longTarget);
+        profile.setRealSpeedLeft(leftSpeed);
+        profile.setRealSpeedRight(rightSpeed);
+        profile.setMotorReduction(mr);
+        profile.setDirection(direction);
+        return profile;
+    }
+
+    public MoveStrategy getStrategy() {
+        return strategy;
+    }
+
+    public void setStrategy(MoveStrategy strategy) {
+        this.strategy = strategy;
     }
 }

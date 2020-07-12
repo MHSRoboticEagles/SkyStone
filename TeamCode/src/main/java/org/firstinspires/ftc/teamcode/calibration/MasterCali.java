@@ -9,14 +9,15 @@ import com.qualcomm.robotcore.util.ReadWriteFile;
 
 import org.firstinspires.ftc.robotcore.internal.system.Deadline;
 import org.firstinspires.ftc.teamcode.bots.BotMoveProfile;
-import org.firstinspires.ftc.teamcode.bots.BotMoveRequest;
 import org.firstinspires.ftc.teamcode.bots.RobotDirection;
-import org.firstinspires.ftc.teamcode.bots.RobotMovement;
+import org.firstinspires.ftc.teamcode.bots.RobotMovementStats;
 import org.firstinspires.ftc.teamcode.bots.RobotVeer;
 import org.firstinspires.ftc.teamcode.bots.YellowBot;
 import org.firstinspires.ftc.teamcode.odometry.RobotCoordinatePostiion;
 import org.firstinspires.ftc.teamcode.skills.Geometry;
 import org.firstinspires.ftc.teamcode.skills.Led;
+import org.openftc.revextensions2.ExpansionHubEx;
+import org.openftc.revextensions2.ExpansionHubMotor;
 
 import java.util.concurrent.TimeUnit;
 
@@ -43,8 +44,8 @@ public class MasterCali extends LinearOpMode {
     Deadline gamepadRateLimit;
     private final static int GAMEPAD_LOCKOUT = 500;
 
-    private static final int[] modes = new int[]{0, 1, 2, 3, 4, 5};
-    private static final String[] modeNames = new String[]{"Straight", "Curve", "Break", "Spin", "Strafe", "Diag"};
+    private static final int[] modes = new int[]{0, 1, 2, 3, 4, 5, 6, 7};
+    private static final String[] modeNames = new String[]{"Straight", "Curve", "Break", "Spin", "Strafe", "Diag", "Turn", "Calib"};
 
     private int selectedMode = 0;
 
@@ -118,6 +119,37 @@ public class MasterCali extends LinearOpMode {
             this.led = bot.getLights();
 
             gamepadRateLimit = new Deadline(GAMEPAD_LOCKOUT, TimeUnit.MILLISECONDS);
+
+
+
+            ExpansionHubEx expansionHubRight = hardwareMap.get(ExpansionHubEx.class, "Right Hub 1");
+            if (expansionHubRight != null){
+                telemetry.addData("Right Hub", "Stats:");
+                telemetry.addData("Battery monitor, volts", expansionHubRight.read12vMonitor(ExpansionHubEx.VoltageUnits.VOLTS));
+                telemetry.addData("Firmware v", expansionHubRight.getFirmwareVersion());
+                telemetry.addData("Hardware rev", expansionHubRight.getHardwareRevision());
+                telemetry.addData("Total current", expansionHubRight.getTotalModuleCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
+                ExpansionHubMotor backRight = (ExpansionHubMotor) hardwareMap.dcMotor.get("backRight");
+                ExpansionHubMotor frontRight = (ExpansionHubMotor) hardwareMap.dcMotor.get("frontRight");
+
+                telemetry.addData("RF current", frontRight.getCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
+                telemetry.addData("RB current", backRight.getCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
+
+            }
+
+            ExpansionHubEx expansionHubLeft = hardwareMap.get(ExpansionHubEx.class, "Left Hub 2");
+            if (expansionHubLeft != null){
+                telemetry.addData("Left Hub", "Stats:");
+                telemetry.addData("Battery monitor, volts", expansionHubLeft.read12vMonitor(ExpansionHubEx.VoltageUnits.VOLTS));
+                telemetry.addData("Firmware v", expansionHubLeft.getFirmwareVersion());
+                telemetry.addData("Hardware rev", expansionHubLeft.getHardwareRevision());
+                telemetry.addData("Total current", expansionHubLeft.getTotalModuleCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
+                ExpansionHubMotor backLeft = (ExpansionHubMotor) hardwareMap.dcMotor.get("backLeft");
+                ExpansionHubMotor frontLeft = (ExpansionHubMotor) hardwareMap.dcMotor.get("frontLeft");
+
+                telemetry.addData("LF current", frontLeft.getCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
+                telemetry.addData("LB current", backLeft.getCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
+            }
 
             telemetry.addData("Master Cali", "Ready to calibrate....");
             telemetry.update();
@@ -479,6 +511,12 @@ public class MasterCali extends LinearOpMode {
                 case 5:
                     calibDiag();
                     break;
+                case 6:
+                    calibTurn();
+                    break;
+                case 7:
+                    calibAll();
+                    break;
 
             }
         }
@@ -541,20 +579,50 @@ public class MasterCali extends LinearOpMode {
             Thread positionThread = new Thread(locator);
             positionThread.start();
 
-            BotMoveProfile profile = bot.bestRoute(new Point(startX, startY), new Point(desiredX, desiredY), RobotDirection.Optimal, desiredSpeed, locator);
-
-            telemetry.addData("Profiler", profile.toString());
+            BotMoveProfile profile = BotMoveProfile.bestRoute(bot, startX, startY, new Point(desiredX, desiredY), RobotDirection.Optimal, desiredSpeed, locator);
+            profile.setStart(new Point(startX, startY));
+            profile.setDestination(new Point(desiredX, desiredY));
+            //override MR for calibration purposes
+            if (profile.getDirection() == RobotDirection.Forward){
+                profile.setMotorReduction(templateMRForward);
+            }
+            else{
+                profile.setMotorReduction(templateMRBack);
+            }
 
             bot.moveCurveCalib(profile, locator);
+
+            timer.reset();
+            while(timer.milliseconds() < 2000 && opModeIsActive()){
+
+            }
 
             telemetry.addData("Target X", desiredX);
             telemetry.addData("Target Y", desiredY);
             telemetry.addData("Distance", Geometry.getDistance(locator.getXInches(), locator.getYInches(), desiredX, desiredY));
             telemetry.addData("Actual X", locator.getXInches());
             telemetry.addData("Actual Y", locator.getYInches());
+            profile.setActual(new Point((int)Math.round(locator.getXInches()), (int)Math.round(locator.getYInches())));
             telemetry.addData("Head", locator.getOrientation());
-            telemetry.update();
             lastOrientation = locator.getOrientation();
+
+
+
+            Point newStart = new Point((int)Math.round(locator.getXInches()), (int) Math.round(locator.getYInches()));
+
+            BotMoveProfile whatIfBack = BotMoveProfile.bestRoute(bot, locator.getXInches(), locator.getYInches(), new Point(startX, startY), RobotDirection.Optimal, desiredSpeed, locator);
+            bot.moveCurveCalib(whatIfBack, locator);
+            whatIfBack.setStart(newStart);
+            whatIfBack.setDestination(new Point(startX, startY));
+            whatIfBack.setActual(new Point((int)Math.round(locator.getXInches()), (int)Math.round(locator.getYInches())));
+
+            telemetry.addData("Profile Original", profile.toString());
+            showMotorReduction(profile.getMotorReduction());
+            telemetry.addData("Profile Back", whatIfBack.toString());
+
+
+            telemetry.update();
+
         }
         catch (Exception ex){
             telemetry.addData("Error", ex.getMessage());
@@ -596,8 +664,8 @@ public class MasterCali extends LinearOpMode {
 
         double currentHead = bot.getGyroHeading();
 
-        double leftOdo = bot.getLeftOdemeter();
-        double rightOdo = bot.getRightOdemeter();
+        double leftOdo = bot.getLeftOdometer();
+        double rightOdo = bot.getRightOdometer();
         calibF.setLeftOdoDistance(desiredX*bot.COUNTS_PER_INCH_REV);
         calibF.setRightOdoDistance(desiredX*bot.COUNTS_PER_INCH_REV);
         double bF = calibF.getBreakPoint(desiredSpeed);
@@ -605,7 +673,7 @@ public class MasterCali extends LinearOpMode {
             bF = breakPointOverride * bot.COUNTS_PER_INCH_REV;
         }
         int distance = Math.abs(desiredY - startY);
-        RobotMovement statsF = bot.moveToCalib(desiredSpeed, desiredSpeed, distance, mrForward, bF, led);
+        RobotMovementStats statsF = bot.moveToCalib(desiredSpeed, desiredSpeed, distance, mrForward, bF, led);
         calibF.setStats(statsF);
 
         timer.reset();
@@ -617,8 +685,8 @@ public class MasterCali extends LinearOpMode {
         double actualHead = bot.getGyroHeading();
         double headChange = Math.abs(actualHead - currentHead);
 
-        double leftDistance = Math.abs(bot.getLeftOdemeter() - leftOdo);
-        double rightDistance = Math.abs(bot.getRightOdemeter() - rightOdo);
+        double leftDistance = Math.abs(bot.getLeftOdometer() - leftOdo);
+        double rightDistance = Math.abs(bot.getRightOdometer() - rightOdo);
         calibF.setLeftOdoDistanceActual(leftDistance);
         calibF.setRightOdoDistanceActual(rightDistance);
         calibF.setHeadChange(headChange);
@@ -637,8 +705,8 @@ public class MasterCali extends LinearOpMode {
         while(timer.milliseconds() < 1000 && opModeIsActive()){
         }
         currentHead = bot.getGyroHeading();
-        leftOdo = bot.getLeftOdemeter();
-        rightOdo = bot.getRightOdemeter();
+        leftOdo = bot.getLeftOdometer();
+        rightOdo = bot.getRightOdometer();
         calibB.setLeftOdoDistance(desiredX*bot.COUNTS_PER_INCH_REV);
         calibB.setRightOdoDistance(desiredX*bot.COUNTS_PER_INCH_REV);
 
@@ -651,7 +719,7 @@ public class MasterCali extends LinearOpMode {
         telemetry.addData("Forw Location", "x:%.2f  y: %.2f ", locator.getXInches(), locator.getYInches());
 
 
-        RobotMovement statsB =  bot.moveToCalib(desiredSpeed, desiredSpeed, -distance, mrBack, bB, led);
+        RobotMovementStats statsB =  bot.moveToCalib(desiredSpeed, desiredSpeed, -distance, mrBack, bB, led);
         calibB.setStats(statsB);
         telemetry.addData("Actual BP Forw", bF);
         telemetry.addData("Actual BP Back", bB);
@@ -676,8 +744,8 @@ public class MasterCali extends LinearOpMode {
             led.OK();
         }
 
-        leftDistance = Math.abs(bot.getLeftOdemeter() - leftOdo);
-        rightDistance = Math.abs(bot.getRightOdemeter() - rightOdo);
+        leftDistance = Math.abs(bot.getLeftOdometer() - leftOdo);
+        rightDistance = Math.abs(bot.getRightOdometer() - rightOdo);
 
         calibB.setLeftOdoDistanceActual(leftDistance);
         calibB.setRightOdoDistanceActual(rightDistance);
@@ -691,7 +759,7 @@ public class MasterCali extends LinearOpMode {
         int selectedIndex = 0;
         while(selectedIndex < MotorReductionBot.POWER_SAMPLES.length){
             double power = MotorReductionBot.POWER_SAMPLES[selectedIndex];
-            RobotMovement statsF =  bot.moveToCalib(power, power, desiredX, templateMRForward, 0, led);
+            RobotMovementStats statsF =  bot.moveToCalib(power, power, desiredX, templateMRForward, 0, led);
             templateMRForward.setBreakPoint(statsF.getSlowDownDistanceRaw(), power);
             statsConfig.setStatsForward(power, statsF);
 
@@ -699,7 +767,7 @@ public class MasterCali extends LinearOpMode {
             while (timer.milliseconds() < 1000 && opModeIsActive()) {
 
             }
-            RobotMovement statsB =  bot.moveToCalib(power, power, -desiredX, templateMRBack, 0, led);
+            RobotMovementStats statsB =  bot.moveToCalib(power, power, -desiredX, templateMRBack, 0, led);
             templateMRBack.setBreakPoint(statsB.getSlowDownDistanceRaw(), power);
             statsConfig.setStatsBack(power, statsB);
             selectedIndex++;
@@ -710,11 +778,141 @@ public class MasterCali extends LinearOpMode {
     }
 
 
+    private void calibTurn(){
+        double minRadiusLeft = turnLeft();
+        double minRadiusRight = turnRight();
+        BotCalibConfig config = bot.getCalibConfig();
+        if (config == null){
+            config = new BotCalibConfig();
+        }
+
+        config.setMinRadiusLeft(minRadiusLeft);
+        config.setMinRadiusRight(minRadiusRight);
+
+        ReadWriteFile.writeFile(bot.getCalibConfigFile(), config.serialize());
+
+        telemetry.addData("min radius left turn ", config.getMinRadiusLeft());
+        telemetry.addData("min radius right turn ", config.getMinRadiusRight());
+        telemetry.update();
+    }
+
+    private double turnLeft(){
+        double minRadiusLeft = 0;
+        double currentHead = bot.getGyroHeading();
+        double desiredHead = currentHead + 90;
+        while (bot.getGyroHeading() < desiredHead && opModeIsActive()){
+            if (bot.getGyroHeading() < desiredHead/2){
+                bot.turnLeft(bot.CALIB_SPEED, true);
+            }else{
+                bot.turnLeft(bot.CALIB_SPEED/2, true);
+            }
+            telemetry.addData("Heading", bot.getGyroHeading());
+            telemetry.update();
+        }
+
+        bot.stop();
+
+        timer.reset();
+        while(timer.milliseconds() < 1000 && opModeIsActive()){
+            telemetry.addData("Gyroscope","Stabilizing ...");
+            telemetry.update();
+        }
+
+        double finalHead = bot.getGyroHeading();
+        double actualAngle = Math.abs(finalHead - currentHead);
+
+        double rightLong = bot.getRightOdometer();
+
+        double dLeft = bot.getLeftOdometer();
+        double dCenter = (dLeft + rightLong)/2;
+        double dCenterInches = dCenter/bot.COUNTS_PER_INCH_REV;
+        double inchPerDegree = dCenterInches/actualAngle;
+        double circleLength = inchPerDegree*360;
+        minRadiusLeft = circleLength/Math.PI/2;
+        return minRadiusLeft;
+    }
+
+    private double turnRight(){
+        double minRadiusRight = 0;
+        double currentHead = bot.getGyroHeading();
+        double desiredHead = currentHead - 90;
+        double startLeft = bot.getLeftOdometer();
+        double startRight = bot.getRightOdometer();
+        while (bot.getGyroHeading() > desiredHead && opModeIsActive()){
+            if (bot.getGyroHeading() > desiredHead/2){
+                bot.turnRight(bot.CALIB_SPEED, true);
+            }else{
+                bot.turnRight(bot.CALIB_SPEED/2, true);
+            }
+            telemetry.addData("Heading", bot.getGyroHeading());
+            telemetry.update();
+        }
+
+        bot.stop();
+
+        timer.reset();
+        while(timer.milliseconds() < 1000 && opModeIsActive()){
+            telemetry.addData("Gyroscope","Stabilizing ...");
+            telemetry.update();
+        }
+
+        double finalHead = bot.getGyroHeading();
+        double actualAngle = currentHead - finalHead;
+
+        double leftLong = bot.getLeftOdometer() - startLeft;
+        double right = bot.getRightOdometer() - startRight;
+
+        double dCenter = (leftLong + right)/2;
+        double dCenterInches = dCenter/bot.COUNTS_PER_INCH_REV;
+        double inchPerDegree = dCenterInches/actualAngle;
+        double circleLength = inchPerDegree*360;
+        minRadiusRight = circleLength/Math.PI/2;
+        return minRadiusRight;
+    }
+
+    private void calibAll(){
+        calibSpin();
+        timer.reset();
+        while(timer.milliseconds() < 1000 && opModeIsActive()){
+        }
+
+        restoreHead();
+
+        while(timer.milliseconds() < 1000 && opModeIsActive()){
+        }
+
+        calibTurn();
+
+        restoreHead();
+
+        while(timer.milliseconds() < 1000 && opModeIsActive()){
+        }
+
+        calibBreak();
+
+        BotCalibConfig config = bot.getCalibConfig();
+        if (config == null){
+            telemetry.addData("SOS", "Something is totally wrong. Bot config is missing");
+            telemetry.update();
+        }
+        else {
+
+
+            telemetry.addData("separation", config.getWheelBaseSeparation());
+            telemetry.addData("horizontalTicksDegree Left", config.getHorizontalTicksDegreeLeft());
+            telemetry.addData("horizontalTicksDegree Right", config.getHorizontalTicksDegreeRight());
+            telemetry.addData("separation", config.getWheelBaseSeparation());
+            telemetry.addData("min radius left turn ", config.getMinRadiusLeft());
+            telemetry.addData("min radius right turn ", config.getMinRadiusRight());
+            telemetry.update();
+        }
+
+    }
 
     private void calibSpin(){
         double currentHead = bot.getGyroHeading();
         double desiredHead = currentHead + 90;
-        double horizontalStart = bot.getHorizontalOdemeter();
+        double horizontalStart = bot.getHorizontalOdometer();
         while (bot.getGyroHeading() < desiredHead && opModeIsActive()){
             if (bot.getGyroHeading() < desiredHead/2){
                 bot.spinLeft(bot.CALIB_SPEED, true);
@@ -737,13 +935,13 @@ public class MasterCali extends LinearOpMode {
         double finalHead = bot.getGyroHeading();
         double actualAngle = finalHead - currentHead;
 
-        double rightLong = bot.getRightOdemeter();
+        double rightLong = bot.getRightOdometer();
 
-        double leftLong = bot.getLeftOdemeter();
+        double leftLong = bot.getLeftOdometer();
 
 
 
-        double horizontalPosition = bot.getHorizontalOdemeter();
+        double horizontalPosition = bot.getHorizontalOdometer();
         double horizontalShift = horizontalPosition - horizontalStart;
 
         horizontalTicksDegreeLeft = Math.abs(horizontalShift/actualAngle);
@@ -792,7 +990,7 @@ public class MasterCali extends LinearOpMode {
     private void spinRight(){
         double currentHead = bot.getGyroHeading();
         double desiredHead = currentHead - 90;
-        double horizontalStart = bot.getHorizontalOdemeter();
+        double horizontalStart = bot.getHorizontalOdometer();
         while (bot.getGyroHeading() > desiredHead && opModeIsActive()){
             if (bot.getGyroHeading() > currentHead/2){
                 bot.spinRight(bot.CALIB_SPEED, true);
@@ -815,7 +1013,7 @@ public class MasterCali extends LinearOpMode {
         double actualAngle = finalHead - currentHead;
 
 
-        double horizontalPosition = bot.getHorizontalOdemeter();
+        double horizontalPosition = bot.getHorizontalOdometer();
         double horizontalShift = horizontalPosition - horizontalStart;
 
         horizontalTicksDegreeRight = Math.abs(horizontalShift/actualAngle);
@@ -838,8 +1036,8 @@ public class MasterCali extends LinearOpMode {
 
         double currentHead = bot.getGyroHeading();
 
-        double leftOdo = bot.getLeftOdemeter();
-        double rightOdo = bot.getRightOdemeter();
+        double leftOdo = bot.getLeftOdometer();
+        double rightOdo = bot.getRightOdometer();
         bot.strafeToCalib(desiredSpeed, desiredX, true, mrLeft);
 
         timer.reset();
@@ -850,8 +1048,8 @@ public class MasterCali extends LinearOpMode {
         double actualHead = bot.getGyroHeading();
         double headChange = Math.abs(actualHead - currentHead);
 
-        double leftDistance = Math.abs(bot.getLeftOdemeter() - leftOdo);
-        double rightDistance = Math.abs(bot.getRightOdemeter() - rightOdo);
+        double leftDistance = Math.abs(bot.getLeftOdometer() - leftOdo);
+        double rightDistance = Math.abs(bot.getRightOdometer() - rightOdo);
         calibLeft.setLeftOdoDistanceActual(leftDistance);
         calibLeft.setRightOdoDistanceActual(rightDistance);
         calibLeft.setHeadChange(headChange);
@@ -870,8 +1068,8 @@ public class MasterCali extends LinearOpMode {
         while(timer.milliseconds() < 1000 && opModeIsActive()){
         }
         currentHead = bot.getGyroHeading();
-        leftOdo = bot.getLeftOdemeter();
-        rightOdo = bot.getRightOdemeter();
+        leftOdo = bot.getLeftOdometer();
+        rightOdo = bot.getRightOdometer();
 
         bot.strafeToCalib(desiredSpeed, desiredX, false, mrRight);
 
@@ -892,8 +1090,8 @@ public class MasterCali extends LinearOpMode {
             led.OK();
         }
 
-        leftDistance = Math.abs(bot.getLeftOdemeter() - leftOdo);
-        rightDistance = Math.abs(bot.getRightOdemeter() - rightOdo);
+        leftDistance = Math.abs(bot.getLeftOdometer() - leftOdo);
+        rightDistance = Math.abs(bot.getRightOdometer() - rightOdo);
 
         calibRight.setLeftOdoDistanceActual(leftDistance);
         calibRight.setRightOdoDistanceActual(rightDistance);
@@ -924,8 +1122,8 @@ public class MasterCali extends LinearOpMode {
 //        double headChange = 0;
 //        double currentHead = bot.getGyroHeading();
 //
-//        double startLeft = bot.getLeftOdemeter();
-//        double startRight = bot.getRightOdemeter();
+//        double startLeft = bot.getLeftOdometer();
+//        double startRight = bot.getRightOdometer();
 //
 //        bot.strafeToCalib(CALIB_SPEED, desiredX, strafeDirLeft, leftReductionStrafe, rightReductionStrafe);
 //
@@ -942,8 +1140,8 @@ public class MasterCali extends LinearOpMode {
 //            telemetry.update();
 //        }
 //
-//        double endLeft = bot.getLeftOdemeter();
-//        double endRight = bot.getRightOdemeter();
+//        double endLeft = bot.getLeftOdometer();
+//        double endRight = bot.getRightOdometer();
 //
 //        double leftDistance = Math.abs(endLeft - startLeft);
 //        double rightDistance = Math.abs(endRight - startRight);
@@ -1060,8 +1258,8 @@ public class MasterCali extends LinearOpMode {
 
         double currentHead = bot.getGyroHeading();
 
-        double leftOdo = bot.getLeftOdemeter();
-        double rightOdo = bot.getRightOdemeter();
+        double leftOdo = bot.getLeftOdometer();
+        double rightOdo = bot.getRightOdometer();
         bot.diagToCalib(desiredSpeed, 0, desiredX, true, mrLeft);
 
         timer.reset();
@@ -1072,8 +1270,8 @@ public class MasterCali extends LinearOpMode {
         double actualHead = bot.getGyroHeading();
         double headChange = Math.abs(actualHead - currentHead);
 
-        double leftDistance = Math.abs(bot.getLeftOdemeter() - leftOdo);
-        double rightDistance = Math.abs(bot.getRightOdemeter() - rightOdo);
+        double leftDistance = Math.abs(bot.getLeftOdometer() - leftOdo);
+        double rightDistance = Math.abs(bot.getRightOdometer() - rightOdo);
         calibLeft.setLeftOdoDistanceActual(leftDistance);
         calibLeft.setRightOdoDistanceActual(rightDistance);
         calibLeft.setHeadChange(headChange);
@@ -1092,8 +1290,8 @@ public class MasterCali extends LinearOpMode {
         while(timer.milliseconds() < 1000 && opModeIsActive()){
         }
         currentHead = bot.getGyroHeading();
-        leftOdo = bot.getLeftOdemeter();
-        rightOdo = bot.getRightOdemeter();
+        leftOdo = bot.getLeftOdometer();
+        rightOdo = bot.getRightOdometer();
 
         bot.diagToCalib(desiredSpeed, 0, desiredX, false, mrRight);
 
@@ -1114,8 +1312,8 @@ public class MasterCali extends LinearOpMode {
             led.OK();
         }
 
-        leftDistance = Math.abs(bot.getLeftOdemeter() - leftOdo);
-        rightDistance = Math.abs(bot.getRightOdemeter() - rightOdo);
+        leftDistance = Math.abs(bot.getLeftOdometer() - leftOdo);
+        rightDistance = Math.abs(bot.getRightOdometer() - rightOdo);
 
         calibRight.setLeftOdoDistanceActual(leftDistance);
         calibRight.setRightOdoDistanceActual(rightDistance);
@@ -1192,9 +1390,9 @@ public class MasterCali extends LinearOpMode {
 //            double distanceInches = desiredX;
 //
 //
-//            double leftOdoStart = bot.getLeftOdemeter();
-//            double rightOdoStart = bot.getRightOdemeter();
-//            double horOdoStart = bot.getHorizontalOdemeter();
+//            double leftOdoStart = bot.getLeftOdometer();
+//            double rightOdoStart = bot.getRightOdometer();
+//            double horOdoStart = bot.getHorizontalOdometer();
 //
 //            double startHead = bot.getGyroHeading();
 //
@@ -1214,8 +1412,8 @@ public class MasterCali extends LinearOpMode {
 ////                    telemetry.update();
 //            }
 //
-//            double leftOdoEnd = bot.getLeftOdemeter();
-//            double rightOdoEnd = bot.getRightOdemeter();
+//            double leftOdoEnd = bot.getLeftOdometer();
+//            double rightOdoEnd = bot.getRightOdometer();
 //
 //            double finalHead = bot.getGyroHeading();
 //
@@ -1290,9 +1488,9 @@ public class MasterCali extends LinearOpMode {
             double distanceInches = desiredX;
 
 
-            double leftOdoStart = bot.getLeftOdemeter();
-            double rightOdoStart = bot.getRightOdemeter();
-            double horOdoStart = bot.getHorizontalOdemeter();
+            double leftOdoStart = bot.getLeftOdometer();
+            double rightOdoStart = bot.getRightOdometer();
+            double horOdoStart = bot.getHorizontalOdometer();
 
             double startHead = bot.getGyroHeading();
 
@@ -1312,9 +1510,9 @@ public class MasterCali extends LinearOpMode {
 //                    telemetry.update();
             }
 
-            double leftOdoEnd = bot.getLeftOdemeter();
-            double rightOdoEnd = bot.getRightOdemeter();
-            double horOdoEnd = bot.getHorizontalOdemeter();
+            double leftOdoEnd = bot.getLeftOdometer();
+            double rightOdoEnd = bot.getRightOdometer();
+            double horOdoEnd = bot.getHorizontalOdometer();
 
             double finalHead = bot.getGyroHeading();
 

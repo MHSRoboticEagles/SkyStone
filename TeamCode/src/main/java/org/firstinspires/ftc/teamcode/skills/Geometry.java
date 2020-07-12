@@ -12,4 +12,15 @@ public class Geometry {
         double chord = Math.sqrt(distanceX*distanceX + distanceY * distanceY);
         return chord;
     }
+
+    public static double getRadius(double angleChange, double chord){
+        double alpha = 90 - angleChange;
+        double halfChord = chord / 2;
+        double cosAlpha = Math.cos(Math.toRadians(alpha));
+        double radius = 0;
+        if (cosAlpha != 0){
+            radius= halfChord / cosAlpha;
+        }
+        return radius;
+    }
 }

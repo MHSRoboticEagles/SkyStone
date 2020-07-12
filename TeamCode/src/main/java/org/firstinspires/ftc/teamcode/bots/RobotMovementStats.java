@@ -2,7 +2,7 @@ package org.firstinspires.ftc.teamcode.bots;
 
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-public class RobotMovement {
+public class RobotMovementStats {
     private double totalDistance;
     private double totalTime;
     private double averageSpeed;

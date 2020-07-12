@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.util.ReadWriteFile;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.internal.collections.SimpleGson;
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
-import org.firstinspires.ftc.teamcode.bots.RobotMovement;
+import org.firstinspires.ftc.teamcode.bots.RobotMovementStats;
 
 import java.io.File;
 import java.io.Serializable;
@@ -13,8 +13,8 @@ import java.io.Serializable;
 public class BotStatsConfig implements Serializable {
     public static String BOT_STATS_CONFIG = "bot-stats.json";
 
-    private RobotMovement[] statsForward = new RobotMovement[9];
-    private RobotMovement[] statsBack = new RobotMovement[9];
+    private RobotMovementStats[] statsForward = new RobotMovementStats[9];
+    private RobotMovementStats[] statsBack = new RobotMovementStats[9];
 
     public File getCalibConfigFile(){
         return AppUtil.getInstance().getSettingsFile(BotStatsConfig.BOT_STATS_CONFIG);
@@ -53,14 +53,14 @@ public class BotStatsConfig implements Serializable {
         }
     }
 
-    public void setStatsForward(double power, RobotMovement data){
+    public void setStatsForward(double power, RobotMovementStats data){
        int index =  MotorReductionBot.getPowerIndex(power);
        if (index >= 0){
            statsForward[index] = data;
        }
     }
 
-    public void setStatsBack(double power, RobotMovement data){
+    public void setStatsBack(double power, RobotMovementStats data){
         int index =  MotorReductionBot.getPowerIndex(power);
         if (index >= 0){
             statsBack[index] = data;

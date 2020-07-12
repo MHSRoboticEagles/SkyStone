@@ -34,7 +34,6 @@ public class RobotCoordinatePostiion implements Runnable {
     private int verticalRightEncoderPositionMultiplier = 1;
     private int horEncoderPositionMultiplier = 1;
     private BotMoveRequest target = null;
-    private BotMoveProfile currentProfile = new BotMoveProfile();
 
     private double botHalfLength = bot.ROBOT_CENTER_Y* bot.COUNTS_PER_INCH_REV;
 
@@ -51,8 +50,8 @@ public class RobotCoordinatePostiion implements Runnable {
 
 
     private void updatePostition(){
-        verticalLeftEncoderWheelPosition = (bot.getLeftOdemeter() * verticalLeftEncoderPositionMultiplier);
-        verticalRightEncoderWheelPosition = (bot.getRightOdemeter() * verticalRightEncoderPositionMultiplier);
+        verticalLeftEncoderWheelPosition = (bot.getLeftOdometer() * verticalLeftEncoderPositionMultiplier);
+        verticalRightEncoderWheelPosition = (bot.getRightOdometer() * verticalRightEncoderPositionMultiplier);
 
         double leftChange = verticalLeftEncoderWheelPosition - previousVerticalLeftEncoderWheelPosition;
         double rightChange = verticalRightEncoderWheelPosition - previousVerticalRightEncoderWheelPosition;
@@ -60,7 +59,7 @@ public class RobotCoordinatePostiion implements Runnable {
         changeInRobotOrientation = (leftChange - rightChange) / (robotEncoderWheelDistance);
         robotOrientationRadians = ((robotOrientationRadians + changeInRobotOrientation));
 
-        horEncoderWheelPosition = (bot.getHorizontalOdemeter() * horEncoderPositionMultiplier) - (changeInRobotOrientation*horizontalEncoderTickPerDegreeOffset);
+        horEncoderWheelPosition = (bot.getHorizontalOdometer() * horEncoderPositionMultiplier) - (changeInRobotOrientation*horizontalEncoderTickPerDegreeOffset);
         double horizontalChange = horEncoderWheelPosition - prevNormalEncoderWheelPosition;
 
 
@@ -84,7 +83,7 @@ public class RobotCoordinatePostiion implements Runnable {
         while(isRunning) {
             updatePostition();
             if(target != null){
-                adjustCurve();
+                adjustRoute();
             }
             try {
                 Thread.sleep(sleepTime);
@@ -92,6 +91,17 @@ public class RobotCoordinatePostiion implements Runnable {
                 e.printStackTrace();
             }
         }
+    }
+
+
+    public void adjustRoute(){
+        BotMoveProfile profile = BotMoveProfile.bestRoute(this.bot, getXInches(), getYInches(), this.target.getTarget(), this.target.getDirection(), this.target.getTopSpeed(), this);
+        realSpeedLeft = profile.getRealSpeedLeft();
+        realSpeedRight = profile.getRealSpeedRight();
+        this.leftLong = profile.isLeftLong();
+        this.slowdownMarkLong = profile.getSlowdownMarkLong();
+        this.slowdownMarkShort = profile.getSlowdownMarkShort();
+        this.longTarget = profile.getLongTarget();
     }
 
     public void adjustCurve(){
@@ -191,7 +201,11 @@ public class RobotCoordinatePostiion implements Runnable {
                 double wheelDistFromCenter = this.config.getWheelBaseSeparation() / 2;
                 longArch = theta * (radius + wheelDistFromCenter);
                 shortArch = theta * (radius - wheelDistFromCenter);
-                speedRatio = shortArch / longArch;
+
+                //for speed, the ratio is greater as the spread between the motorized wheels is wider by 0.5 inch on each side
+                double longArchMotor = longArch + BotMoveProfile.MOTOR_WHEEL_OFFSET;
+                double shortArchMotor = shortArch - BotMoveProfile.MOTOR_WHEEL_OFFSET;
+                speedRatio = shortArchMotor / longArchMotor;
                 lowSpeed = this.target.getTopSpeed() * speedRatio;
             }
 
@@ -222,12 +236,12 @@ public class RobotCoordinatePostiion implements Runnable {
 
 
             if (leftSpeed > rightSpeed) {
-                startingPointLong = bot.getLeftOdemeter();
-                startingPointShort = bot.getRightOdemeter();
+                startingPointLong = bot.getLeftOdometer();
+                startingPointShort = bot.getRightOdometer();
             } else if (rightSpeed > leftSpeed) {
                 leftLong = false;
-                startingPointShort = bot.getLeftOdemeter();
-                startingPointLong = bot.getRightOdemeter();
+                startingPointShort = bot.getLeftOdometer();
+                startingPointLong = bot.getRightOdometer();
             }
 
             double averagePower = (Math.abs(rightSpeed) + Math.abs(leftSpeed)) / 2;
@@ -239,13 +253,6 @@ public class RobotCoordinatePostiion implements Runnable {
 
             double longTarget = startingPointLong + distanceLong;
 
-            currentProfile.setLeftLong(leftLong);
-            currentProfile.setSlowdownMarkLong(slowdownMarkLong);
-            currentProfile.setSlowdownMarkShort(slowdownMarkShort);
-            currentProfile.setLongTarget(longTarget);
-            currentProfile.setRealSpeedLeft(leftSpeed);
-            currentProfile.setRealSpeedRight(rightSpeed);
-            currentProfile.setSpeedRatio(speedRatio);
 
             realSpeedLeft = leftSpeed;
             realSpeedRight = rightSpeed;
@@ -334,9 +341,6 @@ public class RobotCoordinatePostiion implements Runnable {
         this.target = target;
     }
 
-    public BotMoveProfile getCurrentProfile() {
-        return currentProfile;
-    }
 
     public double getRealSpeedLeft() {
         return realSpeedLeft;
