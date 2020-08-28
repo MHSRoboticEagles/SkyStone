@@ -2,6 +2,10 @@ package org.firstinspires.ftc.teamcode.bots;
 
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.teamcode.calibration.MotorReductionBot;
+
+import java.util.ArrayList;
+
 public class RobotMovementStats {
     private double totalDistance;
     private double totalTime;
@@ -15,6 +19,9 @@ public class RobotMovementStats {
     private double slowDownDistance;
     private double motorPower;
     private double slowDownDelay = 0;
+    private MotorReductionBot suggestedMR = new MotorReductionBot();
+
+    ArrayList<MotorReductionBot> motorAmps = new ArrayList<>();
 
     ElapsedTime fullSpeedTimer = new ElapsedTime();
     double startingPoint = 0;
@@ -162,5 +169,37 @@ public class RobotMovementStats {
 
     public void setMotorPower(double motorPower) {
         this.motorPower = motorPower;
+    }
+
+    public void addAmpSample(MotorReductionBot sample){
+        this.motorAmps.add(sample);
+    }
+
+    public int getAmpSampleCount(){
+        return this.motorAmps.size();
+    }
+
+    public MotorReductionBot getMotorAmpsAverages(){
+        MotorReductionBot average = new MotorReductionBot();
+        for (MotorReductionBot sample : this.motorAmps) {
+            average.setRB(average.getRB() + sample.getRB());
+            average.setRF(average.getRF() + sample.getRF());
+            average.setLB(average.getLB() + sample.getLB());
+            average.setLF(average.getLF() + sample.getLF());
+        }
+
+        average.setRB(average.getRB()/this.motorAmps.size());
+        average.setRF(average.getRF()/this.motorAmps.size());
+        average.setLB(average.getLB()/this.motorAmps.size());
+        average.setLF(average.getLF()/this.motorAmps.size());
+        return average;
+    }
+
+    public MotorReductionBot getSuggestedMR() {
+        return suggestedMR;
+    }
+
+    public void setSuggestedMR(MotorReductionBot suggestedMR) {
+        this.suggestedMR = suggestedMR;
     }
 }

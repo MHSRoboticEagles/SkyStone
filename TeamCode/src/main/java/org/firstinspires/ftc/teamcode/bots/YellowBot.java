@@ -12,11 +12,14 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 import org.firstinspires.ftc.teamcode.calibration.BotCalibConfig;
 import org.firstinspires.ftc.teamcode.calibration.DiagCalibConfig;
+import org.firstinspires.ftc.teamcode.calibration.MotorName;
 import org.firstinspires.ftc.teamcode.calibration.MotorReductionBot;
 import org.firstinspires.ftc.teamcode.odometry.RobotCoordinatePostiion;
 import org.firstinspires.ftc.teamcode.skills.Geometry;
 import org.firstinspires.ftc.teamcode.skills.Gyroscope;
 import org.firstinspires.ftc.teamcode.skills.Led;
+import org.openftc.revextensions2.ExpansionHubEx;
+import org.openftc.revextensions2.ExpansionHubMotor;
 
 import java.io.File;
 
@@ -64,6 +67,11 @@ public class YellowBot implements OdoBot{
 
     private BotCalibConfig botConfig;
 
+    public static String LEFT_FRONT = "frontLeft";
+    public static String RIGHT_FRONT = "frontRight";
+    public static String LEFT_BACK = "backLeft";
+    public static String RIGHT_BACK = "backRight";
+
 
     public YellowBot() {
 
@@ -75,10 +83,10 @@ public class YellowBot implements OdoBot{
         this.telemetry = t;
         try {
             // Define and Initialize Motors
-            frontLeft = hwMap.get(DcMotor.class, "frontLeft");
-            frontRight = hwMap.get(DcMotor.class, "frontRight");
-            backLeft = hwMap.get(DcMotor.class, "backLeft");
-            backRight = hwMap.get(DcMotor.class, "backRight");
+            frontLeft = hwMap.get(DcMotor.class, LEFT_FRONT);
+            frontRight = hwMap.get(DcMotor.class, RIGHT_FRONT);
+            backLeft = hwMap.get(DcMotor.class, LEFT_BACK);
+            backRight = hwMap.get(DcMotor.class, RIGHT_BACK);
 
 
             resetEncoders();
@@ -321,6 +329,51 @@ public class YellowBot implements OdoBot{
         }
     }
 
+
+
+    public MotorReductionBot getMotorAmperage(){
+        ExpansionHubMotor rb = (ExpansionHubMotor) hwMap.dcMotor.get(RIGHT_BACK);
+        ExpansionHubMotor rf = (ExpansionHubMotor) hwMap.dcMotor.get(RIGHT_FRONT);
+        ExpansionHubMotor lb = (ExpansionHubMotor) hwMap.dcMotor.get(LEFT_BACK);
+        ExpansionHubMotor lf = (ExpansionHubMotor) hwMap.dcMotor.get(LEFT_FRONT);
+
+        MotorReductionBot sample = new MotorReductionBot();
+        sample.setRB(rb.getCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
+        sample.setRF(rf.getCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
+        sample.setLB(lb.getCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
+        sample.setLF(lf.getCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
+        return sample;
+    }
+
+    public MotorReductionBot getSuggestedMR(MotorReductionBot amperage){
+
+        MotorReductionBot recommended= new MotorReductionBot();
+
+        double minVal = 100;
+        if (minVal > amperage.getRB()){
+            minVal = amperage.getRB();
+        }
+        if (minVal > amperage.getRF()){
+            minVal = amperage.getRF();
+        }
+        if (minVal > amperage.getLB()){
+            minVal = amperage.getLB();
+        }
+
+        if (minVal > amperage.getLF()){
+            minVal = amperage.getLF();
+        }
+
+        recommended.setRB(minVal/amperage.getRB());
+        recommended.setRF(minVal/amperage.getRF());
+        recommended.setLB(minVal/amperage.getLB());
+        recommended.setLF(minVal/amperage.getLF());
+
+        return recommended;
+    }
+
+
+
     public RobotMovementStats moveToCalib(double leftspeed, double rightspeed, double inches, MotorReductionBot mr, double breakPoint, Led led){
         RobotMovementStats stats = new RobotMovementStats();
         if (frontLeft != null && frontRight!= null && backLeft != null && backRight != null) {
@@ -331,6 +384,8 @@ public class YellowBot implements OdoBot{
             frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+
 
             boolean forward = inches > 0;
 
@@ -435,9 +490,10 @@ public class YellowBot implements OdoBot{
                             stats.stopAccelerateTimer(leftreading);
                             stats.startFullSpeedTimer(leftreading);
                         }
+
+                        stats.addAmpSample(getMotorAmperage());
                     }
                 }
-
 
                 this.frontLeft.setPower(leftPower * mr.getLF());
                 this.frontRight.setPower(rightPower * mr.getRF());
@@ -448,6 +504,8 @@ public class YellowBot implements OdoBot{
             stats.stopSlowdownTimer(this.getLeftOdometer());
 
             stats.computeTotals(this.getLeftOdometer());
+            MotorReductionBot suggested = this.getSuggestedMR(stats.getMotorAmpsAverages());
+            stats.setSuggestedMR(suggested);
 
             this.stop();
         }
@@ -701,6 +759,8 @@ public class YellowBot implements OdoBot{
                     telemetry.update();
 
                     cruising = false;
+                    //stop course correction
+                    locator.setTarget(null);
                     if (forward) {
                         realSpeedRF = realSpeedRF + speedDropStep;
                         realSpeedRB = realSpeedRB + speedDropStep;

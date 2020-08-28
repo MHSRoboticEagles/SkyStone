@@ -24,11 +24,13 @@ public class BotMoveProfile {
     private double targetVector = 0;
     private double angleChange = 0;
 
+    private double distanceRatio = 1;
+
     private Point start;
     private Point destination;
     private Point actual;
 
-    public static double MOTOR_WHEEL_OFFSET = 0.5;
+    public static double MOTOR_WHEEL_OFFSET = 1.25;
 
     public BotMoveProfile(){
 
@@ -41,7 +43,7 @@ public class BotMoveProfile {
 
     @Override
     public String toString() {
-        return String.format("Direction: %s \nL:%.2f  R:%.2f\n Slowdownns: %.2f %.2f\nHead: %.2f Target: %.2f Change: %.2f\nFrom: %d %d\nTo: %d %d\nActual: %d %d", direction.name(), realSpeedLeft, realSpeedRight, slowdownMarkLong,slowdownMarkShort, currentHead, targetVector, angleChange, start.x, start.y, destination.x, destination.y, actual.x, actual.y);
+        return String.format("Long Target: %.2f Direction: %s \nL:%.2f  R:%.2f\n Slowdownns: %.2f %.2f\nHead: %.2f Target: %.2f Change: %.2f\nFrom: %d %d\nTo: %d %d\nActual: %d %d\nSpeedR: %.2f Dist R: %.2f", longTarget, direction.name(), realSpeedLeft, realSpeedRight, slowdownMarkLong,slowdownMarkShort, currentHead, targetVector, angleChange, start.x, start.y, destination.x, destination.y, actual.x, actual.y, speedRatio, distanceRatio);
     }
 
     public double getRealSpeedLeft() {
@@ -236,6 +238,7 @@ public class BotMoveProfile {
         }
         if (angleChange > 90){
             if (direction == RobotDirection.Optimal) {
+                //better go backwards
                 currentHead = (currentHead + 180) % 360;
                 angleChange = Math.abs(targetVector - currentHead);
                 if (targetVectorInSquare1 && currentHeadInSquare4 || targetVectorInSquare4 && currentHeadInSquare1) {
@@ -296,6 +299,7 @@ public class BotMoveProfile {
         rq.setDirection(direction);
         rq.setMotorReduction(profile.getMotorReduction());
         profile.setTarget(rq);
+        profile.setStart(new Point((int)locator.getXInches(), (int)locator.getYInches()));
         profile.setAngleChange(angleChange);
         profile.setCurrentHead(currentHead);
         profile.setTargetVector(targetVector);
@@ -303,6 +307,8 @@ public class BotMoveProfile {
     }
 
     public static BotMoveProfile buildMoveProfile(OdoBot bot, double chord, double topSpeed, double radius, double angleChange, boolean reduceLeft, RobotDirection direction){
+        BotMoveProfile profile = new BotMoveProfile();
+
         double longArch = chord;
         double shortArch = chord;
         double speedRatio = 1;
@@ -322,6 +328,8 @@ public class BotMoveProfile {
             lowSpeed = topSpeed * speedRatio;
         }
 
+        profile.setSpeedRatio(speedRatio);
+        profile.setDistanceRatio(shortArch/longArch);
 
         double leftSpeed, rightSpeed;
         if (reduceLeft) {
@@ -372,7 +380,7 @@ public class BotMoveProfile {
 
         double longTarget = startingPointLong + distanceLong;
 
-        BotMoveProfile profile = new BotMoveProfile();
+
         profile.setLeftLong(leftLong);
         profile.setSlowdownMarkLong(slowdownMarkLong);
         profile.setSlowdownMarkShort(slowdownMarkShort);
@@ -390,5 +398,13 @@ public class BotMoveProfile {
 
     public void setStrategy(MoveStrategy strategy) {
         this.strategy = strategy;
+    }
+
+    public double getDistanceRatio() {
+        return distanceRatio;
+    }
+
+    public void setDistanceRatio(double distanceRatio) {
+        this.distanceRatio = distanceRatio;
     }
 }

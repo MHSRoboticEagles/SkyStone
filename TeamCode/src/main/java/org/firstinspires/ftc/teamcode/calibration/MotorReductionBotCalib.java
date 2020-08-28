@@ -39,6 +39,10 @@ public class MotorReductionBotCalib extends MotorReductionBot implements Seriali
     }
 
     public MotorReductionBotCalib(MotorReductionBot mrb){
+        CopyMR(mrb);
+    }
+
+    public void CopyMR(MotorReductionBot mrb){
         if (mrb != null) {
             for (int x = 0; x < mrb.motors.length; x++) {
                 this.MRs[x] = mrb.MRs[x];

@@ -9,13 +9,19 @@ import com.qualcomm.robotcore.util.ReadWriteFile;
 
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 import org.firstinspires.ftc.robotcore.internal.system.Deadline;
+import org.firstinspires.ftc.teamcode.autonomous.AutoStep;
+import org.firstinspires.ftc.teamcode.bots.BotAction;
+import org.firstinspires.ftc.teamcode.bots.BotMoveProfile;
+import org.firstinspires.ftc.teamcode.bots.MoveStrategy;
 import org.firstinspires.ftc.teamcode.bots.RobotDirection;
 import org.firstinspires.ftc.teamcode.bots.YellowBot;
-import org.firstinspires.ftc.teamcode.gamefield.FieldStats;
 import org.firstinspires.ftc.teamcode.odometry.RobotCoordinatePostiion;
 import org.firstinspires.ftc.teamcode.skills.Led;
 
 import java.io.File;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @TeleOp(name="Master Odo", group="Robot15173")
@@ -46,9 +52,6 @@ public class MasterOdo extends LinearOpMode {
     protected int valueX = 0;
     protected int valueY = 0;
 
-    private boolean xmode = false;
-    private boolean ymode = false;
-    private boolean speedMode = false;
     private boolean headingMode = false;
 
     private double overage = 0;
@@ -56,11 +59,33 @@ public class MasterOdo extends LinearOpMode {
     private int MODE_VALUE = 1;
     private boolean MODE_UP = true;
 
+    private int selectedTopMode = 0;
+    private int selectedGoToMode = 0;
+    private boolean topMode = true;
+    private boolean goToMode = false;
+    private boolean newRouteMode = false;
+    private boolean routeListMode = false;
+
+    private boolean startSettingMode  = false;
+    private boolean routeSettingMode  = false;
+    private boolean XSettingMode = true;
+    private boolean YSettingMode = false;
+    private boolean speedSettingMode = false;
+    private boolean strategySettingMode = false;
+    private boolean waitSettingMode = false;
+
+
+    private AutoStep goToInstructions = new AutoStep();
+
     private static double CALIB_WEIGHT = 15.2;
 
 
+    private static final int[] modesTop = new int[]{0, 1, 2};
+    private static final String[] modeNamesTop = new String[]{"Go To", "Start Position", "Routes"};
 
-    private boolean MOVING = false;
+    private static final int[] modesStep = new int[]{0, 1, 2, 3, 4};
+    private static final String[] modeStepName = new String[]{"Destination", "Top Speed", "Strategy", "Wait", "Action"};
+
 
 
     private double DISTANCE_Y = 0;
@@ -77,6 +102,8 @@ public class MasterOdo extends LinearOpMode {
     Deadline gamepadRateLimit;
     private final static int GAMEPAD_LOCKOUT = 500;
 
+    RobotCoordinatePostiion locator = null;
+
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -87,215 +114,317 @@ public class MasterOdo extends LinearOpMode {
             bot.initCalibData();
             gamepadRateLimit = new Deadline(GAMEPAD_LOCKOUT, TimeUnit.MILLISECONDS);
 
-            restoreConfig();
-//            showSettings();
+//            restoreConfig();
 
             waitForStart();
+
+
+            restartLocator();
 
             if (this.led != null){
                 this.led.start();
             }
-            showSettings();
+
+            showConfig();
 
             while (opModeIsActive()) {
-
                 processCommands();
-
             }
         }
         catch (Exception ex){
             telemetry.addData("Error", ex.getMessage());
             telemetry.update();
         }
+        finally {
+            if (locator != null){
+                locator.stop();
+            }
+        }
     }
+
+    private void restartLocator(){
+        if (locator != null){
+            locator.stop();
+        }
+
+        locator = new RobotCoordinatePostiion(bot, new Point(startX, startY), desiredHead,75);
+        locator.reverseHorEncoder();
+        Thread positionThread = new Thread(locator);
+        positionThread.start();
+    }
+
+    private void toggleRouteSettings(){
+        if (XSettingMode){
+            XSettingMode = false;
+            YSettingMode = true;
+        }
+        else if (YSettingMode){
+            YSettingMode = false;
+            XSettingMode = true;
+        }
+    }
+
 
     private void processCommands(){
         if (!gamepadRateLimit.hasExpired()) {
             return;
         }
-        if (gamepad1.x){
-            MOVING = false;
-            if (xmode == false){
-                xmode = true;
-                showConfig();
-            }
-            else{
-                //accept x value
-                xmode = false;
-                targetX = valueX;
-                showSettings();
-            }
-            gamepadRateLimit.reset();
-        }
-
-        if (gamepad1.y){
-            MOVING = false;
-            if (ymode == false){
-                ymode = true;
-                showConfig();
-            }
-            else{
-                //accept y value
-                ymode = false;
-                targetY = valueY;
-                showSettings();
-            }
-            gamepadRateLimit.reset();
-        }
-
-        if (gamepad1.a){
-            MOVING = false;
-            if (speedMode == false){
-                speedMode = true;
-                showConfig();
-            }
-            else{
-                speedMode = false;
-                SPEED = valueSpeed;
-                showSettings();
-            }
-            gamepadRateLimit.reset();
-        }
-
-        if (gamepad1.b){
-            MOVING = false;
-            if (headingMode == false){
-                headingMode = true;
-                showConfig();
-            }
-            else{
-                headingMode = false;
-                desiredHead = valueHead;
-                showSettings();
-            }
-            gamepadRateLimit.reset();
-        }
 
         if (gamepad1.back){
-            MOVING = false;
-            if (xmode){
-                valueX = 0;
-            }
 
-            if (ymode){
-                valueY = 0;
-            }
-            if (speedMode){
-                valueSpeed = 0;
-            }
+            topMode = true;
+            goToMode = false;
 
-            if (headingMode){
-                valueHead = 0;
-            }
-            showSettings();
+            showConfig();
             gamepadRateLimit.reset();
         }
 
         if (gamepad1.dpad_left ){
-            MOVING = false;
-            MODE_VALUE = -changeIncrement();
+
+            if (routeSettingMode || startSettingMode){
+                toggleRouteSettings();
+            }
+
+//            MODE_VALUE = -changeIncrement();
             showConfig();
             gamepadRateLimit.reset();
         }
 
         if (gamepad1.dpad_right){
-            MOVING = false;
+            if (routeSettingMode || startSettingMode){
+                toggleRouteSettings();
+            }
 
-            MODE_VALUE = changeIncrement();
+//            MODE_VALUE = changeIncrement();
             showConfig();
             gamepadRateLimit.reset();
         }
 
         //value adjustment
         if (gamepad1.dpad_down){
-            MOVING = false;
-            if (xmode){
-                valueX = valueX + MODE_VALUE;
-            }
+            if (routeSettingMode){
+                if (XSettingMode) {
+                    int x = goToInstructions.getTargetX();
+                    x -= 5;
+                    goToInstructions.setTargetX(x);
+                }
+                else if (YSettingMode){
+                    int y = goToInstructions.getTargetY();
+                    y -= 5;
+                    goToInstructions.setTargetY(y);
+                }
 
-            if (ymode){
-                valueY = valueY + MODE_VALUE;
             }
-
-            if (speedMode && valueSpeed < 1){
-                valueSpeed = valueSpeed + SPEED_INCREMENT;
+            else if (startSettingMode){
+                if (XSettingMode) {
+                    startX -= 5;
+                }
+                else if (YSettingMode){
+                    startY -= 5;
+                }
             }
-
-            if (headingMode && valueHead < 180){
+            else if (speedSettingMode){
+                double speed = goToInstructions.getTopSpeed();
+                speed = speed - SPEED_INCREMENT;
+                if (speed < 0){
+                    speed = 0;
+                }
+                goToInstructions.setTopSpeed(speed);
+            }
+            else if (strategySettingMode){
+                int index = goToInstructions.getMoveStrategy().ordinal();
+                int total = MoveStrategy.values().length;
+                index--;
+                if (index < 0){
+                    index = total - 1;
+                }
+                MoveStrategy updated = MoveStrategy.values()[index];
+                goToInstructions.setMoveStrategy(updated);
+            }
+            else if (waitSettingMode){
+                int waitMS = goToInstructions.getWaitMS();
+                waitMS -= 500;
+                if (waitMS < 0){
+                    waitMS = 0;
+                }
+                goToInstructions.setWaitMS(waitMS);
+            }
+            else if (headingMode && valueHead < 180){
                 valueHead = valueHead + Math.abs(MODE_VALUE);
+            }
+            else{
+                if (topMode) {
+                    if (selectedTopMode < modesTop.length) {
+                        selectedTopMode++;
+                    }
+                }
+                else if (goToMode){
+                    if (selectedGoToMode < modesStep.length) {
+                        selectedGoToMode++;
+                    }
+                }
             }
             showConfig();
             gamepadRateLimit.reset();
         }
 
         if (gamepad1.dpad_up){
-            MOVING = false;
-            if (xmode){
-                valueX -= MODE_VALUE;
-            }
+            if (routeSettingMode){
+                if (XSettingMode) {
+                    int x = goToInstructions.getTargetX();
+                    x += 5;
+                    goToInstructions.setTargetX(x);
+                }
+                else if (YSettingMode){
+                    int y = goToInstructions.getTargetY();
+                    y += 5;
+                    goToInstructions.setTargetY(y);
+                }
 
-            if (ymode){
-                valueY -= MODE_VALUE;
             }
-
-            if (speedMode && valueSpeed > 0){
-                valueSpeed -= SPEED_INCREMENT;
+            else if (startSettingMode){
+                if (XSettingMode) {
+                    startX += 5;
+                }
+                else if (YSettingMode){
+                    startY += 5;
+                }
             }
-
-            if (headingMode && valueHead > -180){
+            else if (speedSettingMode){
+                double speed = goToInstructions.getTopSpeed();
+                speed = speed + SPEED_INCREMENT;
+                if (speed > 1){
+                    speed = 1;
+                }
+                goToInstructions.setTopSpeed(speed);
+            }
+            else if (waitSettingMode){
+                int waitMS = goToInstructions.getWaitMS();
+                waitMS += 500;
+                goToInstructions.setWaitMS(waitMS);
+            }
+            else if (strategySettingMode){
+                int index = goToInstructions.getMoveStrategy().ordinal();
+                int total = MoveStrategy.values().length;
+                index++;
+                if (index >= total){
+                    index = 0;
+                }
+                MoveStrategy updated = MoveStrategy.values()[index];
+                goToInstructions.setMoveStrategy(updated);
+            }
+            else if (headingMode && valueHead > -180){
                 valueHead = valueHead - Math.abs(MODE_VALUE);
+            }
+            else{
+                if (topMode) {
+                    if (selectedTopMode > 0) {
+                        selectedTopMode--;
+                    }
+                }
+                else if (goToMode){
+                    if (selectedGoToMode > 0) {
+                        selectedGoToMode--;
+                    }
+                }
             }
 
             showConfig();
             gamepadRateLimit.reset();
         }
 
+        if (gamepad1.start){
 
-        if (!MOVING&& gamepad1.right_bumper){
+            if (goToMode){
+                goTo();
+            }
+            showConfig();
             gamepadRateLimit.reset();
-            saveConfig();
-
-            MOVING = true;
-            if (startY != targetY) {
-                if (startX == targetX) {
-                    if (targetY < Math.round(bot.ROBOT_LENGTH_Y)) {
-                        targetY = (int) Math.round(bot.ROBOT_LENGTH_Y) + 1;
-                    }
-                    if (targetY > FieldStats.MAX_Y_INCHES) {
-                        targetY = FieldStats.MAX_Y_INCHES - 1;
-                    }
-                    DISTANCE_Y = targetY - startY;
-                    ratio = moveForward();
-                    startY = targetY;
-                    showStats();
-                }
-                else{
-                    curve();
-                }
-            }
-            else{
-                if (startX != targetX){
-                    strafe();
-                }
-                else {
-                    spin();
-                }
-                showStats();
-            }
         }
 
-        if (!MOVING&& gamepad1.left_bumper){
+        //accept
+        if (gamepad1.right_bumper){
+            if (topMode){
+                switch (selectedTopMode){
+                    case 0:
+                        topMode = false;
+                        goToMode = true;
+                        break;
+                    case 1:
+                        startSettingMode = !startSettingMode;
+                        break;
+                }
+            }
+            else if (goToMode){
+                switch (selectedGoToMode){
+                    case 0:
+                        routeSettingMode = !routeSettingMode;
+                        break;
+                    case 1:
+                        speedSettingMode = !speedSettingMode;
+                        break;
+                    case 2:
+                        strategySettingMode = !strategySettingMode;
+                        break;
+                    case 3:
+                        waitSettingMode = !waitSettingMode;
+                        break;
+                }
+            }
+            showConfig();
             gamepadRateLimit.reset();
-            saveConfig();
-
-            MOVING = true;
-
-            spin();
-
-            showStats();
         }
+
+
+//        if (!MOVING&& gamepad1.right_bumper){
+//            gamepadRateLimit.reset();
+//            saveConfig();
+//
+//            MOVING = true;
+//            if (startY != targetY) {
+//                if (startX == targetX) {
+//                    if (targetY < Math.round(bot.ROBOT_LENGTH_Y)) {
+//                        targetY = (int) Math.round(bot.ROBOT_LENGTH_Y) + 1;
+//                    }
+//                    if (targetY > FieldStats.MAX_Y_INCHES) {
+//                        targetY = FieldStats.MAX_Y_INCHES - 1;
+//                    }
+//                    DISTANCE_Y = targetY - startY;
+//                    ratio = moveForward();
+//                    startY = targetY;
+//                    showStats();
+//                }
+//                else{
+//                    curve();
+//                }
+//            }
+//            else{
+//                if (startX != targetX){
+//                    strafe();
+//                }
+//                else {
+//                    spin();
+//                }
+//                showStats();
+//            }
+//        }
+//
+//
+//
+//        if (!MOVING&& gamepad1.left_bumper){
+//            gamepadRateLimit.reset();
+//            saveConfig();
+//
+//            MOVING = true;
+//
+//            spin();
+//
+//            showStats();
+//        }
 
     }
+
+
 
     private int changeIncrement(){
         int tempVal = Math.abs(MODE_VALUE);
@@ -337,7 +466,7 @@ public class MasterOdo extends LinearOpMode {
             telemetry.update();
         }
         nextHead = bot.getGyroHeading();
-        MOVING = false;
+
         if (this.led != null){
             this.led.start();
         }
@@ -360,26 +489,36 @@ public class MasterOdo extends LinearOpMode {
         }
 
         nextHead = bot.getGyroHeading();
-        MOVING = false;
+
         if (this.led != null){
             this.led.start();
         }
     }
 
-    private void  curve(){
-        RobotCoordinatePostiion locator = null;
-        try {
-            //tracker
-            locator = new RobotCoordinatePostiion(bot, new Point(startX, startY), 0,75);
-            locator.reverseHorEncoder();
-            Thread positionThread = new Thread(locator);
-            positionThread.start();
-            bot.moveToCoordinate(new Point(startX, startY), new Point(targetX, targetY), RobotDirection.Forward, SPEED, locator);
+    private void goTo(){
+        int x = (int)locator.getXInches();
+        int y = (int)locator.getYInches();
+        waitToStartStep(goToInstructions.getWaitMS());
+        MoveStrategy strategy = goToInstructions.getMoveStrategy();
+        if (strategy == MoveStrategy.Curve) {
+
+            BotMoveProfile profile = BotMoveProfile.bestRoute(bot, x, y, new Point(goToInstructions.getTargetX(), goToInstructions.getTargetY()),
+                    RobotDirection.Optimal, goToInstructions.getTopSpeed(), locator);
+            curve(profile);
         }
-        finally {
-            if (locator != null){
-                locator.stop();
-            }
+    }
+
+    private void  curve(BotMoveProfile profile){
+
+        bot.moveCurveCalib(profile, locator);
+
+
+    }
+
+    private void waitToStartStep(int MS){
+        timer.reset();
+        while(timer.milliseconds() < MS && opModeIsActive()){
+
         }
     }
 
@@ -404,10 +543,8 @@ public class MasterOdo extends LinearOpMode {
 
         double distance = Math.abs(startX - targetX);
 
-        //todo: pull reudction from config
+        //todo: pull reduction from config
         bot.strafeTo(SPEED, distance, left);
-
-
 
         timer.reset();
         while(timer.milliseconds() < 1000 && opModeIsActive()){
@@ -416,7 +553,7 @@ public class MasterOdo extends LinearOpMode {
         }
 
         nextHead = bot.getGyroHeading();
-        MOVING = false;
+
         if (this.led != null){
             this.led.start();
         }
@@ -433,37 +570,88 @@ public class MasterOdo extends LinearOpMode {
         telemetry.update();
     }
 
+    private String getStepValue(int index){
+        String val = "";
+        switch (index){
+            case 0:
+                //destination
+                val = goToInstructions.getDestination();
+                break;
+            case 1:
+                val = goToInstructions.getTopSpeedString();
+                break;
+            case 2:
+                val = goToInstructions.getMoveStrategyString();
+                break;
+            case 3:
+                val = goToInstructions.getWaitString();
+                break;
+            case 4:
+                val = goToInstructions.getAction();
+                break;
+        }
+        return val;
+    }
+
     private void showConfig(){
-        if (xmode){
-            telemetry.addData("Config", "Setting x");
-            telemetry.addData("X", valueX);
-            telemetry.addData("Mode", MODE_VALUE);
-            showHints(true);
-            telemetry.addData("To save", "Press X");
-        }
-        if (ymode){
-            telemetry.addData("Config", "Setting y");
-            telemetry.addData("Y", valueY);
-            telemetry.addData("Mode", MODE_VALUE);
-            showHints(true);
-            telemetry.addData("To save", "Press Y");
-        }
-        if (speedMode){
-            telemetry.addData("Config", "Setting speed");
-            telemetry.addData("Speed", "%.2f", valueSpeed);
-            showHints(false);
-            telemetry.addData("To save", "Press A");
-        }
+        try {
+            if (routeSettingMode) {
+                showTarget();
+            } else if (startSettingMode) {
+                showStart();
+            } else if (speedSettingMode) {
+                telemetry.addData("Config", "Setting speed");
+                telemetry.addData("Top Speed", "%.2f", goToInstructions.getTopSpeed());
+                showHints(false);
+                telemetry.addData("To save", "Press A");
+            } else if (headingMode) {
+                telemetry.addData("Config", "Setting heading");
+                telemetry.addData("Heading", "%.2f", valueHead);
+                telemetry.addData("Mode", MODE_VALUE);
+                showHints(false);
+                telemetry.addData("To save", "Press B");
+            } else if (strategySettingMode) {
+                for (MoveStrategy s : MoveStrategy.values()) {
+                    if (goToInstructions.getMoveStrategy().equals(s)) {
+                        telemetry.addData(s.name(), "*");
+                    } else {
+                        telemetry.addData(s.name(), " ");
+                    }
+                }
+            } else if (waitSettingMode) {
+                telemetry.addData("Initial Wait Time MS", goToInstructions.getWaitString());
+            } else if (topMode) {
+                for (int i = 0; i < modesTop.length; i++) {
+                    String selected = i == selectedTopMode ? "*" : " ";
+                    telemetry.addData(selected, modeNamesTop[i]);
+                }
+            } else if (goToMode) {
+                for (int i = 0; i < modesStep.length; i++) {
+                    String selected = i == selectedGoToMode ? "*" : " ";
+                    telemetry.addData(String.format("%s%s", selected, modeStepName[i]), getStepValue(i));
+                }
+            }
 
-        if (headingMode){
-            telemetry.addData("Config", "Setting heading");
-            telemetry.addData("Heading", "%.2f", valueHead);
-            telemetry.addData("Mode", MODE_VALUE);
-            showHints(false);
-            telemetry.addData("To save", "Press B");
+            telemetry.update();
         }
+        catch (Exception ex){
+            telemetry.addData("Error", ex.getMessage());
+            telemetry.update();
+        }
+    }
 
-        telemetry.update();
+    private void showTarget(){
+        String toX = XSettingMode ? "*" : " ";
+        String toY = YSettingMode ? "*" : " ";
+
+        telemetry.addData("Target", "%d%s : %d%s", goToInstructions.getTargetX(), toX, goToInstructions.getTargetY(), toY);
+    }
+
+    private void showStart(){
+        String toX = XSettingMode ? "*" : " ";
+        String toY = YSettingMode ? "*" : " ";
+
+        telemetry.addData("Target", "%d%s : %d%s", startX, toX, startY, toY);
     }
 
     private void showHints(boolean full){
@@ -541,6 +729,44 @@ public class MasterOdo extends LinearOpMode {
             telemetry.addData("Error", "Issues when reading file. %s", e.getMessage());
             telemetry.update();
         }
+    }
+
+    public  List<String> listBotActions() {
+        final List<String> methods = new ArrayList<String>();
+        Class<?> klass = this.bot.getClass();
+        while (klass != Object.class) { // need to iterated thought hierarchy in order to retrieve methods from above the current instance
+            // iterate though the list of methods declared in the class represented by klass variable, and add those annotated with the specified annotation
+            for (final Method method : klass.getDeclaredMethods()) {
+                if (method.isAnnotationPresent(BotAction.class)) {
+                    BotAction annotInstance = method.getAnnotation(BotAction.class);
+                    methods.add(annotInstance.displayName());
+                }
+            }
+            // move to the upper class in the hierarchy in search for more methods
+            klass = klass.getSuperclass();
+        }
+        return methods;
+    }
+
+    public  Method findBotActionMethod(String actionName) {
+        Method m = null;
+        final List<String> methods = new ArrayList<String>();
+        Class<?> klass = this.bot.getClass();
+        while (klass != Object.class) { // need to iterated thought hierarchy in order to retrieve methods from above the current instance
+            // iterate though the list of methods declared in the class represented by klass variable, and add those annotated with the specified annotation
+            for (final Method method : klass.getDeclaredMethods()) {
+                if (method.isAnnotationPresent(BotAction.class)) {
+                    BotAction annotInstance = method.getAnnotation(BotAction.class);
+                    if (annotInstance.displayName().equals(actionName)){
+                        m = method;
+                        break;
+                    }
+                }
+            }
+            // move to the upper class in the hierarchy in search for more methods
+            klass = klass.getSuperclass();
+        }
+        return m;
     }
 
 

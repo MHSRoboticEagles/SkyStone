@@ -62,15 +62,23 @@ public class MotorReductionBot implements Serializable {
     }
 
 
-    public void inrementSelectedMR(){
-        this.MRs[selectedIndex] = this.MRs[selectedIndex] + 0.01;
+    public void inrementSelectedMR(boolean tenIncrement){
+        double val = 0.01;
+        if (tenIncrement){
+            val = val * 10;
+        }
+        this.MRs[selectedIndex] = this.MRs[selectedIndex] + val;
         if (this.MRs[selectedIndex] > 1){
             this.MRs[selectedIndex] = 1;
         }
     }
 
-    public void decrementSelectedMR(){
-        this.MRs[selectedIndex] = this.MRs[selectedIndex] - 0.01;
+    public void decrementSelectedMR(boolean tenIncrement){
+        double val = 0.01;
+        if (tenIncrement){
+            val = val * 10;
+        }
+        this.MRs[selectedIndex] = this.MRs[selectedIndex] - val;
         if (this.MRs[selectedIndex] < 0){
             this.MRs[selectedIndex] = 0;
         }
