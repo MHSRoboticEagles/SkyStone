@@ -338,10 +338,12 @@ public class YellowBot implements OdoBot{
         ExpansionHubMotor lf = (ExpansionHubMotor) hwMap.dcMotor.get(LEFT_FRONT);
 
         MotorReductionBot sample = new MotorReductionBot();
-        sample.setRB(rb.getCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
-        sample.setRF(rf.getCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
-        sample.setLB(lb.getCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
-        sample.setLF(lf.getCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
+        if (rb != null && rf != null && lb != null && lf != null) {
+            sample.setRB(rb.getCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
+            sample.setRF(rf.getCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
+            sample.setLB(lb.getCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
+            sample.setLF(lf.getCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
+        }
         return sample;
     }
 
@@ -851,11 +853,11 @@ public class YellowBot implements OdoBot{
     }
 
 
-    public void spinH(double desiredHeading, double speed){
+    public void spinH(double degrees, double speed){
         speed = Math.abs(speed);
-        double currentHead = this.getGyroHeading();
+//        double currentHead = this.getGyroHeading();
         boolean spinLeft = false;
-        if (desiredHeading > currentHead){
+        if (degrees > 0){
             spinLeft = true;
         }
 
@@ -869,14 +871,15 @@ public class YellowBot implements OdoBot{
             leftDesiredSpeed = -leftDesiredSpeed;
         }
 
-        double archDegrees = Math.abs(desiredHeading - currentHead);
+        double archDegrees = Math.abs(degrees);
         double horDistance = archDegrees * botConfig.getHorizontalTicksDegree();
+        telemetry.addData("horDistance", horDistance);
 
 
 
         double startingPoint = this.getHorizontalOdometer();
 
-        double slowdownDistance = horDistance * 0.4;
+        double slowdownDistance = horDistance * 0.2;
 
         double slowdownMark = 0;
 

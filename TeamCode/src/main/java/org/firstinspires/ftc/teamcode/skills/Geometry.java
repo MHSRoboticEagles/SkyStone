@@ -23,4 +23,17 @@ public class Geometry {
         }
         return radius;
     }
+
+    public static double getAngle(double targetVector, double currentHead){
+        boolean clockwise = targetVector < currentHead;
+        double shortAngle = Math.abs(targetVector - currentHead);
+        if (shortAngle > 180){
+            shortAngle = 360 - shortAngle;
+            clockwise = !clockwise;
+        }
+        if (!clockwise){
+            shortAngle = - shortAngle;
+        }
+        return shortAngle;
+    }
 }

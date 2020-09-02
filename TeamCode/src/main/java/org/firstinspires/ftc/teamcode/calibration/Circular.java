@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.calibration;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -9,6 +10,7 @@ import org.firstinspires.ftc.teamcode.bots.YellowBot;
 
 
 @TeleOp(name="Calibration Turn", group="Robot15173")
+@Disabled
 public class Circular extends LinearOpMode {
 
     private YellowBot bot = new YellowBot();

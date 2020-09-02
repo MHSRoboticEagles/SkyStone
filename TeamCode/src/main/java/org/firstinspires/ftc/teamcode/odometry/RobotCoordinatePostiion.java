@@ -4,6 +4,7 @@ import android.graphics.Point;
 
 import org.firstinspires.ftc.teamcode.bots.BotMoveProfile;
 import org.firstinspires.ftc.teamcode.bots.BotMoveRequest;
+import org.firstinspires.ftc.teamcode.bots.MoveStrategy;
 import org.firstinspires.ftc.teamcode.bots.RobotDirection;
 import org.firstinspires.ftc.teamcode.bots.YellowBot;
 import org.firstinspires.ftc.teamcode.calibration.BotCalibConfig;
@@ -34,6 +35,7 @@ public class RobotCoordinatePostiion implements Runnable {
     private int verticalRightEncoderPositionMultiplier = 1;
     private int horEncoderPositionMultiplier = 1;
     private BotMoveRequest target = null;
+    private double initialOrientation = 0;
 
     private double botHalfLength = bot.ROBOT_CENTER_Y* bot.COUNTS_PER_INCH_REV;
 
@@ -41,6 +43,11 @@ public class RobotCoordinatePostiion implements Runnable {
         this.bot = bot;
         config = bot.getCalibConfig();
         sleepTime = sleepTimeMS;
+        init(startPos, initialOrientation);
+    }
+
+    public void init(Point startPos, double initialOrientation){
+        this.setInitialOrientation(initialOrientation);
         this.robotGlobalXCoordinatePosition = startPos.x * bot.COUNTS_PER_INCH_REV;
         this.robotGlobalYCoordinatePosition = startPos.y * bot.COUNTS_PER_INCH_REV;
         this.robotEncoderWheelDistance = config.getWheelBaseSeparation() * bot.COUNTS_PER_INCH_REV;
@@ -95,7 +102,8 @@ public class RobotCoordinatePostiion implements Runnable {
 
 
     public void adjustRoute(){
-        BotMoveProfile profile = BotMoveProfile.bestRoute(this.bot, getXInches(), getYInches(), this.target.getTarget(), this.target.getDirection(), this.target.getTopSpeed(), this);
+        BotMoveProfile profile = BotMoveProfile.bestRoute(this.bot, getXInches(), getYInches(), this.target.getTarget(), this.target.getDirection(), this.target.getTopSpeed(), MoveStrategy.Curve,
+        this);
         realSpeedLeft = profile.getRealSpeedLeft();
         realSpeedRight = profile.getRealSpeedRight();
         this.leftLong = profile.isLeftLong();
@@ -380,5 +388,13 @@ public class RobotCoordinatePostiion implements Runnable {
 
     public void setLeftLong(boolean leftLong) {
         this.leftLong = leftLong;
+    }
+
+    public double getInitialOrientation() {
+        return initialOrientation;
+    }
+
+    public void setInitialOrientation(double initialOrientation) {
+        this.initialOrientation = initialOrientation;
     }
 }

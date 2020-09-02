@@ -9,6 +9,7 @@ import com.qualcomm.robotcore.util.ReadWriteFile;
 
 import org.firstinspires.ftc.robotcore.internal.system.Deadline;
 import org.firstinspires.ftc.teamcode.bots.BotMoveProfile;
+import org.firstinspires.ftc.teamcode.bots.MoveStrategy;
 import org.firstinspires.ftc.teamcode.bots.RobotDirection;
 import org.firstinspires.ftc.teamcode.bots.RobotMovementStats;
 import org.firstinspires.ftc.teamcode.bots.RobotVeer;
@@ -126,34 +127,39 @@ public class MasterCalib extends LinearOpMode {
             gamepadRateLimit = new Deadline(GAMEPAD_LOCKOUT, TimeUnit.MILLISECONDS);
 
 
+            try {
+                ExpansionHubEx expansionHubRight = hardwareMap.get(ExpansionHubEx.class, "Right Hub 1");
+                if (expansionHubRight != null) {
+                    telemetry.addData("Right Hub", "Stats:");
+                    telemetry.addData("Battery monitor, volts", expansionHubRight.read12vMonitor(ExpansionHubEx.VoltageUnits.VOLTS));
+                    telemetry.addData("Firmware v", expansionHubRight.getFirmwareVersion());
+                    telemetry.addData("Hardware rev", expansionHubRight.getHardwareRevision());
+                    telemetry.addData("Total current", expansionHubRight.getTotalModuleCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
+                    ExpansionHubMotor backRight = (ExpansionHubMotor) hardwareMap.dcMotor.get("backRight");
+                    ExpansionHubMotor frontRight = (ExpansionHubMotor) hardwareMap.dcMotor.get("frontRight");
 
-            ExpansionHubEx expansionHubRight = hardwareMap.get(ExpansionHubEx.class, "Right Hub 1");
-            if (expansionHubRight != null){
-                telemetry.addData("Right Hub", "Stats:");
-                telemetry.addData("Battery monitor, volts", expansionHubRight.read12vMonitor(ExpansionHubEx.VoltageUnits.VOLTS));
-                telemetry.addData("Firmware v", expansionHubRight.getFirmwareVersion());
-                telemetry.addData("Hardware rev", expansionHubRight.getHardwareRevision());
-                telemetry.addData("Total current", expansionHubRight.getTotalModuleCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
-                ExpansionHubMotor backRight = (ExpansionHubMotor) hardwareMap.dcMotor.get("backRight");
-                ExpansionHubMotor frontRight = (ExpansionHubMotor) hardwareMap.dcMotor.get("frontRight");
+                    telemetry.addData("RF current", frontRight.getCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
+                    telemetry.addData("RB current", backRight.getCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
 
-                telemetry.addData("RF current", frontRight.getCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
-                telemetry.addData("RB current", backRight.getCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
+                }
 
+                ExpansionHubEx expansionHubLeft = hardwareMap.get(ExpansionHubEx.class, "Left Hub 2");
+                if (expansionHubLeft != null) {
+                    telemetry.addData("Left Hub", "Stats:");
+                    telemetry.addData("Battery monitor, volts", expansionHubLeft.read12vMonitor(ExpansionHubEx.VoltageUnits.VOLTS));
+                    telemetry.addData("Firmware v", expansionHubLeft.getFirmwareVersion());
+                    telemetry.addData("Hardware rev", expansionHubLeft.getHardwareRevision());
+                    telemetry.addData("Total current", expansionHubLeft.getTotalModuleCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
+                    ExpansionHubMotor backLeft = (ExpansionHubMotor) hardwareMap.dcMotor.get("backLeft");
+                    ExpansionHubMotor frontLeft = (ExpansionHubMotor) hardwareMap.dcMotor.get("frontLeft");
+
+                    telemetry.addData("LF current", frontLeft.getCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
+                    telemetry.addData("LB current", backLeft.getCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
+                }
             }
-
-            ExpansionHubEx expansionHubLeft = hardwareMap.get(ExpansionHubEx.class, "Left Hub 2");
-            if (expansionHubLeft != null){
-                telemetry.addData("Left Hub", "Stats:");
-                telemetry.addData("Battery monitor, volts", expansionHubLeft.read12vMonitor(ExpansionHubEx.VoltageUnits.VOLTS));
-                telemetry.addData("Firmware v", expansionHubLeft.getFirmwareVersion());
-                telemetry.addData("Hardware rev", expansionHubLeft.getHardwareRevision());
-                telemetry.addData("Total current", expansionHubLeft.getTotalModuleCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
-                ExpansionHubMotor backLeft = (ExpansionHubMotor) hardwareMap.dcMotor.get("backLeft");
-                ExpansionHubMotor frontLeft = (ExpansionHubMotor) hardwareMap.dcMotor.get("frontLeft");
-
-                telemetry.addData("LF current", frontLeft.getCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
-                telemetry.addData("LB current", backLeft.getCurrentDraw(ExpansionHubEx.CurrentDrawUnits.AMPS));
+            catch (Exception ex){
+                telemetry.addData("Error", String.format("Issues whe getting extended info....%s"), ex.getMessage());
+                telemetry.update();
             }
 
             telemetry.addData("Master Cali", "Ready to calibrate....");
@@ -593,7 +599,7 @@ public class MasterCalib extends LinearOpMode {
             Thread positionThread = new Thread(locator);
             positionThread.start();
 
-            BotMoveProfile profile = BotMoveProfile.bestRoute(bot, startX, startY, new Point(desiredX, desiredY), RobotDirection.Optimal, desiredSpeed, locator);
+            BotMoveProfile profile = BotMoveProfile.bestRoute(bot, startX, startY, new Point(desiredX, desiredY), RobotDirection.Optimal, desiredSpeed, MoveStrategy.Curve, locator);
             profile.setStart(new Point(startX, startY));
             profile.setDestination(new Point(desiredX, desiredY));
             //override MR for calibration purposes
@@ -620,7 +626,7 @@ public class MasterCalib extends LinearOpMode {
 
             Point newStart = new Point((int)Math.round(locator.getXInches()), (int) Math.round(locator.getYInches()));
 
-            BotMoveProfile whatIfBack = BotMoveProfile.bestRoute(bot, locator.getXInches(), locator.getYInches(), new Point(startX, startY), RobotDirection.Optimal, desiredSpeed, locator);
+            BotMoveProfile whatIfBack = BotMoveProfile.bestRoute(bot, locator.getXInches(), locator.getYInches(), new Point(startX, startY), RobotDirection.Optimal, desiredSpeed, MoveStrategy.Curve, locator);
             bot.moveCurveCalib(whatIfBack, locator);
             whatIfBack.setStart(newStart);
             whatIfBack.setDestination(new Point(startX, startY));

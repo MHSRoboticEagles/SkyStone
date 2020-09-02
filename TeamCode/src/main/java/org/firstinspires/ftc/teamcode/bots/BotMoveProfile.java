@@ -15,16 +15,19 @@ public class BotMoveProfile {
     private double slowdownMarkShort = 0;
     private boolean leftLong;
     private double speedRatio = 1;
+    private double topSpeed = 0;
     private RobotDirection direction;
     private MotorReductionBot motorReduction = null;
     private BotMoveRequest target = new BotMoveRequest();
     private MoveStrategy strategy = MoveStrategy.Curve;
+    private MoveStrategy nextStep = null;
 
     private double currentHead = 0;
     private double targetVector = 0;
     private double angleChange = 0;
 
     private double distanceRatio = 1;
+    private double distance = 0;
 
     private Point start;
     private Point destination;
@@ -174,7 +177,7 @@ public class BotMoveProfile {
         this.actual = actual;
     }
 
-    public static BotMoveProfile bestRoute(OdoBot bot, double currentX, double currentY, Point target, RobotDirection direction, double topSpeed, RobotCoordinatePostiion locator){
+    public static BotMoveProfile bestRoute(OdoBot bot, double currentX, double currentY, Point target, RobotDirection direction, double topSpeed, MoveStrategy preferredStrategy, RobotCoordinatePostiion locator){
         double currentHead = locator.getOrientation();
 
         boolean clockwise = currentHead >= 0;
@@ -188,6 +191,8 @@ public class BotMoveProfile {
 
         boolean currentHeadInSquare4 = currentHead >=270 && currentHead <= 360;
         boolean currentHeadInSquare1 = currentHead >=0 && currentHead <= 90;
+
+        double distance = Geometry.getDistance(currentX, currentY, target.x, target.y);
 
         //determine the new heading to the target
         double distanceX = target.x - currentX;
@@ -232,24 +237,27 @@ public class BotMoveProfile {
         boolean targetVectorInSquare1 = targetVector >= 0 && targetVector <= 90;
         boolean targetVectorInSquare4 = targetVector >= 270 && targetVector <= 360;
 
-        double angleChange = Math.abs(targetVector - currentHead);
-        if (targetVectorInSquare1 && currentHeadInSquare4 || targetVectorInSquare4 && currentHeadInSquare1){
-            angleChange = 360 - angleChange;
+        double realAngleChange = Geometry.getAngle(targetVector, currentHead);
+        double angleChange = Math.abs(realAngleChange);
+
+        if (preferredStrategy == MoveStrategy.Spin && angleChange > 10){
+            return buildSpinProfile(realAngleChange, topSpeed, MoveStrategy.Curve);
+        }
+
+        if (preferredStrategy == MoveStrategy.Strafe){
+            return buildStrafeProfile(bot.getCalibConfig(), realAngleChange, topSpeed, distance, MoveStrategy.Curve);
         }
         if (angleChange > 90){
             if (direction == RobotDirection.Optimal) {
                 //better go backwards
                 currentHead = (currentHead + 180) % 360;
-                angleChange = Math.abs(targetVector - currentHead);
-                if (targetVectorInSquare1 && currentHeadInSquare4 || targetVectorInSquare4 && currentHeadInSquare1) {
-                    angleChange = 360 - angleChange;
-                }
+                angleChange = Math.abs(Geometry.getAngle(targetVector, currentHead));
                 direction = RobotDirection.Backward;
             }
             else {
                 //spin
                 bot.getTelemetry().addData("Route",  "Spin");
-                return new BotMoveProfile(MoveStrategy.Spin);
+                return buildSpinProfile(realAngleChange, topSpeed, MoveStrategy.Curve);
             }
         }
 
@@ -285,10 +293,8 @@ public class BotMoveProfile {
 
         if ((reduceLeft && radius <= bot.getCalibConfig().getMinRadiusLeft()) ||
                 (reduceLeft == false && radius <= bot.getCalibConfig().getMinRadiusRight())) {
-            bot.getTelemetry().addData("Radius", "Too small. Cannot turn. Attempt to strafe");
-            // if possible, strafe
-            //if not spin
-            return new BotMoveProfile(MoveStrategy.Strafe);
+            bot.getTelemetry().addData("Radius", "Too small. Cannot turn. Attempt to spin");
+            return buildSpinProfile(realAngleChange, topSpeed, MoveStrategy.Curve);
         }
 
         BotMoveProfile profile = buildMoveProfile(bot, chord, topSpeed, radius, angleChange, reduceLeft, direction);
@@ -392,6 +398,33 @@ public class BotMoveProfile {
         return profile;
     }
 
+    private static BotMoveProfile buildSpinProfile(double angleChange, double topSpeed, MoveStrategy next){
+        BotMoveProfile profile = new BotMoveProfile();
+        profile.setAngleChange(angleChange);
+        profile.setStrategy(MoveStrategy.Spin);
+        profile.setTopSpeed(topSpeed);
+        profile.setNextStep(next);
+        return profile;
+    }
+
+    private static BotMoveProfile buildStrafeProfile(BotCalibConfig botConfig, double angleChange, double topSpeed, double distance, MoveStrategy next){
+        BotMoveProfile profile = new BotMoveProfile();
+        boolean left = angleChange > 0;
+        if (left){
+            profile.setMotorReduction(botConfig.getStrafeLeftReduction());
+        }
+        else{
+            distance = -distance;
+            profile.setMotorReduction(botConfig.getStrafeRightReduction());
+        }
+        profile.setDistance(distance);
+        profile.setAngleChange(angleChange);
+        profile.setStrategy(MoveStrategy.Strafe);
+        profile.setTopSpeed(topSpeed);
+        profile.setNextStep(next);
+        return profile;
+    }
+
     public MoveStrategy getStrategy() {
         return strategy;
     }
@@ -406,5 +439,29 @@ public class BotMoveProfile {
 
     public void setDistanceRatio(double distanceRatio) {
         this.distanceRatio = distanceRatio;
+    }
+
+    public double getTopSpeed() {
+        return topSpeed;
+    }
+
+    public void setTopSpeed(double topSpeed) {
+        this.topSpeed = topSpeed;
+    }
+
+    public MoveStrategy getNextStep() {
+        return nextStep;
+    }
+
+    public void setNextStep(MoveStrategy nextStep) {
+        this.nextStep = nextStep;
+    }
+
+    public double getDistance() {
+        return distance;
+    }
+
+    public void setDistance(double distance) {
+        this.distance = distance;
     }
 }

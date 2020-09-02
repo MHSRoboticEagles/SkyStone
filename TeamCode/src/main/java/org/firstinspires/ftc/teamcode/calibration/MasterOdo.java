@@ -43,7 +43,7 @@ public class MasterOdo extends LinearOpMode {
 
     protected double ratio = 0;
 
-    protected int startX = 56;
+    protected int startX = 35;
     protected int startY = 24;
 
     protected int targetX = 0;
@@ -51,8 +51,6 @@ public class MasterOdo extends LinearOpMode {
 
     protected int valueX = 0;
     protected int valueY = 0;
-
-    private boolean headingMode = false;
 
     private double overage = 0;
 
@@ -76,6 +74,7 @@ public class MasterOdo extends LinearOpMode {
 
 
     private AutoStep goToInstructions = new AutoStep();
+    private ArrayList<AutoStep> path = new ArrayList<>();
 
     private static double CALIB_WEIGHT = 15.2;
 
@@ -119,10 +118,10 @@ public class MasterOdo extends LinearOpMode {
             waitForStart();
 
 
-            restartLocator();
+            startLocator();
 
             if (this.led != null){
-                this.led.start();
+                this.led.none();
             }
 
             showConfig();
@@ -139,18 +138,18 @@ public class MasterOdo extends LinearOpMode {
             if (locator != null){
                 locator.stop();
             }
+            path.clear();
+            path = null;
         }
     }
 
-    private void restartLocator(){
-        if (locator != null){
-            locator.stop();
+    private void startLocator(){
+        if (locator == null) {
+            locator = new RobotCoordinatePostiion(bot, new Point(startX, startY), desiredHead, 75);
+            locator.reverseHorEncoder();
+            Thread positionThread = new Thread(locator);
+            positionThread.start();
         }
-
-        locator = new RobotCoordinatePostiion(bot, new Point(startX, startY), desiredHead,75);
-        locator.reverseHorEncoder();
-        Thread positionThread = new Thread(locator);
-        positionThread.start();
     }
 
     private void toggleRouteSettings(){
@@ -216,12 +215,15 @@ public class MasterOdo extends LinearOpMode {
 
             }
             else if (startSettingMode){
+                int x = (int)locator.getXInches();
+                int y = (int)locator.getYInches();
                 if (XSettingMode) {
-                    startX -= 5;
+                    x -= 5;
                 }
                 else if (YSettingMode){
-                    startY -= 5;
+                    y -= 5;
                 }
+                locator.init(new Point(x, y), locator.getInitialOrientation());
             }
             else if (speedSettingMode){
                 double speed = goToInstructions.getTopSpeed();
@@ -248,9 +250,6 @@ public class MasterOdo extends LinearOpMode {
                     waitMS = 0;
                 }
                 goToInstructions.setWaitMS(waitMS);
-            }
-            else if (headingMode && valueHead < 180){
-                valueHead = valueHead + Math.abs(MODE_VALUE);
             }
             else{
                 if (topMode) {
@@ -283,12 +282,15 @@ public class MasterOdo extends LinearOpMode {
 
             }
             else if (startSettingMode){
+                int x = (int)locator.getXInches();
+                int y = (int)locator.getYInches();
                 if (XSettingMode) {
-                    startX += 5;
+                    x += 5;
                 }
                 else if (YSettingMode){
-                    startY += 5;
+                    y += 5;
                 }
+                locator.init(new Point(x, y), locator.getInitialOrientation());
             }
             else if (speedSettingMode){
                 double speed = goToInstructions.getTopSpeed();
@@ -313,9 +315,6 @@ public class MasterOdo extends LinearOpMode {
                 MoveStrategy updated = MoveStrategy.values()[index];
                 goToInstructions.setMoveStrategy(updated);
             }
-            else if (headingMode && valueHead > -180){
-                valueHead = valueHead - Math.abs(MODE_VALUE);
-            }
             else{
                 if (topMode) {
                     if (selectedTopMode > 0) {
@@ -336,7 +335,7 @@ public class MasterOdo extends LinearOpMode {
         if (gamepad1.start){
 
             if (goToMode){
-                goTo();
+                goTo(this.goToInstructions);
             }
             showConfig();
             gamepadRateLimit.reset();
@@ -495,24 +494,56 @@ public class MasterOdo extends LinearOpMode {
         }
     }
 
-    private void goTo(){
-        int x = (int)locator.getXInches();
-        int y = (int)locator.getYInches();
-        waitToStartStep(goToInstructions.getWaitMS());
-        MoveStrategy strategy = goToInstructions.getMoveStrategy();
-        if (strategy == MoveStrategy.Curve) {
+    private void spin(BotMoveProfile profile){
+//        if (this.led != null){
+//            this.led.move();
+//        }
 
-            BotMoveProfile profile = BotMoveProfile.bestRoute(bot, x, y, new Point(goToInstructions.getTargetX(), goToInstructions.getTargetY()),
-                    RobotDirection.Optimal, goToInstructions.getTopSpeed(), locator);
-            curve(profile);
+
+        bot.spinH(profile.getAngleChange(), profile.getTopSpeed());
+
+        timer.reset();
+        while(timer.milliseconds() < 1000 && opModeIsActive()){
+            telemetry.addData("Gyroscope","Stabilizing ...");
+            telemetry.update();
+        }
+
+
+//        if (this.led != null){
+//            this.led.start();
+//        }
+    }
+
+
+    private void goTo(AutoStep instruction){
+        waitToStartStep(instruction.getWaitMS());
+        MoveStrategy strategy = instruction.getMoveStrategy();
+        executeStep(instruction, strategy);
+        path.add(instruction);
+
+    }
+
+    private void executeStep(AutoStep instruction,  MoveStrategy strategy){
+        BotMoveProfile profile = BotMoveProfile.bestRoute(bot, (int)locator.getXInches(), (int)locator.getYInches(), new Point(instruction.getTargetX(), instruction.getTargetY()),
+                RobotDirection.Optimal, instruction.getTopSpeed(), strategy, locator);
+        switch (profile.getStrategy()){
+            case Curve:
+                curve(profile);
+                break;
+            case Spin:
+                spin(profile);
+                break;
+            case Strafe:
+                strafe(profile);
+                break;
+        }
+        if (profile.getNextStep() != null){
+            executeStep(instruction, profile.getNextStep());
         }
     }
 
     private void  curve(BotMoveProfile profile){
-
         bot.moveCurveCalib(profile, locator);
-
-
     }
 
     private void waitToStartStep(int MS){
@@ -522,46 +553,12 @@ public class MasterOdo extends LinearOpMode {
         }
     }
 
-    private void strafe(){
-        if (this.led != null){
-            this.led.move();
-        }
-        startHead = bot.getGyroHeading();
-
-        boolean left = false;
-        if (startHead > -90 && startHead < 90){
-            if (targetX < startX){
-                left = true;
-            }
-        }
-
-        if (startHead < -90 || startHead > 90){
-            if (targetX > startX){
-                left = true;
-            }
-        }
-
-        double distance = Math.abs(startX - targetX);
-
-        //todo: pull reduction from config
-        bot.strafeTo(SPEED, distance, left);
-
-        timer.reset();
-        while(timer.milliseconds() < 1000 && opModeIsActive()){
-            telemetry.addData("Gyroscope","Stabilizing ...");
-            telemetry.update();
-        }
-
-        nextHead = bot.getGyroHeading();
-
-        if (this.led != null){
-            this.led.start();
-        }
+    private void strafe(BotMoveProfile profile){
+        double distance = profile.getDistance();
+        bot.strafeToCalib(profile.getTopSpeed(), distance, distance > 0, profile.getMotorReduction());
     }
 
     private void showSettings(){
-        telemetry.addData("Start X", "%.2f. To change press x", startX);
-        telemetry.addData("Start Y", "%.2f. To change press y", startY);
         telemetry.addData("Target X", "%.2f. To change press x", targetX);
         telemetry.addData("Target Y", "%.2f. To change press y", targetY);
         telemetry.addData("Heading", "%.2f. To change press b", desiredHead);
@@ -600,17 +597,8 @@ public class MasterOdo extends LinearOpMode {
             } else if (startSettingMode) {
                 showStart();
             } else if (speedSettingMode) {
-                telemetry.addData("Config", "Setting speed");
                 telemetry.addData("Top Speed", "%.2f", goToInstructions.getTopSpeed());
-                showHints(false);
-                telemetry.addData("To save", "Press A");
-            } else if (headingMode) {
-                telemetry.addData("Config", "Setting heading");
-                telemetry.addData("Heading", "%.2f", valueHead);
-                telemetry.addData("Mode", MODE_VALUE);
-                showHints(false);
-                telemetry.addData("To save", "Press B");
-            } else if (strategySettingMode) {
+            }else if (strategySettingMode) {
                 for (MoveStrategy s : MoveStrategy.values()) {
                     if (goToInstructions.getMoveStrategy().equals(s)) {
                         telemetry.addData(s.name(), "*");
@@ -626,6 +614,7 @@ public class MasterOdo extends LinearOpMode {
                     telemetry.addData(selected, modeNamesTop[i]);
                 }
             } else if (goToMode) {
+                showStart();
                 for (int i = 0; i < modesStep.length; i++) {
                     String selected = i == selectedGoToMode ? "*" : " ";
                     telemetry.addData(String.format("%s%s", selected, modeStepName[i]), getStepValue(i));
@@ -651,7 +640,7 @@ public class MasterOdo extends LinearOpMode {
         String toX = XSettingMode ? "*" : " ";
         String toY = YSettingMode ? "*" : " ";
 
-        telemetry.addData("Target", "%d%s : %d%s", startX, toX, startY, toY);
+        telemetry.addData("Start", "%d%s : %d%s", (int)locator.getXInches(), toX, (int)locator.getYInches(), toY);
     }
 
     private void showHints(boolean full){
