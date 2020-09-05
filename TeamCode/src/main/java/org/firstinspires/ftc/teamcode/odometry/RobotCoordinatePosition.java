@@ -9,7 +9,7 @@ import org.firstinspires.ftc.teamcode.bots.RobotDirection;
 import org.firstinspires.ftc.teamcode.bots.YellowBot;
 import org.firstinspires.ftc.teamcode.calibration.BotCalibConfig;
 
-public class RobotCoordinatePostiion implements Runnable {
+public class RobotCoordinatePosition implements Runnable {
 
     BotCalibConfig config;
     YellowBot bot;
@@ -39,7 +39,7 @@ public class RobotCoordinatePostiion implements Runnable {
 
     private double botHalfLength = bot.ROBOT_CENTER_Y* bot.COUNTS_PER_INCH_REV;
 
-    public RobotCoordinatePostiion(YellowBot bot, Point startPos, double initialOrientation, int sleepTimeMS){
+    public RobotCoordinatePosition(YellowBot bot, Point startPos, double initialOrientation, int sleepTimeMS){
         this.bot = bot;
         config = bot.getCalibConfig();
         sleepTime = sleepTimeMS;
@@ -56,7 +56,7 @@ public class RobotCoordinatePostiion implements Runnable {
     }
 
 
-    private void updatePostition(){
+    private void updatePosition(){
         verticalLeftEncoderWheelPosition = (bot.getLeftOdometer() * verticalLeftEncoderPositionMultiplier);
         verticalRightEncoderWheelPosition = (bot.getRightOdometer() * verticalRightEncoderPositionMultiplier);
 
@@ -88,7 +88,7 @@ public class RobotCoordinatePostiion implements Runnable {
     @Override
     public void run() {
         while(isRunning) {
-            updatePostition();
+            updatePosition();
             if(target != null){
                 adjustRoute();
             }

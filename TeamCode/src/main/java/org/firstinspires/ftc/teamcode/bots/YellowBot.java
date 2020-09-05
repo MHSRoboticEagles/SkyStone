@@ -12,9 +12,8 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 import org.firstinspires.ftc.teamcode.calibration.BotCalibConfig;
 import org.firstinspires.ftc.teamcode.calibration.DiagCalibConfig;
-import org.firstinspires.ftc.teamcode.calibration.MotorName;
 import org.firstinspires.ftc.teamcode.calibration.MotorReductionBot;
-import org.firstinspires.ftc.teamcode.odometry.RobotCoordinatePostiion;
+import org.firstinspires.ftc.teamcode.odometry.RobotCoordinatePosition;
 import org.firstinspires.ftc.teamcode.skills.Geometry;
 import org.firstinspires.ftc.teamcode.skills.Gyroscope;
 import org.firstinspires.ftc.teamcode.skills.Led;
@@ -514,7 +513,7 @@ public class YellowBot implements OdoBot{
         return stats;
     }
 
-    public void moveCurveCalib(double leftspeed, double rightspeed, double lowSpeedReduction, double inchesShort, double inchesLong, RobotDirection direction, RobotCoordinatePostiion locator){
+    public void moveCurveCalib(double leftspeed, double rightspeed, double lowSpeedReduction, double inchesShort, double inchesLong, RobotDirection direction, RobotCoordinatePosition locator){
         if (frontLeft != null && frontRight != null && backLeft != null && backRight != null) {
             MotorReductionBot mr;
             mr = this.getCalibConfig().getMoveMRForward();
@@ -681,7 +680,7 @@ public class YellowBot implements OdoBot{
     }
 
 
-    public void moveCurveCalib(BotMoveProfile profile, RobotCoordinatePostiion locator){
+    public void moveCurveCalib(BotMoveProfile profile, RobotCoordinatePosition locator){
         if (frontLeft != null && frontRight != null && backLeft != null && backRight != null) {
 
             MotorReductionBot mr = profile.getMotorReduction();
@@ -975,7 +974,7 @@ public class YellowBot implements OdoBot{
 
 
 
-    public void moveToCoordinate(Point start, Point target, RobotDirection direction, double topSpeed, RobotCoordinatePostiion locator){
+    public void moveToCoordinate(Point start, Point target, RobotDirection direction, double topSpeed, RobotCoordinatePosition locator){
             //X and Y are front center of the robot
         double currentX = start.x;
         double currentY = start.y;

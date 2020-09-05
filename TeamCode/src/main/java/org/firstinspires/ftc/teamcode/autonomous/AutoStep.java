@@ -9,6 +9,7 @@ public class AutoStep {
     private double topSpeed = 0.5;
     private MoveStrategy moveStrategy = MoveStrategy.Curve;
     private String action;
+    private double desiredHead = 0;
 
     public int getWaitMS() {
         return waitMS;
@@ -72,5 +73,13 @@ public class AutoStep {
 
     public String getWaitString(){
         return String.format("%d", getWaitMS());
+    }
+
+    public double getDesiredHead() {
+        return desiredHead;
+    }
+
+    public void setDesiredHead(double desiredHead) {
+        this.desiredHead = desiredHead;
     }
 }

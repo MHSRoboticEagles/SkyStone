@@ -9,13 +9,15 @@ import com.qualcomm.robotcore.util.ReadWriteFile;
 
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 import org.firstinspires.ftc.robotcore.internal.system.Deadline;
+import org.firstinspires.ftc.teamcode.autonomous.AutoRoute;
 import org.firstinspires.ftc.teamcode.autonomous.AutoStep;
 import org.firstinspires.ftc.teamcode.bots.BotAction;
 import org.firstinspires.ftc.teamcode.bots.BotMoveProfile;
 import org.firstinspires.ftc.teamcode.bots.MoveStrategy;
 import org.firstinspires.ftc.teamcode.bots.RobotDirection;
 import org.firstinspires.ftc.teamcode.bots.YellowBot;
-import org.firstinspires.ftc.teamcode.odometry.RobotCoordinatePostiion;
+import org.firstinspires.ftc.teamcode.odometry.RobotCoordinatePosition;
+import org.firstinspires.ftc.teamcode.skills.Geometry;
 import org.firstinspires.ftc.teamcode.skills.Led;
 
 import java.io.File;
@@ -24,6 +26,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static org.firstinspires.ftc.robotcore.internal.system.AppUtil.FIRST_FOLDER;
+import static org.firstinspires.ftc.teamcode.autonomous.AutoRoute.NAME_BLUE;
+import static org.firstinspires.ftc.teamcode.autonomous.AutoRoute.NAME_RED;
+
 @TeleOp(name="Master Odo", group="Robot15173")
 public class MasterOdo extends LinearOpMode {
 
@@ -31,6 +37,8 @@ public class MasterOdo extends LinearOpMode {
     ElapsedTime timer = new ElapsedTime();
 
     private static String CONFIG_FILE_NAME = "master-odo-config.json";
+    public static final File ROUTES_FOLDER = new File(FIRST_FOLDER, "/routes/");
+    private ArrayList<AutoRoute> routes = new ArrayList<>();
 
     protected double right = 0;
     protected double left = 0;
@@ -49,11 +57,6 @@ public class MasterOdo extends LinearOpMode {
     protected int targetX = 0;
     protected int targetY = 0;
 
-    protected int valueX = 0;
-    protected int valueY = 0;
-
-    private double overage = 0;
-
     private int MODE_VALUE = 1;
     private boolean MODE_UP = true;
 
@@ -61,7 +64,7 @@ public class MasterOdo extends LinearOpMode {
     private int selectedGoToMode = 0;
     private boolean topMode = true;
     private boolean goToMode = false;
-    private boolean newRouteMode = false;
+
     private boolean routeListMode = false;
 
     private boolean startSettingMode  = false;
@@ -71,16 +74,21 @@ public class MasterOdo extends LinearOpMode {
     private boolean speedSettingMode = false;
     private boolean strategySettingMode = false;
     private boolean waitSettingMode = false;
+    private boolean desiredHeadSettingMode = false;
+    private boolean routeSavingMode = false;
+
+    private boolean routeNameSettingMode = false;
+    private boolean routeIndexSettingMode = false;
 
 
     private AutoStep goToInstructions = new AutoStep();
-    private ArrayList<AutoStep> path = new ArrayList<>();
+    private AutoRoute newRoute = new AutoRoute();
 
     private static double CALIB_WEIGHT = 15.2;
 
 
-    private static final int[] modesTop = new int[]{0, 1, 2};
-    private static final String[] modeNamesTop = new String[]{"Go To", "Start Position", "Routes"};
+    private static final int[] modesTop = new int[]{0, 1, 2, 3};
+    private static final String[] modeNamesTop = new String[]{"Go To", "Start Position", "Routes", "Save"};
 
     private static final int[] modesStep = new int[]{0, 1, 2, 3, 4};
     private static final String[] modeStepName = new String[]{"Destination", "Top Speed", "Strategy", "Wait", "Action"};
@@ -90,7 +98,7 @@ public class MasterOdo extends LinearOpMode {
     private double DISTANCE_Y = 0;
 
     private double SPEED = bot.CALIB_SPEED;
-    protected double valueSpeed = SPEED;
+
     private double SPEED_INCREMENT = 0.1;
 
     private double COORD_MIN = 1;
@@ -101,7 +109,7 @@ public class MasterOdo extends LinearOpMode {
     Deadline gamepadRateLimit;
     private final static int GAMEPAD_LOCKOUT = 500;
 
-    RobotCoordinatePostiion locator = null;
+    RobotCoordinatePosition locator = null;
 
 
     @Override
@@ -112,8 +120,9 @@ public class MasterOdo extends LinearOpMode {
             bot.initGyro();
             bot.initCalibData();
             gamepadRateLimit = new Deadline(GAMEPAD_LOCKOUT, TimeUnit.MILLISECONDS);
+            listRoutes();
 
-//            restoreConfig();
+            initRoute();
 
             waitForStart();
 
@@ -138,14 +147,14 @@ public class MasterOdo extends LinearOpMode {
             if (locator != null){
                 locator.stop();
             }
-            path.clear();
-            path = null;
+            newRoute.getSteps().clear();
+            newRoute = null;
         }
     }
 
     private void startLocator(){
         if (locator == null) {
-            locator = new RobotCoordinatePostiion(bot, new Point(startX, startY), desiredHead, 75);
+            locator = new RobotCoordinatePosition(bot, new Point(startX, startY), desiredHead, 75);
             locator.reverseHorEncoder();
             Thread positionThread = new Thread(locator);
             positionThread.start();
@@ -160,6 +169,17 @@ public class MasterOdo extends LinearOpMode {
         else if (YSettingMode){
             YSettingMode = false;
             XSettingMode = true;
+        }
+    }
+
+    private void toggleRouteNaming(){
+        if (routeNameSettingMode){
+            routeNameSettingMode = false;
+            routeIndexSettingMode = true;
+        }
+        else if (routeIndexSettingMode){
+            routeIndexSettingMode = false;
+            routeNameSettingMode = true;
         }
     }
 
@@ -183,6 +203,9 @@ public class MasterOdo extends LinearOpMode {
             if (routeSettingMode || startSettingMode){
                 toggleRouteSettings();
             }
+            else if (routeSavingMode){
+                toggleRouteNaming();
+            }
 
 //            MODE_VALUE = -changeIncrement();
             showConfig();
@@ -192,6 +215,9 @@ public class MasterOdo extends LinearOpMode {
         if (gamepad1.dpad_right){
             if (routeSettingMode || startSettingMode){
                 toggleRouteSettings();
+            }
+            else if (routeSavingMode){
+                toggleRouteNaming();
             }
 
 //            MODE_VALUE = changeIncrement();
@@ -233,6 +259,20 @@ public class MasterOdo extends LinearOpMode {
                 }
                 goToInstructions.setTopSpeed(speed);
             }
+            else if (routeListMode){
+                for(int i = 0; i < routes.size(); i++){
+                    AutoRoute r = routes.get(i);
+                    if (r.isSelected()){
+                        r.setSelected(false);
+                        if (i + 1 >= routes.size()){
+                            routes.get(0).setSelected(true);
+                        }
+                        else{
+                            routes.get(i+1).setSelected(true);
+                        }
+                    }
+                }
+            }
             else if (strategySettingMode){
                 int index = goToInstructions.getMoveStrategy().ordinal();
                 int total = MoveStrategy.values().length;
@@ -243,6 +283,14 @@ public class MasterOdo extends LinearOpMode {
                 MoveStrategy updated = MoveStrategy.values()[index];
                 goToInstructions.setMoveStrategy(updated);
             }
+            else if (desiredHeadSettingMode){
+                double desiredHead = goToInstructions.getDesiredHead();
+                desiredHead -= 5;
+                if (desiredHead < 0){
+                    desiredHead = 0;
+                }
+                goToInstructions.setDesiredHead(desiredHead);
+            }
             else if (waitSettingMode){
                 int waitMS = goToInstructions.getWaitMS();
                 waitMS -= 500;
@@ -250,6 +298,20 @@ public class MasterOdo extends LinearOpMode {
                     waitMS = 0;
                 }
                 goToInstructions.setWaitMS(waitMS);
+            }
+            else if (routeSavingMode) {
+                if (routeIndexSettingMode){
+                    int i = newRoute.getNameIndex();
+                    i -= 1;
+                    newRoute.setNameIndex(i);
+                }
+                else if (routeNameSettingMode){
+                    String name = newRoute.getName();
+                    if (name.equals(NAME_BLUE)){
+                        name = NAME_RED;
+                    }
+                newRoute.setName(name);
+                }
             }
             else{
                 if (topMode) {
@@ -300,6 +362,25 @@ public class MasterOdo extends LinearOpMode {
                 }
                 goToInstructions.setTopSpeed(speed);
             }
+            else if (routeListMode){
+                for(int i = routes.size(); i >= 0; i--){
+                    AutoRoute r = routes.get(i);
+                    if (r.isSelected()){
+                        r.setSelected(false);
+                        if (i  < 0){
+                            routes.get(routes.size() -1 ).setSelected(true);
+                        }
+                        else{
+                            routes.get(0).setSelected(true);
+                        }
+                    }
+                }
+            }
+            else if (desiredHeadSettingMode){
+                double desiredHead = goToInstructions.getDesiredHead();
+                desiredHead += 5;
+                goToInstructions.setDesiredHead(desiredHead);
+            }
             else if (waitSettingMode){
                 int waitMS = goToInstructions.getWaitMS();
                 waitMS += 500;
@@ -314,6 +395,20 @@ public class MasterOdo extends LinearOpMode {
                 }
                 MoveStrategy updated = MoveStrategy.values()[index];
                 goToInstructions.setMoveStrategy(updated);
+            }
+            else if (routeSavingMode) {
+                if (routeIndexSettingMode){
+                    int i = newRoute.getNameIndex();
+                    i += 1;
+                    newRoute.setNameIndex(i);
+                }
+                else if (routeNameSettingMode){
+                    String name = newRoute.getName();
+                    if (name.equals(NAME_RED)){
+                        name = NAME_BLUE;
+                    }
+                newRoute.setName(name);
+                }
             }
             else{
                 if (topMode) {
@@ -337,6 +432,20 @@ public class MasterOdo extends LinearOpMode {
             if (goToMode){
                 goTo(this.goToInstructions);
             }
+            else if (routeSavingMode){
+                saveRoute();
+            }
+            else if (routeListMode){
+                runSelectedRoute();
+            }
+            showConfig();
+            gamepadRateLimit.reset();
+        }
+
+        if (gamepad1.x){
+            if (routeListMode){
+                deleteSelectedRoute();
+            }
             showConfig();
             gamepadRateLimit.reset();
         }
@@ -351,6 +460,12 @@ public class MasterOdo extends LinearOpMode {
                         break;
                     case 1:
                         startSettingMode = !startSettingMode;
+                        break;
+                    case 2:
+                        routeListMode = !routeListMode;
+                        break;
+                    case 3:
+                        routeSavingMode = !routeSavingMode;
                         break;
                 }
             }
@@ -368,58 +483,14 @@ public class MasterOdo extends LinearOpMode {
                     case 3:
                         waitSettingMode = !waitSettingMode;
                         break;
+                    case 4:
+                        desiredHeadSettingMode = !desiredHeadSettingMode;
+                        break;
                 }
             }
             showConfig();
             gamepadRateLimit.reset();
         }
-
-
-//        if (!MOVING&& gamepad1.right_bumper){
-//            gamepadRateLimit.reset();
-//            saveConfig();
-//
-//            MOVING = true;
-//            if (startY != targetY) {
-//                if (startX == targetX) {
-//                    if (targetY < Math.round(bot.ROBOT_LENGTH_Y)) {
-//                        targetY = (int) Math.round(bot.ROBOT_LENGTH_Y) + 1;
-//                    }
-//                    if (targetY > FieldStats.MAX_Y_INCHES) {
-//                        targetY = FieldStats.MAX_Y_INCHES - 1;
-//                    }
-//                    DISTANCE_Y = targetY - startY;
-//                    ratio = moveForward();
-//                    startY = targetY;
-//                    showStats();
-//                }
-//                else{
-//                    curve();
-//                }
-//            }
-//            else{
-//                if (startX != targetX){
-//                    strafe();
-//                }
-//                else {
-//                    spin();
-//                }
-//                showStats();
-//            }
-//        }
-//
-//
-//
-//        if (!MOVING&& gamepad1.left_bumper){
-//            gamepadRateLimit.reset();
-//            saveConfig();
-//
-//            MOVING = true;
-//
-//            spin();
-//
-//            showStats();
-//        }
 
     }
 
@@ -519,7 +590,7 @@ public class MasterOdo extends LinearOpMode {
         waitToStartStep(instruction.getWaitMS());
         MoveStrategy strategy = instruction.getMoveStrategy();
         executeStep(instruction, strategy);
-        path.add(instruction);
+        newRoute.getSteps().add(instruction);
 
     }
 
@@ -540,6 +611,10 @@ public class MasterOdo extends LinearOpMode {
         if (profile.getNextStep() != null){
             executeStep(instruction, profile.getNextStep());
         }
+        //set the desired heading
+        double realAngleChange = Geometry.getAngle(instruction.getDesiredHead(), locator.getOrientation());
+        BotMoveProfile profileSpin = BotMoveProfile.buildSpinProfile(instruction.getTopSpeed(), realAngleChange, null);
+        spin(profileSpin);
     }
 
     private void  curve(BotMoveProfile profile){
@@ -558,14 +633,6 @@ public class MasterOdo extends LinearOpMode {
         bot.strafeToCalib(profile.getTopSpeed(), distance, distance > 0, profile.getMotorReduction());
     }
 
-    private void showSettings(){
-        telemetry.addData("Target X", "%.2f. To change press x", targetX);
-        telemetry.addData("Target Y", "%.2f. To change press y", targetY);
-        telemetry.addData("Heading", "%.2f. To change press b", desiredHead);
-        telemetry.addData("Speed", "%.2f. To change press a", SPEED);
-        telemetry.addData("Start", "Press right bumper");
-        telemetry.update();
-    }
 
     private String getStepValue(int index){
         String val = "";
@@ -598,7 +665,21 @@ public class MasterOdo extends LinearOpMode {
                 showStart();
             } else if (speedSettingMode) {
                 telemetry.addData("Top Speed", "%.2f", goToInstructions.getTopSpeed());
-            }else if (strategySettingMode) {
+            }
+            else if (desiredHeadSettingMode){
+                telemetry.addData("Desired Head", "%.2f", goToInstructions.getDesiredHead());
+            }
+            else if (routeListMode){
+                for(AutoRoute r : routes){
+                    if (r.isSelected()){
+                        telemetry.addData(r.getRouteName(), "*");
+                    }
+                    else{
+                        telemetry.addData(r.getRouteName(), " ");
+                    }
+                }
+            }
+            else if (strategySettingMode) {
                 for (MoveStrategy s : MoveStrategy.values()) {
                     if (goToInstructions.getMoveStrategy().equals(s)) {
                         telemetry.addData(s.name(), "*");
@@ -606,9 +687,19 @@ public class MasterOdo extends LinearOpMode {
                         telemetry.addData(s.name(), " ");
                     }
                 }
-            } else if (waitSettingMode) {
+            }
+            else if (routeSavingMode){
+                if (routeIndexSettingMode) {
+                    telemetry.addData(newRoute.getRouteName(), String.format("-%d*", newRoute.getNameIndex()));
+                }
+                else if(routeNameSettingMode){
+                    telemetry.addData(String.format("%s*", newRoute.getRouteName()), String.format("-%d", newRoute.getNameIndex()));
+                }
+            }
+            else if (waitSettingMode) {
                 telemetry.addData("Initial Wait Time MS", goToInstructions.getWaitString());
-            } else if (topMode) {
+            }
+            else if (topMode) {
                 for (int i = 0; i < modesTop.length; i++) {
                     String selected = i == selectedTopMode ? "*" : " ";
                     telemetry.addData(selected, modeNamesTop[i]);
@@ -671,15 +762,17 @@ public class MasterOdo extends LinearOpMode {
         telemetry.update();
     }
 
-    private void saveConfig(){
+    private void saveRoute(){
         try{
-            LastRunConfig config = new LastRunConfig();
-            config.setX(targetX);
-            config.setY(targetY);
-            config.setSpeed(SPEED);
-            config.setHeading(desiredHead);
-            File configFile = AppUtil.getInstance().getSettingsFile(CONFIG_FILE_NAME);
-            ReadWriteFile.writeFile(configFile, config.serialize());
+            if (newRoute.getSteps().size() > 0) {
+                String name = newRoute.getRouteName();
+                File configFile = getRouteFile(name);
+
+                String jsonPath = newRoute.serialize();
+                ReadWriteFile.writeFile(configFile, jsonPath);
+                this.routes.add(newRoute);
+                initRoute();
+            }
         }
         catch (Exception e) {
             telemetry.addData("Error", "Config cannot be saved. %s", e.getMessage());
@@ -688,37 +781,45 @@ public class MasterOdo extends LinearOpMode {
     }
 
 
-    private void restoreConfig(){
-        try{
-            File configFile = AppUtil.getInstance().getSettingsFile(CONFIG_FILE_NAME);
-            if (configFile.exists()) {
-                String data = ReadWriteFile.readFile(configFile);
-                LastRunConfig config = LastRunConfig.deserialize(data);
-                if (config != null){
-                    targetX = config.getX();
-                    targetY = config.getY();
-                    SPEED = config.getSpeed();
-                    desiredHead = config.getHeading();
-                    valueX = targetX;
-                    valueY = targetY;
-                    valueSpeed = SPEED;
-                    valueHead = desiredHead;
-                }
-                else{
-                    telemetry.addData("Info", "Config file empty or could not be read");
-                    telemetry.update();
-                }
+    private void runSelectedRoute(){
+        AutoRoute selected = null;
+        for(AutoRoute r : routes){
+            if (r.isSelected()){
+                selected = r;
+                break;
             }
-            else{
-                telemetry.addData("Info", "Config does not exist");
+        }
+        if (selected != null){
+            for(AutoStep s : selected.getSteps()){
+                this.goTo(s);
+            }
+        }
+    }
+
+    private void deleteSelectedRoute(){
+        AutoRoute selected = null;
+        String selectedName = "";
+        for(AutoRoute r : routes){
+            if (r.isSelected()){
+                selectedName = r.getRouteName();
+                selected = r;
+                break;
+            }
+        }
+        if (selected != null){
+            try {
+                File f = getRouteFile(selectedName);
+                f.delete();
+                routes.remove(selected);
+            }
+            catch (Exception ex){
+                telemetry.addData("Error", ex.getMessage());
                 telemetry.update();
             }
         }
-        catch (Exception e) {
-            telemetry.addData("Error", "Issues when reading file. %s", e.getMessage());
-            telemetry.update();
-        }
     }
+
+
 
     public  List<String> listBotActions() {
         final List<String> methods = new ArrayList<String>();
@@ -758,5 +859,48 @@ public class MasterOdo extends LinearOpMode {
         return m;
     }
 
+    private File getRouteFile(String filename)
+    {
+        File file = new File(filename);
+        if (!file.isAbsolute())
+        {
+            AppUtil.getInstance().ensureDirectoryExists(ROUTES_FOLDER);
+            file = new File(ROUTES_FOLDER, filename);
+        }
+        return file;
+    }
+
+    private void initRoute(){
+        if(newRoute != null){
+            newRoute.getSteps().clear();
+            newRoute = null;
+        }
+        newRoute = new AutoRoute();
+    }
+
+    private void listRoutes(){
+        try {
+            int count = 0;
+            AppUtil.getInstance().ensureDirectoryExists(ROUTES_FOLDER);
+            File [] list = ROUTES_FOLDER.listFiles();
+            if (list != null && list.length > 0) {
+                for (final File rf : ROUTES_FOLDER.listFiles()) {
+                    String jsonData = ReadWriteFile.readFile(rf);
+                    AutoRoute route = AutoRoute.deserialize(jsonData);
+                    if (count == 0) {
+                        route.setSelected(true);
+                    } else {
+                        route.setSelected(false);
+                    }
+                    this.routes.add(route);
+                    count++;
+                }
+            }
+        }
+        catch (Exception ex){
+            telemetry.addData("Error", ex.getMessage());
+            telemetry.update();
+        }
+    }
 
 }

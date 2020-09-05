@@ -4,7 +4,8 @@ import android.graphics.Point;
 
 import org.firstinspires.ftc.teamcode.calibration.BotCalibConfig;
 import org.firstinspires.ftc.teamcode.calibration.MotorReductionBot;
-import org.firstinspires.ftc.teamcode.odometry.RobotCoordinatePostiion;
+import org.firstinspires.ftc.teamcode.gamefield.FieldStats;
+import org.firstinspires.ftc.teamcode.odometry.RobotCoordinatePosition;
 import org.firstinspires.ftc.teamcode.skills.Geometry;
 
 public class BotMoveProfile {
@@ -25,6 +26,7 @@ public class BotMoveProfile {
     private double currentHead = 0;
     private double targetVector = 0;
     private double angleChange = 0;
+    private double desiredHead = 0;
 
     private double distanceRatio = 1;
     private double distance = 0;
@@ -177,7 +179,7 @@ public class BotMoveProfile {
         this.actual = actual;
     }
 
-    public static BotMoveProfile bestRoute(OdoBot bot, double currentX, double currentY, Point target, RobotDirection direction, double topSpeed, MoveStrategy preferredStrategy, RobotCoordinatePostiion locator){
+    public static BotMoveProfile bestRoute(OdoBot bot, double currentX, double currentY, Point target, RobotDirection direction, double topSpeed, MoveStrategy preferredStrategy, RobotCoordinatePosition locator){
         double currentHead = locator.getOrientation();
 
         boolean clockwise = currentHead >= 0;
@@ -188,9 +190,6 @@ public class BotMoveProfile {
         if (direction == RobotDirection.Backward) {
             currentHead = (currentHead + 180) % 360;
         }
-
-        boolean currentHeadInSquare4 = currentHead >=270 && currentHead <= 360;
-        boolean currentHeadInSquare1 = currentHead >=0 && currentHead <= 90;
 
         double distance = Geometry.getDistance(currentX, currentY, target.x, target.y);
 
@@ -234,24 +233,17 @@ public class BotMoveProfile {
             }
         }
 
-        boolean targetVectorInSquare1 = targetVector >= 0 && targetVector <= 90;
-        boolean targetVectorInSquare4 = targetVector >= 270 && targetVector <= 360;
 
         double realAngleChange = Geometry.getAngle(targetVector, currentHead);
         double angleChange = Math.abs(realAngleChange);
 
-        if (preferredStrategy == MoveStrategy.Spin && angleChange > 10){
-            return buildSpinProfile(realAngleChange, topSpeed, MoveStrategy.Curve);
-        }
 
-        if (preferredStrategy == MoveStrategy.Strafe){
-            return buildStrafeProfile(bot.getCalibConfig(), realAngleChange, topSpeed, distance, MoveStrategy.Curve);
-        }
         if (angleChange > 90){
             if (direction == RobotDirection.Optimal) {
                 //better go backwards
                 currentHead = (currentHead + 180) % 360;
-                angleChange = Math.abs(Geometry.getAngle(targetVector, currentHead));
+                realAngleChange = Geometry.getAngle(targetVector, currentHead);
+                angleChange = Math.abs(realAngleChange);
                 direction = RobotDirection.Backward;
             }
             else {
@@ -264,6 +256,15 @@ public class BotMoveProfile {
         if (direction == RobotDirection.Optimal){
             direction = RobotDirection.Forward;
         }
+
+        if (preferredStrategy == MoveStrategy.Spin && angleChange > 10){
+            return buildSpinProfile(realAngleChange, topSpeed, MoveStrategy.Curve);
+        }
+
+        if (preferredStrategy == MoveStrategy.Strafe){
+            return buildStrafeProfile(bot.getCalibConfig(), realAngleChange, topSpeed, distance, MoveStrategy.Curve);
+        }
+
 
         if (angleChange >= 42 && angleChange <= 48){
             //diag
@@ -279,9 +280,13 @@ public class BotMoveProfile {
             reduceLeft = true;
         }
 
-        if (targetVectorInSquare1 && currentHeadInSquare4 || targetVectorInSquare4 && currentHeadInSquare1 || direction == RobotDirection.Backward){
+        if (direction == RobotDirection.Backward){
             reduceLeft = !reduceLeft;
         }
+
+        bot.getTelemetry().addData("reduce left", reduceLeft);
+
+        bot.getTelemetry().addData("currentHead", currentHead);
 
         bot.getTelemetry().addData("Target Vector", targetVector);
         bot.getTelemetry().addData("Angle Change", angleChange);
@@ -398,7 +403,7 @@ public class BotMoveProfile {
         return profile;
     }
 
-    private static BotMoveProfile buildSpinProfile(double angleChange, double topSpeed, MoveStrategy next){
+    public static BotMoveProfile buildSpinProfile(double angleChange, double topSpeed, MoveStrategy next){
         BotMoveProfile profile = new BotMoveProfile();
         profile.setAngleChange(angleChange);
         profile.setStrategy(MoveStrategy.Spin);
@@ -409,15 +414,20 @@ public class BotMoveProfile {
 
     private static BotMoveProfile buildStrafeProfile(BotCalibConfig botConfig, double angleChange, double topSpeed, double distance, MoveStrategy next){
         BotMoveProfile profile = new BotMoveProfile();
+        double strafeDistance = distance * Math.cos(Math.toRadians(Math.abs(angleChange)));
+        double distanceToTarget = Math.sqrt(distance *distance - strafeDistance* strafeDistance);
+        if (distanceToTarget < FieldStats.ROBOT_SIDE /2 ){
+            return buildSpinProfile(angleChange, topSpeed, next);
+        }
         boolean left = angleChange > 0;
         if (left){
             profile.setMotorReduction(botConfig.getStrafeLeftReduction());
         }
         else{
-            distance = -distance;
+            strafeDistance = -strafeDistance;
             profile.setMotorReduction(botConfig.getStrafeRightReduction());
         }
-        profile.setDistance(distance);
+        profile.setDistance(strafeDistance);
         profile.setAngleChange(angleChange);
         profile.setStrategy(MoveStrategy.Strafe);
         profile.setTopSpeed(topSpeed);
@@ -463,5 +473,13 @@ public class BotMoveProfile {
 
     public void setDistance(double distance) {
         this.distance = distance;
+    }
+
+    public double getDesiredHead() {
+        return desiredHead;
+    }
+
+    public void setDesiredHead(double desiredHead) {
+        this.desiredHead = desiredHead;
     }
 }

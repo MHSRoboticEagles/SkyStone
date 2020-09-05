@@ -14,7 +14,7 @@ import org.firstinspires.ftc.teamcode.bots.RobotDirection;
 import org.firstinspires.ftc.teamcode.bots.RobotMovementStats;
 import org.firstinspires.ftc.teamcode.bots.RobotVeer;
 import org.firstinspires.ftc.teamcode.bots.YellowBot;
-import org.firstinspires.ftc.teamcode.odometry.RobotCoordinatePostiion;
+import org.firstinspires.ftc.teamcode.odometry.RobotCoordinatePosition;
 import org.firstinspires.ftc.teamcode.skills.Geometry;
 import org.firstinspires.ftc.teamcode.skills.Led;
 import org.openftc.revextensions2.ExpansionHubEx;
@@ -591,10 +591,10 @@ public class MasterCalib extends LinearOpMode {
     }
 
     private void calibCurve(){
-        RobotCoordinatePostiion locator = null;
+        RobotCoordinatePosition locator = null;
         try {
             //tracker
-            locator = new RobotCoordinatePostiion(bot, new Point(startX, startY), lastOrientation,75);
+            locator = new RobotCoordinatePosition(bot, new Point(startX, startY), lastOrientation,75);
             locator.reverseHorEncoder();
             Thread positionThread = new Thread(locator);
             positionThread.start();
@@ -652,9 +652,9 @@ public class MasterCalib extends LinearOpMode {
     }
 
     private void calibMove(){
-        RobotCoordinatePostiion locator = null;
+        RobotCoordinatePosition locator = null;
         try {
-            locator = new RobotCoordinatePostiion(bot, new Point(startX, startY), lastOrientation,75);
+            locator = new RobotCoordinatePosition(bot, new Point(startX, startY), lastOrientation,75);
             locator.reverseHorEncoder();
             Thread positionThread = new Thread(locator);
             positionThread.start();
@@ -674,7 +674,7 @@ public class MasterCalib extends LinearOpMode {
         }
     }
 
-    private void moveBot(MotorReductionBotCalib calibF, MotorReductionBotCalib calibB, RobotCoordinatePostiion locator){
+    private void moveBot(MotorReductionBotCalib calibF, MotorReductionBotCalib calibB, RobotCoordinatePosition locator){
         led.none();
         MotorReductionBot mrForward = calibF.getMR();
         MotorReductionBot mrBack = calibB.getMR();
