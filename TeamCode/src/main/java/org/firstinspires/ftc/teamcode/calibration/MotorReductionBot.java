@@ -127,7 +127,6 @@ public class MotorReductionBot implements Serializable {
 
     public double getBreakPoint(double power) {
         power = Math.round(power*10)/10.0;
-        int v1 = (int)Math.round(power*10);
         int index = getPowerIndex(power);
         if (index < 0){
             return 0;

@@ -1,15 +1,16 @@
 package org.firstinspires.ftc.teamcode.autonomous;
 
+import org.firstinspires.ftc.teamcode.bots.BotMoveProfile;
 import org.firstinspires.ftc.teamcode.bots.MoveStrategy;
 
-public class AutoStep {
+public class AutoStep implements Cloneable {
     private int waitMS = 0;
     private int targetX;
     private int targetY;
     private double topSpeed = 0.5;
     private MoveStrategy moveStrategy = MoveStrategy.Curve;
     private String action;
-    private double desiredHead = 0;
+    private double desiredHead = BotMoveProfile.DEFAULT_HEADING;
 
     public int getWaitMS() {
         return waitMS;
@@ -79,7 +80,23 @@ public class AutoStep {
         return desiredHead;
     }
 
+    public String getDesiredHeadString() {
+        return String.format("%.2f", desiredHead);
+    }
+
     public void setDesiredHead(double desiredHead) {
         this.desiredHead = desiredHead;
+    }
+
+    public AutoStep clone(){
+        AutoStep clone = new AutoStep();
+        clone.setWaitMS(this.getWaitMS());
+        clone.setTargetX(this.getTargetX());
+        clone.setTargetY(this.getTargetY());
+        clone.setTopSpeed(this.getTopSpeed());
+        clone.setMoveStrategy(this.getMoveStrategy());
+        clone.setAction(this.getAction());
+        clone.setDesiredHead(this.getDesiredHead());
+        return clone;
     }
 }

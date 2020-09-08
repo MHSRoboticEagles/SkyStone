@@ -36,18 +36,17 @@ public class MasterOdo extends LinearOpMode {
     protected YellowBot bot = new YellowBot();
     ElapsedTime timer = new ElapsedTime();
 
-    private static String CONFIG_FILE_NAME = "master-odo-config.json";
+
     public static final File ROUTES_FOLDER = new File(FIRST_FOLDER, "/routes/");
     private ArrayList<AutoRoute> routes = new ArrayList<>();
 
     protected double right = 0;
     protected double left = 0;
-    protected double valueHead = 0;
+
     protected double startHead = 0;
     protected double nextHead = 0;
     protected double desiredHead = 0;
-    protected double leftTarget = 0;
-    protected double rightTarget = 0;
+
 
     protected double ratio = 0;
 
@@ -76,30 +75,32 @@ public class MasterOdo extends LinearOpMode {
     private boolean waitSettingMode = false;
     private boolean desiredHeadSettingMode = false;
     private boolean routeSavingMode = false;
+    private boolean actionSettingMode = false;
 
-    private boolean routeNameSettingMode = false;
+    private boolean routeNameSettingMode = true;
     private boolean routeIndexSettingMode = false;
 
 
     private AutoStep goToInstructions = new AutoStep();
     private AutoRoute newRoute = new AutoRoute();
+    private BotMoveProfile profileCurve = null;
 
-    private static double CALIB_WEIGHT = 15.2;
 
 
     private static final int[] modesTop = new int[]{0, 1, 2, 3};
     private static final String[] modeNamesTop = new String[]{"Go To", "Start Position", "Routes", "Save"};
 
-    private static final int[] modesStep = new int[]{0, 1, 2, 3, 4};
-    private static final String[] modeStepName = new String[]{"Destination", "Top Speed", "Strategy", "Wait", "Action"};
+    private static final int[] modesStep = new int[]{0, 1, 2, 3, 4, 5};
+    private static final String[] modeStepName = new String[]{"Destination", "Top Speed", "Strategy", "Wait", "Heading", "Action"};
 
 
-
-    private double DISTANCE_Y = 0;
 
     private double SPEED = bot.CALIB_SPEED;
 
     private double SPEED_INCREMENT = 0.1;
+
+    private double HEAD_INCREMENT = 45;
+
 
     private double COORD_MIN = 1;
     private double COORD_MAX = 100;
@@ -110,6 +111,7 @@ public class MasterOdo extends LinearOpMode {
     private final static int GAMEPAD_LOCKOUT = 500;
 
     RobotCoordinatePosition locator = null;
+
 
 
     @Override
@@ -276,16 +278,20 @@ public class MasterOdo extends LinearOpMode {
             else if (strategySettingMode){
                 int index = goToInstructions.getMoveStrategy().ordinal();
                 int total = MoveStrategy.values().length;
-                index--;
-                if (index < 0){
-                    index = total - 1;
+                index++;
+                if (index >= total){
+                    index = 0;
                 }
                 MoveStrategy updated = MoveStrategy.values()[index];
                 goToInstructions.setMoveStrategy(updated);
+
             }
             else if (desiredHeadSettingMode){
                 double desiredHead = goToInstructions.getDesiredHead();
-                desiredHead -= 5;
+                if (desiredHead == -1){
+                    desiredHead = 0;
+                }
+                desiredHead -= HEAD_INCREMENT;
                 if (desiredHead < 0){
                     desiredHead = 0;
                 }
@@ -363,7 +369,7 @@ public class MasterOdo extends LinearOpMode {
                 goToInstructions.setTopSpeed(speed);
             }
             else if (routeListMode){
-                for(int i = routes.size(); i >= 0; i--){
+                for(int i = routes.size() - 1; i >= 0; i--){
                     AutoRoute r = routes.get(i);
                     if (r.isSelected()){
                         r.setSelected(false);
@@ -378,7 +384,10 @@ public class MasterOdo extends LinearOpMode {
             }
             else if (desiredHeadSettingMode){
                 double desiredHead = goToInstructions.getDesiredHead();
-                desiredHead += 5;
+                if (desiredHead == -1){
+                    desiredHead = 0;
+                }
+                desiredHead += HEAD_INCREMENT;
                 goToInstructions.setDesiredHead(desiredHead);
             }
             else if (waitSettingMode){
@@ -389,12 +398,13 @@ public class MasterOdo extends LinearOpMode {
             else if (strategySettingMode){
                 int index = goToInstructions.getMoveStrategy().ordinal();
                 int total = MoveStrategy.values().length;
-                index++;
-                if (index >= total){
-                    index = 0;
+                index--;
+                if (index < 0){
+                    index = total - 1;
                 }
                 MoveStrategy updated = MoveStrategy.values()[index];
                 goToInstructions.setMoveStrategy(updated);
+
             }
             else if (routeSavingMode) {
                 if (routeIndexSettingMode){
@@ -443,6 +453,9 @@ public class MasterOdo extends LinearOpMode {
         }
 
         if (gamepad1.x){
+            if (desiredHeadSettingMode){
+                goToInstructions.setDesiredHead(BotMoveProfile.DEFAULT_HEADING);
+            }
             if (routeListMode){
                 deleteSelectedRoute();
             }
@@ -486,6 +499,9 @@ public class MasterOdo extends LinearOpMode {
                     case 4:
                         desiredHeadSettingMode = !desiredHeadSettingMode;
                         break;
+                    case 5:
+                        actionSettingMode = !actionSettingMode;
+                        break;
                 }
             }
             showConfig();
@@ -494,127 +510,68 @@ public class MasterOdo extends LinearOpMode {
 
     }
 
-
-
-    private int changeIncrement(){
-        int tempVal = Math.abs(MODE_VALUE);
-        if(MODE_UP && tempVal < COORD_MAX){
-            tempVal = tempVal * COORD_MULTIPLIER;
-            if (tempVal == COORD_MAX) {
-                MODE_UP = false;
-            }
-        }
-        else {
-            if (MODE_UP == false && tempVal > COORD_MIN) {
-                tempVal = tempVal / COORD_MULTIPLIER;
-                if (tempVal == COORD_MIN) {
-                    MODE_UP = true;
-                }
-            }
-        }
-        return tempVal;
+    private void moveStraight(BotMoveProfile profile){
+        bot.moveTo(profile);
+        profileCurve = profile;
     }
 
-    private double moveForward(){
-        if (this.led != null){
-            this.led.move();
-        }
-        startHead = bot.getGyroHeading();
-        double leftStart = bot.getLeftOdometer();
-        double rightStart = bot.getRightOdometer();
-        leftTarget = bot.getLeftTarget(DISTANCE_Y);
-        rightTarget = bot.getRightTarget(DISTANCE_Y);
-        bot.moveTo(SPEED, SPEED, DISTANCE_Y);
-        this.left = bot.getLeftOdometer() - leftStart;
-        this.right = bot.getRightOdometer() - rightStart;
-
-        double ratio = right/left;
-
-        timer.reset();
-        while(timer.milliseconds() < 1000 && opModeIsActive()){
-            telemetry.addData("Calib","Waiting for gyro to settle ...");
-            telemetry.update();
-        }
-        nextHead = bot.getGyroHeading();
-
-        if (this.led != null){
-            this.led.start();
-        }
-
-        return ratio;
-    }
-
-    private void spin(){
-        if (this.led != null){
-            this.led.move();
-        }
-        startHead = bot.getGyroHeading();
-
-        bot.spinH(desiredHead, SPEED);
-
-        timer.reset();
-        while(timer.milliseconds() < 1000 && opModeIsActive()){
-            telemetry.addData("Gyroscope","Stabilizing ...");
-            telemetry.update();
-        }
-
-        nextHead = bot.getGyroHeading();
-
-        if (this.led != null){
-            this.led.start();
-        }
-    }
 
     private void spin(BotMoveProfile profile){
-//        if (this.led != null){
-//            this.led.move();
-//        }
-
-
-        bot.spinH(profile.getAngleChange(), profile.getTopSpeed());
-
-        timer.reset();
-        while(timer.milliseconds() < 1000 && opModeIsActive()){
-            telemetry.addData("Gyroscope","Stabilizing ...");
-            telemetry.update();
+        try {
+            if (profile != null) {
+                bot.spinH(profile.getAngleChange(), profile.getTopSpeed());
+            }
+        }catch (Exception ex){
+            telemetry.addData("error spin", ex.getMessage());
         }
-
-
-//        if (this.led != null){
-//            this.led.start();
-//        }
     }
 
 
     private void goTo(AutoStep instruction){
+        if (newRoute.getSteps().size() == 0){
+            newRoute.setStartX((int)locator.getXInches());
+            newRoute.setStartY((int)locator.getYInches());
+        }
         waitToStartStep(instruction.getWaitMS());
         MoveStrategy strategy = instruction.getMoveStrategy();
         executeStep(instruction, strategy);
-        newRoute.getSteps().add(instruction);
+        newRoute.getSteps().add(instruction.clone());
 
     }
 
     private void executeStep(AutoStep instruction,  MoveStrategy strategy){
         BotMoveProfile profile = BotMoveProfile.bestRoute(bot, (int)locator.getXInches(), (int)locator.getYInches(), new Point(instruction.getTargetX(), instruction.getTargetY()),
-                RobotDirection.Optimal, instruction.getTopSpeed(), strategy, locator);
+                RobotDirection.Optimal, instruction.getTopSpeed(), strategy, instruction.getDesiredHead(), locator);
+        if (profile == null){
+            return;
+        }
+
         switch (profile.getStrategy()){
             case Curve:
                 curve(profile);
                 break;
             case Spin:
+            case SpinNCurve:
+            case SpinNStraight:
                 spin(profile);
                 break;
             case Strafe:
                 strafe(profile);
                 break;
+            case Straight:
+                moveStraight(profile);
+                break;
+
         }
         if (profile.getNextStep() != null){
             executeStep(instruction, profile.getNextStep());
         }
+
         //set the desired heading
-        double realAngleChange = Geometry.getAngle(instruction.getDesiredHead(), locator.getOrientation());
-        BotMoveProfile profileSpin = BotMoveProfile.buildSpinProfile(instruction.getTopSpeed(), realAngleChange, null);
-        spin(profileSpin);
+        if (instruction.getDesiredHead() != BotMoveProfile.DEFAULT_HEADING) {
+            BotMoveProfile profileSpin = BotMoveProfile.getFinalHeadProfile(instruction.getDesiredHead(), instruction.getTopSpeed(), locator);
+            spin(profileSpin);
+        }
     }
 
     private void  curve(BotMoveProfile profile){
@@ -651,6 +608,9 @@ public class MasterOdo extends LinearOpMode {
                 val = goToInstructions.getWaitString();
                 break;
             case 4:
+                val = goToInstructions.getDesiredHeadString();
+                break;
+            case 5:
                 val = goToInstructions.getAction();
                 break;
         }
@@ -667,16 +627,21 @@ public class MasterOdo extends LinearOpMode {
                 telemetry.addData("Top Speed", "%.2f", goToInstructions.getTopSpeed());
             }
             else if (desiredHeadSettingMode){
+                showHeading();
                 telemetry.addData("Desired Head", "%.2f", goToInstructions.getDesiredHead());
             }
             else if (routeListMode){
-                for(AutoRoute r : routes){
-                    if (r.isSelected()){
-                        telemetry.addData(r.getRouteName(), "*");
+                if (routes.size() > 0) {
+                    for (AutoRoute r : routes) {
+                        if (r.isSelected()) {
+                            telemetry.addData(r.getRouteName(), "*");
+                        } else {
+                            telemetry.addData(r.getRouteName(), " ");
+                        }
                     }
-                    else{
-                        telemetry.addData(r.getRouteName(), " ");
-                    }
+                }
+                else{
+                    telemetry.addData("No Routes", " ");
                 }
             }
             else if (strategySettingMode) {
@@ -690,10 +655,10 @@ public class MasterOdo extends LinearOpMode {
             }
             else if (routeSavingMode){
                 if (routeIndexSettingMode) {
-                    telemetry.addData(newRoute.getRouteName(), String.format("-%d*", newRoute.getNameIndex()));
+                    telemetry.addData(newRoute.getName(), String.format("-%d*", newRoute.getNameIndex()));
                 }
                 else if(routeNameSettingMode){
-                    telemetry.addData(String.format("%s*", newRoute.getRouteName()), String.format("-%d", newRoute.getNameIndex()));
+                    telemetry.addData(String.format("%s*", newRoute.getName()), String.format("-%d", newRoute.getNameIndex()));
                 }
             }
             else if (waitSettingMode) {
@@ -705,10 +670,14 @@ public class MasterOdo extends LinearOpMode {
                     telemetry.addData(selected, modeNamesTop[i]);
                 }
             } else if (goToMode) {
+                showHeading();
                 showStart();
                 for (int i = 0; i < modesStep.length; i++) {
                     String selected = i == selectedGoToMode ? "*" : " ";
                     telemetry.addData(String.format("%s%s", selected, modeStepName[i]), getStepValue(i));
+                }
+                if (profileCurve != null){
+                    telemetry.addData("Profile", profileCurve.toString());
                 }
             }
 
@@ -732,6 +701,10 @@ public class MasterOdo extends LinearOpMode {
         String toY = YSettingMode ? "*" : " ";
 
         telemetry.addData("Start", "%d%s : %d%s", (int)locator.getXInches(), toX, (int)locator.getYInches(), toY);
+    }
+
+    private void showHeading(){
+        telemetry.addData("Current Heading", "%.2f", locator.getOrientation());
     }
 
     private void showHints(boolean full){

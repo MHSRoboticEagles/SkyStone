@@ -103,7 +103,7 @@ public class RobotCoordinatePosition implements Runnable {
 
     public void adjustRoute(){
         BotMoveProfile profile = BotMoveProfile.bestRoute(this.bot, getXInches(), getYInches(), this.target.getTarget(), this.target.getDirection(), this.target.getTopSpeed(), MoveStrategy.Curve,
-        this);
+                BotMoveProfile.DEFAULT_HEADING, this);
         realSpeedLeft = profile.getRealSpeedLeft();
         realSpeedRight = profile.getRealSpeedRight();
         this.leftLong = profile.isLeftLong();

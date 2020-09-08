@@ -373,6 +373,103 @@ public class YellowBot implements OdoBot{
         return recommended;
     }
 
+    public void moveTo(BotMoveProfile profile){
+        if (frontLeft != null && frontRight!= null && backLeft != null && backRight != null) {
+            double rightPower = profile.getRealSpeedRight();
+            double leftPower = profile.getRealSpeedLeft();
+
+            frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+            MotorReductionBot mr = profile.getMotorReduction();
+
+            boolean forward = profile.getDirection() == RobotDirection.Forward;
+
+
+
+            double slowdownMark = profile.getSlowdownMarkLong();
+
+            double leftTarget = profile.getLongTarget();
+
+
+            double minSpeed = 0.1;
+
+            double speedDropStep = 0.05;
+
+            double originalRight = rightPower;
+
+
+            double speedIncrement = 0.05;
+            if (forward){
+                speedIncrement = -speedIncrement;
+            }
+            leftPower = 0;
+            rightPower = 0;
+
+            double realSpeedLeft = leftPower;
+            double realSpeedRight = rightPower;
+
+
+            boolean stop = false;
+            boolean slowDown = false;
+            int step = 0;
+            while (!stop && owner.opModeIsActive()) {
+                double leftreading = this.getLeftOdometer();
+                if ((forward && leftreading >= slowdownMark) ||
+                        (forward == false && leftreading <= slowdownMark)){
+
+                    if (!slowDown) {
+                        slowDown = true;
+                    }
+                    step++;
+                    if (Math.abs(leftPower) <= Math.abs(minSpeed) || Math.abs(rightPower) <= Math.abs(minSpeed) ){
+                        stop =  (forward && leftreading >= leftTarget) ||
+                                (forward == false && leftreading <= leftTarget);
+                        if (stop){
+                            break;
+                        }
+                    }
+
+                    if (forward) {
+                        rightPower = realSpeedRight + speedDropStep * step;
+                        leftPower = realSpeedLeft + speedDropStep * step;
+                        if (rightPower >= -minSpeed || leftPower >= -minSpeed){
+                            leftPower = -minSpeed;
+                            rightPower = -minSpeed;
+                        }
+                    }
+                    else{
+                        rightPower = realSpeedRight - speedDropStep * step;
+                        leftPower = realSpeedLeft - speedDropStep * step;
+                        if (rightPower <=minSpeed || leftPower <= minSpeed){
+                            leftPower = minSpeed;
+                            rightPower = minSpeed;
+                        }
+                    }
+                }
+                else{
+                    //acceleration
+                    if ((forward && rightPower + speedIncrement >= originalRight) ||
+                            (!forward && rightPower + speedIncrement <= originalRight)) {
+                        rightPower = rightPower + speedIncrement;
+                        leftPower = rightPower;
+                        realSpeedLeft = leftPower;
+                        realSpeedRight = rightPower;
+                    }
+                }
+
+                this.frontLeft.setPower(leftPower * mr.getLF());
+                this.frontRight.setPower(rightPower * mr.getRF());
+                this.backLeft.setPower(leftPower * mr.getLB());
+                this.backRight.setPower(rightPower * mr.getRB());
+
+            }
+
+            this.stop();
+        }
+    }
 
 
     public RobotMovementStats moveToCalib(double leftspeed, double rightspeed, double inches, MotorReductionBot mr, double breakPoint, Led led){
@@ -511,172 +608,6 @@ public class YellowBot implements OdoBot{
             this.stop();
         }
         return stats;
-    }
-
-    public void moveCurveCalib(double leftspeed, double rightspeed, double lowSpeedReduction, double inchesShort, double inchesLong, RobotDirection direction, RobotCoordinatePosition locator){
-        if (frontLeft != null && frontRight != null && backLeft != null && backRight != null) {
-            MotorReductionBot mr;
-            mr = this.getCalibConfig().getMoveMRForward();
-            if (direction == RobotDirection.Backward) {
-                mr = this.getCalibConfig().getMoveMRBack();
-            }
-
-            double rightPower = rightspeed;
-            double leftPower = leftspeed;
-            double startPower = 0;
-
-            double averagePower = (Math.abs(rightPower) + Math.abs(leftPower))/2;
-            averagePower = Math.round(averagePower*10)/10.0;
-
-            double breakPoint = mr.getBreakPoint(averagePower);
-
-            boolean leftLong = true;
-            double startingPointLong = 0, startingPointShort = 0;
-
-            double speedIncrementLeft = 0.05;
-            double speedIncrementRight = speedIncrementLeft;
-
-            if (leftPower > rightPower) {
-                startingPointLong = this.getLeftOdometer();
-                startingPointShort = this.getRightOdometer();
-                speedIncrementRight = speedIncrementLeft * lowSpeedReduction;
-            } else if (rightPower > leftPower) {
-                leftLong = false;
-                startingPointShort = this.getLeftOdometer();
-                startingPointLong = this.getRightOdometer();
-                speedIncrementLeft = speedIncrementRight * lowSpeedReduction;
-            }
-
-
-            frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
-            boolean forward = direction == RobotDirection.Forward;
-
-            //reverse speed
-            if (forward) {
-                rightPower = -rightPower;
-                leftPower = -leftPower;
-                startPower = -startPower;
-            }
-            else{
-                breakPoint = -breakPoint;
-            }
-
-            double distanceLong = inchesLong * COUNTS_PER_INCH_REV;
-            double distanceShort = inchesShort * COUNTS_PER_INCH_REV;
-
-
-            double slowdownMarkLong = startingPointLong + (distanceLong - breakPoint);
-            double slowdownMarkShort = startingPointShort + (distanceShort - breakPoint);
-
-            double longTarget = startingPointLong + distanceLong;
-
-
-            double minSpeed = 0.1;
-
-            double speedDropStep = 0.05;
-
-            double originalRight = rightPower;
-            double originalLeft = leftPower;
-
-
-            if (forward) {
-                speedIncrementLeft = -speedIncrementLeft;
-                speedIncrementRight = - speedIncrementRight;
-            }
-
-
-            double realSpeedLF = startPower;
-            double realSpeedLB = startPower;
-            double realSpeedRF = startPower;
-            double realSpeedRB = startPower;
-
-
-
-            boolean accelerating = true;
-            boolean slowingDown = false;
-            boolean cruising = false;
-
-            boolean stop = false;
-            while (!stop && owner.opModeIsActive()) {
-                double longReading = leftLong == true ? this.getLeftOdometer() : this.getRightOdometer();
-                double shortReading = leftLong == true ? this.getRightOdometer() : this.getLeftOdometer();
-
-                slowingDown = (forward && (longReading >= slowdownMarkLong || shortReading >= slowdownMarkShort)) ||
-                        (forward == false && (longReading <= slowdownMarkLong || shortReading <= slowdownMarkShort));
-                if (slowingDown) {
-                    //slowing down
-                    cruising = false;
-                    if (forward) {
-                        realSpeedRF = realSpeedRF + speedDropStep;
-                        realSpeedRB = realSpeedRB + speedDropStep;
-                        realSpeedLF = realSpeedLF + speedDropStep;
-                        realSpeedLB = realSpeedLB + speedDropStep;
-                        if (realSpeedRF >= -minSpeed || realSpeedRB >= -minSpeed
-                                || realSpeedLF >= -minSpeed || realSpeedLB >= -minSpeed) {
-                            realSpeedRF = -minSpeed;
-                            realSpeedRB = -minSpeed;
-                            realSpeedLF = -minSpeed;
-                            realSpeedLB = -minSpeed;
-                            stop =  longReading >= longTarget;
-                            if (stop){
-                                break;
-                            }
-                        }
-                    } else {
-                        realSpeedRF = realSpeedRF - speedDropStep;
-                        realSpeedRB = realSpeedRB - speedDropStep;
-                        realSpeedLF = realSpeedLF - speedDropStep;
-                        realSpeedLB = realSpeedLB - speedDropStep;
-                        if (realSpeedRF <= minSpeed || realSpeedRB <= minSpeed
-                                || realSpeedLF <= minSpeed || realSpeedLB <= minSpeed) {
-                            realSpeedRF = minSpeed;
-                            realSpeedRB = minSpeed;
-                            realSpeedLF = minSpeed;
-                            realSpeedLB = minSpeed;
-                            stop =  longReading <= longTarget;
-                            if (stop){
-                                break;
-                            }
-                        }
-                    }
-
-                } else if (accelerating) {
-                    if ((forward && realSpeedRF + speedIncrementRight >= originalRight && realSpeedLF + speedIncrementLeft >= originalLeft) ||
-                            (!forward && realSpeedRF + speedIncrementRight <= originalRight && realSpeedLF + speedIncrementLeft <= originalLeft)){
-                        accelerating = true;
-                        realSpeedRF += speedIncrementRight;
-                        realSpeedRB += speedIncrementRight;
-                        realSpeedLF += speedIncrementLeft;
-                        realSpeedLB += speedIncrementLeft;
-
-                    }
-                    else{
-                        if (!cruising){
-                            accelerating = false;
-                            cruising = true;
-                            realSpeedRF = originalRight;
-                            realSpeedRB = originalRight;
-                            realSpeedLF = originalLeft;
-                            realSpeedLB = originalLeft;
-                        }
-                    }
-                }
-                if (cruising){
-                    //adjust left and right speeds based on the locator
-                }
-
-                this.frontLeft.setPower(realSpeedLF * mr.getLF());
-                this.backLeft.setPower(realSpeedLB * mr.getLB());
-                this.frontRight.setPower(realSpeedRF * mr.getRF());
-                this.backRight.setPower(realSpeedRB * mr.getRB());
-            }
-
-            this.stop();
-        }
     }
 
 
@@ -972,176 +903,6 @@ public class YellowBot implements OdoBot{
         return this.getRightOdometer() + inches * COUNTS_PER_INCH_REV;
     }
 
-
-
-    public void moveToCoordinate(Point start, Point target, RobotDirection direction, double topSpeed, RobotCoordinatePosition locator){
-            //X and Y are front center of the robot
-        double currentX = start.x;
-        double currentY = start.y;
-        double currentHead = locator.getOrientation();
-        boolean clockwise = currentHead >= 0;
-        if (!clockwise){
-            currentHead = 360 + currentHead;
-        }
-
-        if (direction == RobotDirection.Backward) {
-            currentHead = (currentHead + 180) % 360;
-        }
-
-        boolean currentHeadInSquare4 = currentHead >=270 && currentHead <= 360;
-        boolean currentHeadInSquare1 = currentHead >=0 && currentHead <= 90;
-
-        //determine the new heading to the target
-        double distanceX = target.x - currentX;
-        double distanceY = target.y - currentY;
-        double targetVector = Math.toDegrees(Math.atan2(distanceY, distanceX));
-
-
-
-        if (distanceY == 0){
-            if (distanceX < 0){
-                targetVector = 270;
-            }
-            else{
-                targetVector = 90;
-            }
-        }
-        else if (distanceX == 0){
-            if(distanceY < 0){
-                targetVector = 180;
-            }
-            else{
-                targetVector = 0;
-            }
-        }
-        else{
-            //lower left
-            if (distanceX < 0 && distanceY < 0){
-                targetVector = (-targetVector) + 90;
-            }
-            //lower right
-            if (distanceX > 0 && distanceY < 0){
-                targetVector = (-targetVector) + 90;
-            }
-            //upper right
-            if (distanceX > 0 && distanceY > 0){
-                targetVector = 90 - targetVector;
-            }
-            //upper left
-            if (distanceX < 0 && distanceY > 0){
-                targetVector = 360 - (targetVector - 90);
-            }
-        }
-
-        boolean targetVectorInSquare1 = targetVector >= 0 && targetVector <= 90;
-        boolean targetVectorInSquare4 = targetVector >= 270 && targetVector <= 360;
-
-        double chord = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
-
-        telemetry.addData("Chord", chord);
-
-        telemetry.addData("Target Vector", targetVector);
-
-        double angleChange = Math.abs(targetVector - currentHead);
-        if (targetVectorInSquare1 && currentHeadInSquare4 || targetVectorInSquare4 && currentHeadInSquare1){
-            angleChange = 360 - angleChange;
-        }
-//            double sign = -currentHead / Math.abs(currentHead);
-//            if (angleChange > 90) {
-//                if (direction == RobotDirection.Backward) {
-////                    currentHead = (180 - Math.abs(currentHead)) * sign;
-//                    currentHead = (360 + currentHead) % 360;
-//                } else {
-//                    //spin
-////                    spinH(targetVector, topSpeed);
-////                    //todo: make more precise
-////                    currentHead = targetVector;
-//                }
-//                angleChange = Math.abs(targetVector - currentHead);
-//            }
-
-        telemetry.addData("CurrentHead", currentHead);
-        telemetry.addData("AngleChange", angleChange);
-
-        boolean reduceLeft = false;
-
-        if (targetVector < currentHead) {
-            reduceLeft = true;
-        }
-
-        if (targetVectorInSquare1 && currentHeadInSquare4 || targetVectorInSquare4 && currentHeadInSquare1 || direction == RobotDirection.Backward){
-            reduceLeft = !reduceLeft;
-        }
-
-        telemetry.addData("reduceLeft", reduceLeft);
-
-        double alpha = 90 - angleChange;
-        double theta = Math.toRadians(angleChange * 2);
-        double halfChord = chord / 2;
-        double cosAlpha = Math.cos(Math.toRadians(alpha));
-        double radius = 0;
-        if (cosAlpha != 0){
-            radius= halfChord / cosAlpha;
-        }
-
-
-        if ((reduceLeft && radius <= this.botConfig.getMinRadiusLeft()) ||
-                (reduceLeft == false && radius <= this.botConfig.getMinRadiusRight())) {
-            telemetry.addData("Radius", "Too small. Cannot turn");
-        } else {
-            double longArch = chord;
-            double shortArch = chord;
-            double speedRatio = 1;
-            double lowSpeed = topSpeed;
-
-            if (angleChange > 0) {
-                //double centerArch = theta * radius;
-                double wheelDistFromCenter = this.botConfig.getWheelBaseSeparation() / 2;
-                longArch = theta * (radius + wheelDistFromCenter);
-                shortArch = theta * (radius - wheelDistFromCenter);
-                speedRatio = shortArch / longArch;
-                lowSpeed = topSpeed * speedRatio;
-            }
-
-            if (direction == RobotDirection.Backward){
-                shortArch = -shortArch;
-                longArch = -longArch;
-            }
-
-            telemetry.addData("Radius", radius);
-            telemetry.addData("Theta", theta);
-            telemetry.addData("longArch", longArch);
-            telemetry.addData("shortArch", shortArch);
-            double leftSpeed, rightSpeed;
-            if (reduceLeft) {
-                telemetry.addData("right speed", topSpeed);
-                telemetry.addData("left speed", lowSpeed);
-                leftSpeed = lowSpeed;
-                rightSpeed = topSpeed;
-            } else {
-                telemetry.addData("left speed", topSpeed);
-                telemetry.addData("right speed", lowSpeed);
-                leftSpeed = topSpeed;
-                rightSpeed = lowSpeed;
-            }
-
-
-            /////////////////////
-            moveCurveCalib(leftSpeed, rightSpeed, speedRatio, shortArch, longArch, direction, locator);
-            telemetry.addData("Start X", start.x);
-            telemetry.addData("Start Y", start.y);
-            telemetry.addData("Target X", target.x);
-            telemetry.addData("Target Y", target.y);
-            telemetry.addData("Distance", Geometry.getDistance(locator.getXInches(), locator.getYInches(), target.x, target.y));
-            telemetry.addData("Actual X", locator.getXInches());
-            telemetry.addData("Actual Y", locator.getYInches());
-            telemetry.addData("front center X", locator.getFrontCenterXInches());
-            telemetry.addData("front center Y", locator.getFrontCenterYInches());
-            telemetry.addData("Head", locator.getOrientation());
-        }
-
-        telemetry.update();
-    }
 
     public void spinLeft(double speed, boolean forward){
         if (frontLeft != null && frontRight!= null && backLeft != null && backRight != null) {

@@ -25,13 +25,13 @@ public class Geometry {
     }
 
     public static double getAngle(double targetVector, double currentHead){
-        boolean clockwise = targetVector < currentHead;
+        boolean clockwise = targetVector > currentHead;
         double shortAngle = Math.abs(targetVector - currentHead);
         if (shortAngle > 180){
             shortAngle = 360 - shortAngle;
             clockwise = !clockwise;
         }
-        if (!clockwise){
+        if (clockwise){
             shortAngle = - shortAngle;
         }
         return shortAngle;

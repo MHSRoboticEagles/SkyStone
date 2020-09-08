@@ -599,7 +599,7 @@ public class MasterCalib extends LinearOpMode {
             Thread positionThread = new Thread(locator);
             positionThread.start();
 
-            BotMoveProfile profile = BotMoveProfile.bestRoute(bot, startX, startY, new Point(desiredX, desiredY), RobotDirection.Optimal, desiredSpeed, MoveStrategy.Curve, locator);
+            BotMoveProfile profile = BotMoveProfile.bestRoute(bot, startX, startY, new Point(desiredX, desiredY), RobotDirection.Optimal, desiredSpeed, MoveStrategy.Curve, BotMoveProfile.DEFAULT_HEADING, locator);
             profile.setStart(new Point(startX, startY));
             profile.setDestination(new Point(desiredX, desiredY));
             //override MR for calibration purposes
@@ -626,7 +626,7 @@ public class MasterCalib extends LinearOpMode {
 
             Point newStart = new Point((int)Math.round(locator.getXInches()), (int) Math.round(locator.getYInches()));
 
-            BotMoveProfile whatIfBack = BotMoveProfile.bestRoute(bot, locator.getXInches(), locator.getYInches(), new Point(startX, startY), RobotDirection.Optimal, desiredSpeed, MoveStrategy.Curve, locator);
+            BotMoveProfile whatIfBack = BotMoveProfile.bestRoute(bot, locator.getXInches(), locator.getYInches(), new Point(startX, startY), RobotDirection.Optimal, desiredSpeed, MoveStrategy.Curve, BotMoveProfile.DEFAULT_HEADING, locator);
             bot.moveCurveCalib(whatIfBack, locator);
             whatIfBack.setStart(newStart);
             whatIfBack.setDestination(new Point(startX, startY));

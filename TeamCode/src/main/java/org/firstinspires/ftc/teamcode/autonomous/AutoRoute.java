@@ -8,11 +8,12 @@ import java.util.ArrayList;
 public class AutoRoute implements Serializable {
     public static String NAME_BLUE = "Blue";
     public static String NAME_RED = "Red";
-    private String routeName;
     private int nameIndex = 1;
     private String name = NAME_BLUE;
     private boolean selected;
     private ArrayList<AutoStep> steps = new ArrayList<>();
+    private int startX;
+    private int startY;
 
     public String serialize() {
         return SimpleGson.getInstance().toJson(this);
@@ -57,6 +58,22 @@ public class AutoRoute implements Serializable {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public int getStartX() {
+        return startX;
+    }
+
+    public void setStartX(int startX) {
+        this.startX = startX;
+    }
+
+    public int getStartY() {
+        return startY;
+    }
+
+    public void setStartY(int startY) {
+        this.startY = startY;
     }
 }
 
