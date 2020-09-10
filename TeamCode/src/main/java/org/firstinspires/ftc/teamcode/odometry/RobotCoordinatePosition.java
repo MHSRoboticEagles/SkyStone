@@ -111,7 +111,7 @@ public class RobotCoordinatePosition implements Runnable {
         this.slowdownMarkShort = profile.getSlowdownMarkShort();
         this.longTarget = profile.getLongTarget();
     }
-    
+
 
     public void stop(){ isRunning = false; }
 

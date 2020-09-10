@@ -17,6 +17,7 @@ public class BotMoveProfile {
     private boolean leftLong;
     private double speedRatio = 1;
     private double topSpeed = 0;
+    private double lowSpeed = 0;
     private RobotDirection direction;
     private MotorReductionBot motorReduction = null;
     private BotMoveRequest target = new BotMoveRequest();
@@ -57,7 +58,7 @@ public class BotMoveProfile {
             actualY = actual.y;
         }
         destination = this.getTarget().getTarget();
-        return String.format("Long Target: %.2f Direction: %s \nL:%.2f  R:%.2f\n Slowdownns: %.2f %.2f\nHead: %.2f Target: %.2f Change: %.2f\nFrom: %d %d\nTo: %d %d\nActual: %d %d\nSpeedR: %.2f Dist R: %.2f", longTarget, direction.name(), realSpeedLeft, realSpeedRight, slowdownMarkLong,slowdownMarkShort, currentHead, targetVector, angleChange, start.x, start.y, destination.x, destination.y, actualX, actualY, speedRatio, distanceRatio);
+        return String.format("Long Target: %.2f Direction: %s \nL:%.2f  R:%.2f\n Slowdowns: %.2f %.2f\nHead: %.2f Target: %.2f Change: %.2f\nFrom: %d %d\nTo: %d %d\nActual: %d %d\nSpeedR: %.2f Dist R: %.2f", longTarget, direction.name(), realSpeedLeft, realSpeedRight, slowdownMarkLong,slowdownMarkShort, currentHead, targetVector, angleChange, start.x, start.y, destination.x, destination.y, actualX, actualY, speedRatio, distanceRatio);
     }
 
     public double getRealSpeedLeft() {
@@ -274,21 +275,23 @@ public class BotMoveProfile {
         }
 
         if (preferredStrategy == MoveStrategy.Strafe){
-            return buildStrafeProfile(bot.getCalibConfig(), realAngleChange, topSpeed, distance, MoveStrategy.Curve);
+            return buildStrafeProfile(bot.getCalibConfig(), realAngleChange, topSpeed, distance, direction, target, currentHead, targetVector, locator, null);
         }
 
         if (preferredStrategy == MoveStrategy.Straight){
             return buildMoveProfile(bot, distance, topSpeed, 0, 0, false, direction, target, currentHead, targetVector, locator);
         }
 
-
-        if (angleChange >= 42 && angleChange <= 48){
-            //diag
-            bot.getTelemetry().addData("Route",  "Diag");
-            return new BotMoveProfile(MoveStrategy.Diag);
+        if (preferredStrategy == MoveStrategy.Diag){
+            return  buildDiagProfile(bot.getCalibConfig(), realAngleChange, topSpeed, distance, direction, null);
         }
 
-        double chord = distance;  //Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+        if (angleChange >= 42 && angleChange <= 48){
+            bot.getTelemetry().addData("Route",  "Diag");
+            return  buildDiagProfile(bot.getCalibConfig(), realAngleChange, topSpeed, distance, direction,null);
+        }
+
+        double chord = distance;
 
         boolean reduceLeft = false;
 
@@ -307,7 +310,7 @@ public class BotMoveProfile {
         if ((reduceLeft && radius <= bot.getCalibConfig().getMinRadiusLeft()) ||
                 (reduceLeft == false && radius <= bot.getCalibConfig().getMinRadiusRight())) {
             bot.getTelemetry().addData("Radius", "Too small. Cannot turn. Attempt to spin");
-            return buildSpinProfile(realAngleChange, topSpeed, MoveStrategy.Curve);
+            return buildSpinProfile(realAngleChange, topSpeed, null);
         }
 
         BotMoveProfile profile = buildMoveProfile(bot, chord, topSpeed, radius, angleChange, reduceLeft, direction, target, currentHead, targetVector, locator);
@@ -425,25 +428,65 @@ public class BotMoveProfile {
         return profile;
     }
 
-    private static BotMoveProfile buildStrafeProfile(BotCalibConfig botConfig, double angleChange, double topSpeed, double distance, MoveStrategy next){
+    private static BotMoveProfile buildStrafeProfile(BotCalibConfig botConfig, double angleChange, double topSpeed, double distance, RobotDirection direction, Point target, double currentHead, double targetVector, RobotCoordinatePosition locator, MoveStrategy next){
         BotMoveProfile profile = new BotMoveProfile();
-        double strafeDistance = distance * Math.cos(Math.toRadians(Math.abs(angleChange)));
-        double distanceToTarget = Math.sqrt(distance *distance - strafeDistance* strafeDistance);
-        if (distanceToTarget < FieldStats.ROBOT_SIDE /2 ){
-            return buildSpinProfile(angleChange, topSpeed, next);
+        double strafeDistance = 0;
+        if (Math.abs(angleChange) < 45 ){
+            strafeDistance = distance * Math.cos(Math.toRadians(Math.abs(angleChange)));
         }
+        else{
+            strafeDistance = distance * Math.sin(Math.toRadians(Math.abs(angleChange)));
+        }
+
+        if (direction == RobotDirection.Backward){
+            angleChange = -angleChange;
+        }
+
         boolean left = angleChange > 0;
         if (left){
             profile.setMotorReduction(botConfig.getStrafeLeftReduction());
         }
         else{
-            strafeDistance = -strafeDistance;
             profile.setMotorReduction(botConfig.getStrafeRightReduction());
         }
         profile.setDistance(strafeDistance);
+        profile.setLongTarget(strafeDistance*YellowBot.COUNTS_PER_INCH_REV);
         profile.setAngleChange(angleChange);
         profile.setStrategy(MoveStrategy.Strafe);
         profile.setTopSpeed(topSpeed);
+        profile.setDirection(RobotDirection.Optimal);
+        BotMoveRequest rq = new BotMoveRequest();
+        rq.setTarget(target);
+        rq.setTopSpeed(topSpeed);
+        rq.setDirection(RobotDirection.Optimal);
+        rq.setMotorReduction(profile.getMotorReduction());
+        profile.setTarget(rq);
+        profile.setStart(new Point((int)locator.getXInches(), (int)locator.getYInches()));
+        profile.setAngleChange(angleChange);
+        profile.setCurrentHead(currentHead);
+        profile.setTargetVector(targetVector);
+        profile.setNextStep(next);
+        return profile;
+    }
+
+    private static BotMoveProfile buildDiagProfile(BotCalibConfig botConfig, double angleChange, double topSpeed, double distance, RobotDirection direction, MoveStrategy next){
+        BotMoveProfile profile = new BotMoveProfile();
+        double strafeDistance = distance * Math.cos(Math.toRadians(Math.abs(angleChange)));
+        double diagDistance = strafeDistance/Math.cos(Math.toRadians(45));
+
+        boolean left = angleChange > 0;
+        if (left){
+            profile.setMotorReduction(botConfig.getDiagMRLeft());
+        }
+        else{
+            profile.setMotorReduction(botConfig.getDiagMRRight());
+        }
+        profile.setDistance(diagDistance);
+        profile.setLongTarget(Math.abs(diagDistance * YellowBot.COUNTS_PER_INCH_REV));
+        profile.setAngleChange(angleChange);
+        profile.setStrategy(MoveStrategy.Diag);
+        profile.setTopSpeed(topSpeed);
+        profile.setDirection(direction);
         profile.setNextStep(next);
         return profile;
     }
@@ -514,5 +557,13 @@ public class BotMoveProfile {
 
     public void setDesiredHead(double desiredHead) {
         this.desiredHead = desiredHead;
+    }
+
+    public double getLowSpeed() {
+        return lowSpeed;
+    }
+
+    public void setLowSpeed(double lowSpeed) {
+        this.lowSpeed = lowSpeed;
     }
 }

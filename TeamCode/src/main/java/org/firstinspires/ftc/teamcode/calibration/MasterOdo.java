@@ -510,22 +510,6 @@ public class MasterOdo extends LinearOpMode {
 
     }
 
-    private void moveStraight(BotMoveProfile profile){
-        bot.moveTo(profile);
-        profileCurve = profile;
-    }
-
-
-    private void spin(BotMoveProfile profile){
-        try {
-            if (profile != null) {
-                bot.spinH(profile.getAngleChange(), profile.getTopSpeed());
-            }
-        }catch (Exception ex){
-            telemetry.addData("error spin", ex.getMessage());
-        }
-    }
-
 
     private void goTo(AutoStep instruction){
         if (newRoute.getSteps().size() == 0){
@@ -546,6 +530,8 @@ public class MasterOdo extends LinearOpMode {
             return;
         }
 
+        boolean finalSpin = true;
+
         switch (profile.getStrategy()){
             case Curve:
                 curve(profile);
@@ -554,12 +540,16 @@ public class MasterOdo extends LinearOpMode {
             case SpinNCurve:
             case SpinNStraight:
                 spin(profile);
+                finalSpin = false;
                 break;
             case Strafe:
                 strafe(profile);
                 break;
             case Straight:
                 moveStraight(profile);
+                break;
+            case Diag:
+                diag(profile);
                 break;
 
         }
@@ -568,15 +558,48 @@ public class MasterOdo extends LinearOpMode {
         }
 
         //set the desired heading
-        if (instruction.getDesiredHead() != BotMoveProfile.DEFAULT_HEADING) {
+        if (finalSpin && instruction.getDesiredHead() != BotMoveProfile.DEFAULT_HEADING) {
             BotMoveProfile profileSpin = BotMoveProfile.getFinalHeadProfile(instruction.getDesiredHead(), instruction.getTopSpeed(), locator);
             spin(profileSpin);
         }
     }
 
-    private void  curve(BotMoveProfile profile){
+    private void moveStraight(BotMoveProfile profile){
+        bot.moveTo(profile);
+    }
+
+    private void spin(BotMoveProfile profile){
+        try {
+            if (profile != null) {
+                bot.spinH(profile.getAngleChange(), profile.getTopSpeed());
+            }
+        }catch (Exception ex){
+            telemetry.addData("error spin", ex.getMessage());
+        }
+    }
+
+    private void diag(BotMoveProfile profile){
+        try {
+            if (profile != null) {
+                bot.diagTo(profile);
+            }
+        }catch (Exception ex){
+            telemetry.addData("error diag", ex.getMessage());
+        }
+    }
+
+    private void  curve(BotMoveProfile profile)
+    {
         bot.moveCurveCalib(profile, locator);
     }
+
+    private void strafe(BotMoveProfile profile){
+        double distance = profile.getDistance();
+        double angleChange = profile.getAngleChange();
+        bot.strafeToCalib(profile.getTopSpeed(), distance, angleChange > 0, profile.getMotorReduction());
+        profileCurve = profile;
+    }
+
 
     private void waitToStartStep(int MS){
         timer.reset();
@@ -584,12 +607,6 @@ public class MasterOdo extends LinearOpMode {
 
         }
     }
-
-    private void strafe(BotMoveProfile profile){
-        double distance = profile.getDistance();
-        bot.strafeToCalib(profile.getTopSpeed(), distance, distance > 0, profile.getMotorReduction());
-    }
-
 
     private String getStepValue(int index){
         String val = "";

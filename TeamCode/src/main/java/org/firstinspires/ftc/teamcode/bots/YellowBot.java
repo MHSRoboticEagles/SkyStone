@@ -1225,27 +1225,23 @@ public class YellowBot implements OdoBot{
         this.stop();
     }
 
-    public void diagTo(double speed,  double diagInches, double angle,  DiagCalibConfig calibCofig){
+    public void diagTo(BotMoveProfile profile){
         if (backLeft != null && backRight!= null && frontLeft != null && frontRight != null) {
 
-
+            MotorReductionBot calib = profile.getMotorReduction();
 
             double leftOdoStart = getLeftOdometer();
             double rightOdoStart = getRightOdometer();
             double horOdoStart = getHorizontalOdometer();
 
-            double distance = Math.abs(diagInches * COUNTS_PER_INCH_REV);
+            double distance = profile.getLongTarget();
 
-//            double horDistance = distance * Math.sin(Math.toRadians(targetAngle));
-//            double verDistance = distance * Math.cos(Math.toRadians(targetAngle));
-//
 
-            boolean leftAxis = angle > 0;
-            double lowSpeed = calibCofig.getSpeedPerDegree() * angle;
+            boolean leftAxis = profile.getAngleChange() > 0;
+            double power = profile.getTopSpeed();
+            double lowSpeed = profile.getLowSpeed();
 
-            double power = speed;
-
-            if (diagInches > 0){
+            if (profile.getDirection() == RobotDirection.Forward){
                 power = -power;
                 lowSpeed = -lowSpeed;
             }
@@ -1272,15 +1268,6 @@ public class YellowBot implements OdoBot{
                     break;
                 }
 
-//                if (angleChange) {
-//                    if (hyp >= distance) {
-//                        break;
-//                    }
-//                }else {
-//                    if (leftDistActual >= verDistance || rightDistActual >= verDistance || horDistActual >= horDistance) {
-//                        break;
-//                    }
-//                }
 
                 this.backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
                 this.frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -1289,18 +1276,18 @@ public class YellowBot implements OdoBot{
 
 
                 if (!leftAxis) {
-                    this.frontLeft.setPower(power);
-                    this.backRight.setPower(power);
+                    this.frontLeft.setPower(power*calib.getLF());
+                    this.backRight.setPower(power*calib.getRB());
 
-                    this.backLeft.setPower(lowSpeed);
-                    this.frontRight.setPower(lowSpeed);
+                    this.backLeft.setPower(lowSpeed*calib.getLB());
+                    this.frontRight.setPower(lowSpeed*calib.getRF());
                 }
                 else{
-                    this.backLeft.setPower(power);
-                    this.frontRight.setPower(power);
+                    this.backLeft.setPower(power*calib.getLB());
+                    this.frontRight.setPower(power*calib.getRF());
 
-                    this.frontLeft.setPower(lowSpeed);
-                    this.backRight.setPower(lowSpeed);
+                    this.frontLeft.setPower(lowSpeed*calib.getLF());
+                    this.backRight.setPower(lowSpeed*calib.getRB());
                 }
             }
         }
