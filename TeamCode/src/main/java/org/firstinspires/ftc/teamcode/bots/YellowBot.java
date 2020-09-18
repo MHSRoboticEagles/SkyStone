@@ -588,8 +588,6 @@ public class YellowBot implements OdoBot{
                             stats.stopAccelerateTimer(leftreading);
                             stats.startFullSpeedTimer(leftreading);
                         }
-
-                        stats.addAmpSample(getMotorAmperage());
                     }
                 }
 
@@ -602,8 +600,6 @@ public class YellowBot implements OdoBot{
             stats.stopSlowdownTimer(this.getLeftOdometer());
 
             stats.computeTotals(this.getLeftOdometer());
-            MotorReductionBot suggested = this.getSuggestedMR(stats.getMotorAmpsAverages());
-            stats.setSuggestedMR(suggested);
 
             this.stop();
         }
@@ -782,10 +778,115 @@ public class YellowBot implements OdoBot{
         }
     }
 
+    public void spin(BotMoveProfile profile, RobotCoordinatePosition locator){
+        if (frontLeft != null && frontRight != null && backLeft != null && backRight != null) {
+            frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-    public void spinH(double degrees, double speed){
+            double speed = Math.abs(profile.getTopSpeed());
+            double degrees = profile.getAngleChange();
+            boolean spinLeft = false;
+            if (degrees > 0){
+                spinLeft = true;
+            }
+
+            double leftDesiredSpeed = speed;
+            double rightDesiredSpeed = speed;
+
+            double startHead = locator.getOrientation();
+
+
+            MotorReductionBot reduction;
+            if (spinLeft){
+                rightDesiredSpeed = -rightDesiredSpeed;
+                reduction = botConfig.getSpinLeftConfig();
+            }
+            else{
+                leftDesiredSpeed = -leftDesiredSpeed;
+                reduction = botConfig.getSpinRightConfig();
+            }
+
+            double slowdownMark = Math.abs(degrees)*reduction.getBreakPoint(profile.getTopSpeed());
+
+
+            double leftPower = 0;
+            double rightPower = 0;
+
+            double realSpeedLeft = leftPower;
+            double realSpeedRight = rightPower;
+
+            double speedIncrement = profile.getSpeedIncrement();
+
+            boolean stop = false;
+            int step = 0;
+            double minSpeed = profile.getMinSpeed();
+
+            double speedDropStep = profile.getSpeedDecrement();
+            while (!stop && this.owner.opModeIsActive()){
+                double currentHead = locator.getOrientation();
+                double change = Math.abs(currentHead - startHead);
+                if (change >= Math.abs(degrees)){
+                    stop = true;
+                }
+                if (!stop) {
+                    //slow down
+                    if (change >= slowdownMark){
+                        step++;
+
+                        if (spinLeft) {
+                            rightPower = realSpeedRight + speedDropStep * step;
+                            leftPower = realSpeedLeft - speedDropStep * step;
+                            if (rightPower >= -minSpeed || leftPower <= minSpeed){
+                                leftPower = minSpeed;
+                                rightPower = -minSpeed;
+                            }
+                        }
+                        else{
+                            rightPower = realSpeedRight - speedDropStep * step;
+                            leftPower = realSpeedLeft + speedDropStep * step;
+                            if (rightPower <=minSpeed || leftPower >= -minSpeed){
+                                leftPower = -minSpeed;
+                                rightPower = minSpeed;
+                            }
+                        }
+                    }
+                    else {
+                        //accelerate
+                        if ((spinLeft && leftPower + speedIncrement <= leftDesiredSpeed) ||
+                                (!spinLeft && rightPower + speedIncrement <= rightDesiredSpeed)) {
+                            if (spinLeft) {
+                                leftPower = leftPower + speedIncrement;
+                                rightPower = -leftPower;
+                            } else {
+                                rightPower = rightPower + speedIncrement;
+                                leftPower = -rightPower;
+                            }
+                            realSpeedLeft = leftPower;
+                            realSpeedRight = rightPower;
+                        }
+                    }
+                }
+                this.frontLeft.setPower(leftPower);
+                this.frontRight.setPower(rightPower);
+                this.backLeft.setPower(leftPower);
+                this.backRight.setPower(rightPower);
+            }
+
+            this.stop();
+        }
+    }
+
+
+    public void spinCalib(double degrees, double speed, RobotCoordinatePosition locator){
+
+        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
         speed = Math.abs(speed);
-//        double currentHead = this.getGyroHeading();
         boolean spinLeft = false;
         if (degrees > 0){
             spinLeft = true;
@@ -794,6 +895,9 @@ public class YellowBot implements OdoBot{
         double leftDesiredSpeed = speed;
         double rightDesiredSpeed = speed;
 
+        double startHead = locator.getOrientation();
+
+
         if (spinLeft){
             rightDesiredSpeed = -rightDesiredSpeed;
         }
@@ -801,31 +905,7 @@ public class YellowBot implements OdoBot{
             leftDesiredSpeed = -leftDesiredSpeed;
         }
 
-        double archDegrees = Math.abs(degrees);
-        double horDistance = archDegrees * botConfig.getHorizontalTicksDegree();
-        telemetry.addData("horDistance", horDistance);
-
-
-
-        double startingPoint = this.getHorizontalOdometer();
-
-        double slowdownDistance = horDistance * 0.2;
-
-        double slowdownMark = 0;
-
-        boolean targetIncrement = true;
-        double target = 0;
-        if (spinLeft){
-            target = startingPoint - horDistance;
-            slowdownMark = startingPoint - slowdownDistance;
-            targetIncrement = false;
-        }
-
-        if (!spinLeft){
-            target = startingPoint + horDistance;
-            slowdownMark = startingPoint + slowdownDistance;
-            targetIncrement = true;
-        }
+        double slowdownMark = Math.abs(degrees)*075;
 
 
         double leftPower = 0;
@@ -842,15 +922,14 @@ public class YellowBot implements OdoBot{
 
         double speedDropStep = 0.1;
         while (!stop && this.owner.opModeIsActive()){
-            double currentReading = this.getHorizontalOdometer();
-            if ((targetIncrement && currentReading >= target) ||
-                    (!targetIncrement && currentReading <= target)){
+            double currentHead = locator.getOrientation();
+            double change = Math.abs(currentHead - startHead);
+            if (change >= Math.abs(degrees)){
                 stop = true;
             }
             if (!stop) {
                 //slow down
-                if ((targetIncrement && currentReading >= slowdownMark) ||
-                        (!targetIncrement && currentReading <= slowdownMark)){
+                if (change >= slowdownMark){
                     step++;
 
                     if (spinLeft) {

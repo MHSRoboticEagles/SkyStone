@@ -48,7 +48,7 @@ public class MasterCalib extends LinearOpMode {
     private final static int GAMEPAD_LOCKOUT = 500;
 
     private static final int[] modes = new int[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-    private static final String[] modeNames = new String[]{"Straight", "Curve", "Break", "Spin", "Strafe", "Diag", "Turn", "Calib", "Save", "Save Amps"};
+    private static final String[] modeNames = new String[]{"Straight", "Curve", "Break", "Spin", "Strafe", "Diag", "Spin Calib", "Calib Full", "Save", "Save Amps"};
 
     private int selectedMode = 0;
 
@@ -517,7 +517,7 @@ public class MasterCalib extends LinearOpMode {
                     calibBreak();
                     break;
                 case 3:
-                    calibSpin();
+                    calibSpinPrecision();
                     break;
                 case 4:
                     calibStrafe();
@@ -526,7 +526,7 @@ public class MasterCalib extends LinearOpMode {
                     calibDiag();
                     break;
                 case 6:
-                    calibTurn();
+                    calibSpin();
                     break;
                 case 7:
                     calibAll();
@@ -588,6 +588,134 @@ public class MasterCalib extends LinearOpMode {
         }
 
         telemetry.update();
+    }
+
+
+    private void calibSpinPrecision(){
+        RobotCoordinatePosition locator = null;
+        try {
+            //tracker
+            locator = new RobotCoordinatePosition(bot, new Point(startX, startY), lastOrientation, 75);
+            locator.reverseHorEncoder();
+            Thread positionThread = new Thread(locator);
+            positionThread.start();
+            int selectedIndex = MotorReductionBot.POWER_SAMPLES.length - 1;
+            while (selectedIndex >= 0) {
+                double power = MotorReductionBot.POWER_SAMPLES[selectedIndex];
+                calibSpinPrecision(power, true, locator);
+
+                timer.reset();
+                while (timer.milliseconds() < 1000 && opModeIsActive()) {
+
+                }
+                calibSpinPrecision(power, false, locator);
+                selectedIndex--;
+
+            }
+            ReadWriteFile.writeFile(bot.getCalibConfigFile(), bot.getCalibConfig().serialize());
+
+            //try with calibration
+            telemetry.addData("Testing", "");
+            testSpinPrecision(desiredSpeed, true, locator);
+            testSpinPrecision(desiredSpeed, false, locator);
+            telemetry.update();
+        }
+        catch (Exception ex){
+            telemetry.addData("Error", ex.getMessage());
+            telemetry.update();
+        }
+        finally {
+            if(locator != null){
+                locator.stop();
+            }
+        }
+    }
+
+    private void calibSpinPrecision(double speed, boolean left, RobotCoordinatePosition locator){
+        BotCalibConfig config = bot.getCalibConfig();
+        try {
+
+            double degrees = 90;
+            if (left == false){
+                degrees = -degrees;
+            }
+
+            double desiredChange = Math.abs(degrees);
+            double startHead = locator.getOrientation();
+
+
+            bot.spinCalib(degrees, speed, locator);
+
+            timer.reset();
+            while(timer.milliseconds() < 1000 && opModeIsActive()){
+
+            }
+
+            double endHead = locator.getOrientation();
+
+            double actualChange = Math.abs(endHead - startHead);
+            double reduction = 1;
+
+            if (actualChange > desiredChange){
+                reduction = 1 - ((actualChange - desiredChange)/desiredChange);
+                reduction = reduction - 0.25;
+            }
+
+            if (left) {
+                config.getSpinLeftConfig().setBreakPoint(reduction, speed);
+            }
+            else{
+                config.getSpinRightConfig().setBreakPoint(reduction, speed);
+            }
+        }
+        catch (Exception ex){
+            telemetry.addData("Error", ex.getMessage());
+            telemetry.update();
+        }
+    }
+
+    private void testSpinPrecision(double speed, boolean left, RobotCoordinatePosition locator){
+        BotCalibConfig config = bot.getCalibConfig();
+        try {
+
+            double degrees = 90;
+            if (left == false){
+                degrees = -degrees;
+            }
+
+            double desiredChange = Math.abs(degrees);
+            double startHead = locator.getOrientation();
+
+            BotMoveProfile profile = new BotMoveProfile(MoveStrategy.Spin);
+            profile.setAngleChange(degrees);
+            profile.setTopSpeed(speed);
+
+            bot.spin(profile, locator);
+
+            timer.reset();
+            while(timer.milliseconds() < 1000 && opModeIsActive()){
+
+            }
+
+            double endHead = locator.getOrientation();
+
+            double actualChange = Math.abs(endHead - startHead);
+
+
+            telemetry.addData("left", left);
+            telemetry.addData("desired", desiredChange);
+            telemetry.addData("actual", actualChange);
+            timer.reset();
+            while(timer.milliseconds() < 1000 && opModeIsActive()){
+
+            }
+
+        }
+        catch (Exception ex){
+            telemetry.addData("Error", ex.getMessage());
+            telemetry.update();
+        }
+
     }
 
     private void calibCurve(){
@@ -659,7 +787,7 @@ public class MasterCalib extends LinearOpMode {
             Thread positionThread = new Thread(locator);
             positionThread.start();
             moveBot(templateMRForward, templateMRBack, locator);
-            restoreHead();
+//            restoreHead();
             led.none();
             showMotorReductionCalib(templateMRForward);
             showMotorReductionCalib(templateMRBack);
@@ -697,7 +825,7 @@ public class MasterCalib extends LinearOpMode {
         while(timer.milliseconds() < 1000 && opModeIsActive()){
 
         }
-        restoreHead();
+//        restoreHead();
 
         double actualHead = bot.getGyroHeading();
         double headChange = Math.abs(actualHead - currentHead);
@@ -897,14 +1025,14 @@ public class MasterCalib extends LinearOpMode {
         while(timer.milliseconds() < 1000 && opModeIsActive()){
         }
 
-        restoreHead();
+//        restoreHead();
 
         while(timer.milliseconds() < 1000 && opModeIsActive()){
         }
 
         calibTurn();
 
-        restoreHead();
+//        restoreHead();
 
         while(timer.milliseconds() < 1000 && opModeIsActive()){
         }
@@ -934,11 +1062,13 @@ public class MasterCalib extends LinearOpMode {
         double currentHead = bot.getGyroHeading();
         double desiredHead = currentHead + 90;
         double horizontalStart = bot.getHorizontalOdometer();
+        double leftStart = bot.getLeftOdometer();
+        double rightStart = bot.getRightOdometer();
         while (bot.getGyroHeading() < desiredHead && opModeIsActive()){
             if (bot.getGyroHeading() < desiredHead/2){
-                bot.spinLeft(bot.CALIB_SPEED, true);
+                bot.spinLeft(desiredSpeed, true);
             }else{
-                bot.spinLeft(bot.CALIB_SPEED/2, true);
+                bot.spinLeft(desiredSpeed/2, true);
             }
             telemetry.addData("Heading", bot.getGyroHeading());
             telemetry.update();
@@ -959,6 +1089,9 @@ public class MasterCalib extends LinearOpMode {
         double rightLong = bot.getRightOdometer();
 
         double leftLong = bot.getLeftOdometer();
+
+        double leftDist = Math.abs(leftLong - leftStart);
+        double rightDist = Math.abs(rightLong - rightStart);
 
 
 
@@ -996,7 +1129,7 @@ public class MasterCalib extends LinearOpMode {
             telemetry.update();
         }
 
-        restoreHead();
+//        restoreHead();
 
         telemetry.addData("Spin","Calibration complete");
 
@@ -1004,6 +1137,8 @@ public class MasterCalib extends LinearOpMode {
         telemetry.addData("horizontalTicksDegree Left", horizontalTicksDegreeLeft);
         telemetry.addData("horizontalTicksDegree Right", horizontalTicksDegreeRight);
         telemetry.addData("actualAngle Left", actualAngle);
+        telemetry.addData("LeftTicksDegree", Math.abs(leftDist/actualAngle));
+        telemetry.addData("RightTicksDegree", Math.abs(rightDist/actualAngle));
 
         telemetry.update();
     }
@@ -1014,9 +1149,9 @@ public class MasterCalib extends LinearOpMode {
         double horizontalStart = bot.getHorizontalOdometer();
         while (bot.getGyroHeading() > desiredHead && opModeIsActive()){
             if (bot.getGyroHeading() > currentHead/2){
-                bot.spinRight(bot.CALIB_SPEED, true);
+                bot.spinRight(desiredSpeed, true);
             }else{
-                bot.spinRight(bot.CALIB_SPEED/2, true);
+                bot.spinRight(desiredSpeed/2, true);
             }
             telemetry.addData("Heading", bot.getGyroHeading());
             telemetry.update();
@@ -1042,7 +1177,7 @@ public class MasterCalib extends LinearOpMode {
 
     private void calibStrafe(){
         strafeBot(templateStrafeLeft, templateStrafeRight);
-        restoreHead();
+//        restoreHead();
         led.none();
         saveConfigStrafe(templateStrafeLeft, templateStrafeRight);
         showMotorReductionCalib(templateStrafeLeft);
@@ -1083,7 +1218,7 @@ public class MasterCalib extends LinearOpMode {
             led.OK();
         }
 
-        restoreHead();
+//        restoreHead();
 
         timer.reset();
         while(timer.milliseconds() < 1000 && opModeIsActive()){
@@ -1262,7 +1397,7 @@ public class MasterCalib extends LinearOpMode {
 //    }
     private void calibDiag(){
         diagBot(templateDiagLeft, templateDiagRight);
-        restoreHead();
+//        restoreHead();
         led.none();
         //bring bot back
         bot.moveToCalib(CALIB_SPEED, CALIB_SPEED, -desiredX, templateMRBack, 0, this.led);
@@ -1305,7 +1440,7 @@ public class MasterCalib extends LinearOpMode {
             led.OK();
         }
 
-        restoreHead();
+//        restoreHead();
 
         timer.reset();
         while(timer.milliseconds() < 1000 && opModeIsActive()){
@@ -1571,7 +1706,7 @@ public class MasterCalib extends LinearOpMode {
 //                    telemetry.update();
             }
 
-            restoreHead();
+//            restoreHead();
             this.led.none();
         }
 
@@ -1583,9 +1718,9 @@ public class MasterCalib extends LinearOpMode {
         return diagConfig;
     }
 
-    private void restoreHead(){
-        this.bot.spinH(0, 0.1);
-    }
+//    private void restoreHead(){
+//        this.bot.spinH(0, 0.1);
+//    }
 
 
     private void saveMoveConfigFromAmps(){

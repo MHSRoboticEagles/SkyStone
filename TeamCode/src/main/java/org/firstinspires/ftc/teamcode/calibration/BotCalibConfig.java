@@ -18,6 +18,8 @@ public class BotCalibConfig implements Serializable {
     private MotorReductionBot diagMRRight;
     private MotorReductionBot moveMRForward;
     private MotorReductionBot moveMRBack;
+    private MotorReductionBot spinLeftConfig = new MotorReductionBot();
+    private MotorReductionBot spinRightConfig  = new MotorReductionBot();;
 
 
     public String serialize() {
@@ -126,5 +128,21 @@ public class BotCalibConfig implements Serializable {
 
     public void setDiagMRRight(MotorReductionBot diagMRRight) {
         this.diagMRRight = diagMRRight;
+    }
+
+    public MotorReductionBot getSpinLeftConfig() {
+        return spinLeftConfig;
+    }
+
+    public void setSpinLeftConfig(MotorReductionBot spinLeftConfig) {
+        this.spinLeftConfig = spinLeftConfig;
+    }
+
+    public MotorReductionBot getSpinRightConfig() {
+        return spinRightConfig;
+    }
+
+    public void setSpinRightConfig(MotorReductionBot spinRightConfig) {
+        this.spinRightConfig = spinRightConfig;
     }
 }

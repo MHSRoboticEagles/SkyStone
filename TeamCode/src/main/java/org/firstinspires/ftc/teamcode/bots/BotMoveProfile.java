@@ -2,6 +2,8 @@ package org.firstinspires.ftc.teamcode.bots;
 
 import android.graphics.Point;
 
+import com.qualcomm.robotcore.hardware.DcMotor;
+
 import org.firstinspires.ftc.teamcode.calibration.BotCalibConfig;
 import org.firstinspires.ftc.teamcode.calibration.MotorReductionBot;
 import org.firstinspires.ftc.teamcode.gamefield.FieldStats;
@@ -37,6 +39,13 @@ public class BotMoveProfile {
     private Point start;
     private Point destination;
     private Point actual;
+
+    private double initialSpeed = 0;
+    private double speedIncrement = 0.05;
+    private double minSpeed = 0.1;
+    private double speedDecrement = 0.1;
+
+    private DcMotor.ZeroPowerBehavior zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE;
 
     public static double MOTOR_WHEEL_OFFSET = 1.25;
 
@@ -190,7 +199,7 @@ public class BotMoveProfile {
     }
 
     public static BotMoveProfile bestRoute(OdoBot bot, double currentX, double currentY, Point target, RobotDirection direction, double topSpeed, MoveStrategy preferredStrategy, double desiredHead, RobotCoordinatePosition locator){
-        double currentHead = getAdjustedCurrentHeading(locator);
+        double currentHead = locator.getAdjustedCurrentHeading();
 
         if (direction == RobotDirection.Backward) {
             currentHead = (currentHead + 180) % 360;
@@ -494,21 +503,11 @@ public class BotMoveProfile {
     public static BotMoveProfile getFinalHeadProfile(double desiredHeading, double speed, RobotCoordinatePosition locator){
         BotMoveProfile profileSpin = null;
         if (desiredHeading != BotMoveProfile.DEFAULT_HEADING) {
-            double currentHead = getAdjustedCurrentHeading(locator);
+            double currentHead = locator.getAdjustedCurrentHeading();
             double realAngleChange = Geometry.getAngle(desiredHeading, currentHead);
             profileSpin = BotMoveProfile.buildSpinProfile(realAngleChange, speed, null);
         }
         return profileSpin;
-    }
-
-    private static double getAdjustedCurrentHeading(RobotCoordinatePosition locator){
-        double currentHead = locator.getOrientation();
-
-        boolean clockwise = currentHead >= 0;
-        if (!clockwise){
-            currentHead = 360 + currentHead;
-        }
-        return currentHead;
     }
 
     public MoveStrategy getStrategy() {
@@ -565,5 +564,49 @@ public class BotMoveProfile {
 
     public void setLowSpeed(double lowSpeed) {
         this.lowSpeed = lowSpeed;
+    }
+
+    public double getInitialSpeed() {
+        return initialSpeed;
+    }
+
+    public void setInitialSpeed(double initialSpeed) {
+        this.initialSpeed = initialSpeed;
+    }
+
+    public double getSpeedIncrement() {
+        return speedIncrement;
+    }
+
+    public void setSpeedIncrement(double speedIncrement) {
+        this.speedIncrement = speedIncrement;
+    }
+
+    public void disableAcceleration(){
+        this.initialSpeed = this.topSpeed;
+    }
+
+    public double getMinSpeed() {
+        return minSpeed;
+    }
+
+    public void setMinSpeed(double minSpeed) {
+        this.minSpeed = minSpeed;
+    }
+
+    public double getSpeedDecrement() {
+        return speedDecrement;
+    }
+
+    public void setSpeedDecrement(double speedDecrement) {
+        this.speedDecrement = speedDecrement;
+    }
+
+    public DcMotor.ZeroPowerBehavior getZeroPowerBehavior() {
+        return zeroPowerBehavior;
+    }
+
+    public void setZeroPowerBehavior(DcMotor.ZeroPowerBehavior zeroPowerBehavior) {
+        this.zeroPowerBehavior = zeroPowerBehavior;
     }
 }

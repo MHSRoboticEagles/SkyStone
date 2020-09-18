@@ -8,7 +8,7 @@ import java.util.ArrayList;
 public class AutoRoute implements Serializable {
     public static String NAME_BLUE = "Blue";
     public static String NAME_RED = "Red";
-    private int nameIndex = 1;
+    private int nameIndex = 0;
     private String name = NAME_BLUE;
     private boolean selected;
     private ArrayList<AutoStep> steps = new ArrayList<>();

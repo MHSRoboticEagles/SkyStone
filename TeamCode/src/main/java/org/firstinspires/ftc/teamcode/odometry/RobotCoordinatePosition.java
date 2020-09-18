@@ -100,6 +100,16 @@ public class RobotCoordinatePosition implements Runnable {
         }
     }
 
+    public double getAdjustedCurrentHeading(){
+        double currentHead = this.getOrientation();
+
+        boolean clockwise = currentHead >= 0;
+        if (!clockwise){
+            currentHead = 360 + currentHead;
+        }
+        return currentHead;
+    }
+
 
     public void adjustRoute(){
         BotMoveProfile profile = BotMoveProfile.bestRoute(this.bot, getXInches(), getYInches(), this.target.getTarget(), this.target.getDirection(), this.target.getTopSpeed(), MoveStrategy.Curve,

@@ -118,7 +118,10 @@ public class YellowDriveOdo extends LinearOpMode {
                 telemetry.addData("X ", locator.getXInches() );
                 telemetry.addData("Y ", locator.getYInches() );
                 telemetry.addData("Orientation (Degrees)", locator.getOrientation());
-                telemetry.addData("Thread Active", positionThread.isAlive());
+                telemetry.addData("Hor Odo", robot.getHorizontalOdometer());
+                telemetry.addData("L Odo", robot.getLeftOdometer());
+                telemetry.addData("R Odo", robot.getRightOdometer());
+
                 telemetry.update();
 
                 telemetry.update();
