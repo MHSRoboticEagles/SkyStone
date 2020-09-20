@@ -607,6 +607,139 @@ public class YellowBot implements OdoBot{
     }
 
 
+    public RobotMovementStats moveToCalibBack(double leftspeed, double rightspeed, double inches, MotorReductionBot mr, double breakPoint, Led led) {
+        RobotMovementStats stats = new RobotMovementStats();
+        if (frontLeft != null && frontRight != null && backLeft != null && backRight != null) {
+            double rightPower = rightspeed;
+            double leftPower = leftspeed;
+            stats.setMotorPower(Math.abs(leftPower));
+            frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+
+            boolean forward = inches > 0;
+
+            //reverse speed
+            if (forward) {
+                rightPower = -rightPower;
+                leftPower = -leftPower;
+            } else {
+                breakPoint = -breakPoint;
+            }
+
+            double distance = inches * COUNTS_PER_INCH_REV;
+
+            double startingPoint = this.getLeftOdometer();
+
+
+            double slowdownMark = startingPoint + (distance - breakPoint);
+
+            double leftTarget = startingPoint + distance;
+
+
+            double minSpeed = 0.1;
+
+            double speedDropStep = 0.05;
+
+            double originalRight = rightPower;
+            double originalLeft = leftPower;
+
+
+            double speedIncrement = 0.05;
+            if (forward) {
+                speedIncrement = -speedIncrement;
+            }
+            leftPower = 0;
+            rightPower = 0;
+
+            double realSpeedLeft = leftPower;
+            double realSpeedRight = rightPower;
+
+            boolean fullSpeedReached = false;
+
+            stats.startAccelerateTimer(startingPoint);
+
+            boolean stop = false;
+            boolean slowDown = false;
+            int step = 0;
+            while (!stop && owner.opModeIsActive()) {
+                double leftreading = this.getLeftOdometer();
+                if ((forward && leftreading >= slowdownMark) || (!forward && leftreading <= slowdownMark)) {
+
+                    if (!slowDown) {
+                        if (fullSpeedReached) {
+                            fullSpeedReached = false;
+                            stats.stopFullSpeedTimer(leftreading);
+                        } else {
+                            stats.stopAccelerateTimer(leftreading);
+                        }
+                        stats.startSlowDownTimer(leftreading, slowdownMark);
+                        slowDown = true;
+                    }
+                    step++;
+                    if (Math.abs(leftPower) <= Math.abs(minSpeed) || Math.abs(rightPower) <= Math.abs(minSpeed)) {
+                        stop = (forward && leftreading >= leftTarget) ||
+                                (forward == false && leftreading <= leftTarget);
+                        if (stop) {
+                            break;
+                        }
+                    }
+
+                    if (forward) {
+                        rightPower = realSpeedRight + speedDropStep * step;
+                        leftPower = realSpeedLeft + speedDropStep * step;
+                        if (rightPower >= -minSpeed || leftPower >= -minSpeed) {
+                            leftPower = -minSpeed;
+                            rightPower = -minSpeed;
+                        }
+                    } else {
+                        rightPower = realSpeedRight - speedDropStep * step;
+                        leftPower = realSpeedLeft - speedDropStep * step;
+                        if (rightPower <= minSpeed || leftPower <= minSpeed) {
+                            leftPower = minSpeed;
+                            rightPower = minSpeed;
+                        }
+                    }
+                } else {
+                    //acceleration
+                    if ((forward && rightPower + speedIncrement >= originalRight) ||
+                            (!forward && rightPower + speedIncrement <= originalRight)) {
+                        rightPower = rightPower + speedIncrement;
+                        leftPower = rightPower;
+                        realSpeedLeft = leftPower;
+                        realSpeedRight = rightPower;
+                    } else {
+                        //full speed
+                        if (!fullSpeedReached) {
+                            fullSpeedReached = true;
+                            stats.stopAccelerateTimer(leftreading);
+                            stats.startFullSpeedTimer(leftreading);
+                        }
+
+                        stats.addAmpSample(getMotorAmperage());
+                    }
+                }
+
+                this.frontLeft.setPower(leftPower * mr.getLF());
+                this.frontRight.setPower(rightPower * mr.getRF());
+                this.backLeft.setPower(leftPower * mr.getLB());
+                this.backRight.setPower(rightPower * mr.getRB());
+
+            }
+            stats.stopSlowdownTimer(this.getLeftOdometer());
+
+            stats.computeTotals(this.getLeftOdometer());
+            MotorReductionBot suggested = this.getSuggestedMR(stats.getMotorAmpsAverages());
+            stats.setSuggestedMR(suggested);
+
+            this.stop();
+        }
+        return stats;
+    }
+
+
     public void moveCurveCalib(BotMoveProfile profile, RobotCoordinatePosition locator){
         if (frontLeft != null && frontRight != null && backLeft != null && backRight != null) {
 
