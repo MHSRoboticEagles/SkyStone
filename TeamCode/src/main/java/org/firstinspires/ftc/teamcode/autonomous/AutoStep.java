@@ -4,13 +4,16 @@ import org.firstinspires.ftc.teamcode.bots.BotMoveProfile;
 import org.firstinspires.ftc.teamcode.bots.MoveStrategy;
 
 public class AutoStep implements Cloneable {
+    public static final String NO_ACTION = "";
     private int waitMS = 0;
     private int targetX;
     private int targetY;
     private double topSpeed = 0.5;
     private MoveStrategy moveStrategy = MoveStrategy.Curve;
-    private String action;
+    private String action = NO_ACTION;
     private double desiredHead = BotMoveProfile.DEFAULT_HEADING;
+    private boolean continuous = false;
+    private String targetReference = "";
 
     public int getWaitMS() {
         return waitMS;
@@ -61,7 +64,12 @@ public class AutoStep implements Cloneable {
     }
 
     public String getDestination(){
-        return String.format("%d : %d", getTargetX(), getTargetY());
+        if (targetReference.equals("")) {
+            return String.format("%d : %d", getTargetX(), getTargetY());
+        }
+        else{
+            return targetReference;
+        }
     }
 
     public String getTopSpeedString(){
@@ -97,6 +105,30 @@ public class AutoStep implements Cloneable {
         clone.setMoveStrategy(this.getMoveStrategy());
         clone.setAction(this.getAction());
         clone.setDesiredHead(this.getDesiredHead());
+        clone.setContinuous(this.isContinuous());
+        clone.setTargetReference(this.getTargetReference());
         return clone;
     }
+
+    public boolean isContinuous() {
+        return continuous;
+    }
+
+    public String isContinuousAsString() {
+        return String.format("%b", continuous);
+    }
+
+
+    public void setContinuous(boolean continuous) {
+        this.continuous = continuous;
+    }
+
+    public String getTargetReference() {
+        return targetReference;
+    }
+
+    public void setTargetReference(String targetReference) {
+        this.targetReference = targetReference;
+    }
+
 }

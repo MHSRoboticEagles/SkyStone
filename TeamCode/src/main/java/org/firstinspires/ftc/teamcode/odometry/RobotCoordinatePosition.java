@@ -100,6 +100,10 @@ public class RobotCoordinatePosition implements Runnable {
         }
     }
 
+    public int getThreadSleepTime(){
+        return sleepTime;
+    }
+
     public double getAdjustedCurrentHeading(){
         double currentHead = this.getOrientation();
 

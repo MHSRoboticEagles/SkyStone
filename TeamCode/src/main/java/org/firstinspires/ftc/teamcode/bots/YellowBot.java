@@ -5,6 +5,7 @@ import android.graphics.Point;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 import com.qualcomm.robotcore.util.ReadWriteFile;
 
@@ -21,6 +22,7 @@ import org.openftc.revextensions2.ExpansionHubEx;
 import org.openftc.revextensions2.ExpansionHubMotor;
 
 import java.io.File;
+import java.util.Random;
 
 public class YellowBot implements OdoBot{
     public static double CALIB_SPEED = 0.5;
@@ -607,7 +609,7 @@ public class YellowBot implements OdoBot{
     }
 
 
-    public void moveCurveCalib(BotMoveProfile profile, RobotCoordinatePosition locator){
+    public void curveTo(BotMoveProfile profile, RobotCoordinatePosition locator){
         if (frontLeft != null && frontRight != null && backLeft != null && backRight != null) {
 
             MotorReductionBot mr = profile.getMotorReduction();
@@ -660,6 +662,11 @@ public class YellowBot implements OdoBot{
             double realSpeedLB = startPower;
             double realSpeedRF = startPower;
             double realSpeedRB = startPower;
+
+            if (profile.shouldStop() == false){
+                //will terminate earlier, at the slowdown point, to start the next move
+                longTarget = slowdownMarkLong;
+            }
 
 
 
@@ -774,7 +781,9 @@ public class YellowBot implements OdoBot{
                 this.backRight.setPower(realSpeedRB * mr.getRB());
             }
 
-            this.stop();
+            if (profile.shouldStop()){
+                this.stop();
+            }
         }
     }
 
@@ -809,6 +818,11 @@ public class YellowBot implements OdoBot{
             }
 
             double slowdownMark = Math.abs(degrees)*reduction.getBreakPoint(profile.getTopSpeed());
+            double desired = Math.abs(degrees);
+
+            if (!profile.shouldStop()){
+                desired = slowdownMark;
+            }
 
 
             double leftPower = 0;
@@ -827,7 +841,7 @@ public class YellowBot implements OdoBot{
             while (!stop && this.owner.opModeIsActive()){
                 double currentHead = locator.getOrientation();
                 double change = Math.abs(currentHead - startHead);
-                if (change >= Math.abs(degrees)){
+                if (change >= desired){
                     stop = true;
                 }
                 if (!stop) {
@@ -874,7 +888,9 @@ public class YellowBot implements OdoBot{
                 this.backRight.setPower(rightPower);
             }
 
-            this.stop();
+            if (profile.shouldStop()) {
+                this.stop();
+            }
         }
     }
 
@@ -1449,6 +1465,52 @@ public class YellowBot implements OdoBot{
             led.init(hwMap, telemetry);
         }
         return led;
+    }
+
+    //actions
+    @BotAction(displayName = "signalOK")
+    public void signalOK(){
+        getLights().OK();
+        ElapsedTime timer = new ElapsedTime();
+        timer.reset();
+        while (timer.seconds() < 1){
+
+        }
+        getLights().none();
+    }
+
+    @BotAction(displayName = "signalProblem")
+    public void signalProblem(){
+        getLights().problem();
+        ElapsedTime timer = new ElapsedTime();
+        timer.reset();
+        while (timer.seconds() < 1){
+
+        }
+        getLights().none();
+    }
+
+    @BotAction(displayName = "detectStack")
+    public Point detectStack(){
+        Random r = new Random();
+        int upperbound = 3;
+
+        Point destination = new Point(75, 80); //zone A
+
+        int zoneIndex = r.nextInt(upperbound);
+
+        switch (zoneIndex){
+            case 1:
+                destination = new Point(55, 100); //zone B
+                break;
+            case 2:
+                destination = new Point(75, 120); //zone B
+                break;
+
+        }
+        signalOK();
+
+        return destination;
     }
 
 

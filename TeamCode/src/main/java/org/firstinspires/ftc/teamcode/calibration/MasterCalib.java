@@ -658,7 +658,7 @@ public class MasterCalib extends LinearOpMode {
 
             if (actualChange > desiredChange){
                 reduction = 1 - ((actualChange - desiredChange)/desiredChange);
-                reduction = reduction - 0.25;
+                reduction = reduction - 0.3;
             }
 
             if (left) {
@@ -738,7 +738,7 @@ public class MasterCalib extends LinearOpMode {
                 profile.setMotorReduction(templateMRBack);
             }
 
-            bot.moveCurveCalib(profile, locator);
+            bot.curveTo(profile, locator);
 
             timer.reset();
             while(timer.milliseconds() < 2000 && opModeIsActive()){
@@ -755,7 +755,7 @@ public class MasterCalib extends LinearOpMode {
             Point newStart = new Point((int)Math.round(locator.getXInches()), (int) Math.round(locator.getYInches()));
 
             BotMoveProfile whatIfBack = BotMoveProfile.bestRoute(bot, locator.getXInches(), locator.getYInches(), new Point(startX, startY), RobotDirection.Optimal, desiredSpeed, MoveStrategy.Curve, BotMoveProfile.DEFAULT_HEADING, locator);
-            bot.moveCurveCalib(whatIfBack, locator);
+            bot.curveTo(whatIfBack, locator);
             whatIfBack.setStart(newStart);
             whatIfBack.setDestination(new Point(startX, startY));
             whatIfBack.setActual(new Point((int)Math.round(locator.getXInches()), (int)Math.round(locator.getYInches())));

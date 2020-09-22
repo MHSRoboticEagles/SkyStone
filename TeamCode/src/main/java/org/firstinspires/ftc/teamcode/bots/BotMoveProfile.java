@@ -45,6 +45,9 @@ public class BotMoveProfile {
     private double minSpeed = 0.1;
     private double speedDecrement = 0.1;
 
+    private boolean continuous = false;
+    private boolean dryRun = true;
+
     private DcMotor.ZeroPowerBehavior zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE;
 
     public static double MOTOR_WHEEL_OFFSET = 1.25;
@@ -206,6 +209,10 @@ public class BotMoveProfile {
         }
 
         double distance = Geometry.getDistance(currentX, currentY, target.x, target.y);
+
+        if (distance >= -2 && distance <= 2){
+            return null;
+        }
 
         //determine the new heading to the target
         double distanceX = target.x - currentX;
@@ -439,13 +446,7 @@ public class BotMoveProfile {
 
     private static BotMoveProfile buildStrafeProfile(BotCalibConfig botConfig, double angleChange, double topSpeed, double distance, RobotDirection direction, Point target, double currentHead, double targetVector, RobotCoordinatePosition locator, MoveStrategy next){
         BotMoveProfile profile = new BotMoveProfile();
-        double strafeDistance = 0;
-        if (Math.abs(angleChange) < 45 ){
-            strafeDistance = distance * Math.cos(Math.toRadians(Math.abs(angleChange)));
-        }
-        else{
-            strafeDistance = distance * Math.sin(Math.toRadians(Math.abs(angleChange)));
-        }
+        double strafeDistance = distance * Math.sin(Math.toRadians(Math.abs(angleChange)));
 
         if (direction == RobotDirection.Backward){
             angleChange = -angleChange;
@@ -480,7 +481,7 @@ public class BotMoveProfile {
 
     private static BotMoveProfile buildDiagProfile(BotCalibConfig botConfig, double angleChange, double topSpeed, double distance, RobotDirection direction, MoveStrategy next){
         BotMoveProfile profile = new BotMoveProfile();
-        double strafeDistance = distance * Math.cos(Math.toRadians(Math.abs(angleChange)));
+        double strafeDistance = distance * Math.sin(Math.toRadians(Math.abs(angleChange)));
         double diagDistance = strafeDistance/Math.cos(Math.toRadians(45));
 
         boolean left = angleChange > 0;
@@ -608,5 +609,25 @@ public class BotMoveProfile {
 
     public void setZeroPowerBehavior(DcMotor.ZeroPowerBehavior zeroPowerBehavior) {
         this.zeroPowerBehavior = zeroPowerBehavior;
+    }
+
+    public boolean isContinuous() {
+        return continuous;
+    }
+
+    public void setContinuous(boolean continuous) {
+        this.continuous = continuous;
+    }
+
+    public boolean isDryRun() {
+        return dryRun;
+    }
+
+    public void setDryRun(boolean dryRun) {
+        this.dryRun = dryRun;
+    }
+
+    public boolean shouldStop(){
+        return !isContinuous() || isDryRun();
     }
 }

@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.autonomous;
 
+import android.graphics.Point;
+
 import org.firstinspires.ftc.robotcore.internal.collections.SimpleGson;
 
 import java.io.Serializable;
@@ -74,6 +76,10 @@ public class AutoRoute implements Serializable {
 
     public void setStartY(int startY) {
         this.startY = startY;
+    }
+
+    public Point getStart(){
+        return new Point(startX, startY);
     }
 }
 
