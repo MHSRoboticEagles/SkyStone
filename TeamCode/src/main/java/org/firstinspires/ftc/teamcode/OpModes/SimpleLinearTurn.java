@@ -56,7 +56,7 @@ public class SimpleLinearTurn extends LinearOpMode {
 
     // Declare OpMode members.
     TieBot robot   = new TieBot();
-    private ElapsedTime     runtime = new ElapsedTime();
+    private ElapsedTime runtime = new ElapsedTime();
 
 
     @Override
