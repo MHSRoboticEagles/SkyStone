@@ -7,5 +7,6 @@ public enum MoveStrategy {
     SpinNCurve,
     SpinNStraight,
     Strafe,
-    Straight
+    Straight,
+    Auto
 }

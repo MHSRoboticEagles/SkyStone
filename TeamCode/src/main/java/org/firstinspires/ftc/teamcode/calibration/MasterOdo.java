@@ -89,7 +89,7 @@ public class MasterOdo extends LinearOpMode {
 
 
     private static final int[] modesTop = new int[]{0, 1, 2, 3};
-    private static final String[] modeNamesTop = new String[]{"Go To", "Start Position", "Routes", "Save"};
+    private static final String[] modeNamesTop = new String[]{"Start Position", "Go To", "Routes", "Save"};
 
     private static final int[] modesStep = new int[]{0, 1, 2, 3, 4, 5, 6};
     private static final String[] modeStepName = new String[]{"Destination", "Top Speed", "Strategy", "Wait", "Continue", "Heading", "Action"};
@@ -622,11 +622,11 @@ public class MasterOdo extends LinearOpMode {
             if (topMode){
                 switch (selectedTopMode){
                     case 0:
-                        topMode = false;
-                        goToMode = true;
+                        startSettingMode = !startSettingMode;
                         break;
                     case 1:
-                        startSettingMode = !startSettingMode;
+                        topMode = false;
+                        goToMode = true;
                         break;
                     case 2:
                         routeListMode = !routeListMode;
@@ -735,15 +735,23 @@ public class MasterOdo extends LinearOpMode {
 
         }
         if (profile.getNextStep() != null){
-            //let the locator catch uo
-            sleep(locator.getThreadSleepTime());
+            //let the locator catch up
+            if (!profile.isContinuous()) {
+                sleep(locator.getThreadSleepTime());
+            }
             executeStep(instruction, profile.getNextStep(), dryRun);
         }
 
         //set the desired heading
-        if (finalSpin && instruction.getDesiredHead() != BotMoveProfile.DEFAULT_HEADING) {
+        if (finalSpin && profile.getNextStep() == null && instruction.getDesiredHead() != BotMoveProfile.DEFAULT_HEADING) {
             sleep(locator.getThreadSleepTime());
             BotMoveProfile profileSpin = BotMoveProfile.getFinalHeadProfile(instruction.getDesiredHead(), instruction.getTopSpeed(), locator);
+            if (Math.abs(profile.getAngleChange()) < 30){
+                profile.setTopSpeed(0.1);
+            }
+            else{
+                profile.setTopSpeed(0.3);
+            }
             spin(profileSpin);
         }
 

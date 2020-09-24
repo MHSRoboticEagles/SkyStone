@@ -101,7 +101,7 @@ public class RobotCoordinatePosition implements Runnable {
     }
 
     public int getThreadSleepTime(){
-        return sleepTime;
+        return sleepTime * 3; //give more time to settle. the value is arbitrary
     }
 
     public double getAdjustedCurrentHeading(){
