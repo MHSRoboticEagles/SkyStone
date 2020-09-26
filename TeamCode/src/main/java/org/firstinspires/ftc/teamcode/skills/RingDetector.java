@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
 import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -30,15 +31,17 @@ public class RingDetector {
     Telemetry telemetry;
     private TFObjectDetector tfod;
     private HardwareMap hardwareMap;
-    private float targetZone = 1;
+    private String targetZone = " ";
     private static final String LABEL_RING = "Ring";
 
     private float phoneXRotate    = 0;
     private float phoneYRotate    = 0;
     private float phoneZRotate    = 0;
 
-    private static final String TFOD_MODEL_ASSET = "Rings.tflite";
-    private static final String LABEL_FIRST_ELEMENT = "Zone";
+    private static final String TFOD_MODEL_ASSET = "Skystone.tflite";
+    private static final String LABEL_A = "A";
+    private static final String LABEL_B = "B";
+    private static final String LABEL_C = "C";
     // Constant for Stone Target
     private static final float mmPerInch = 25.4f;
     private static final float stoneZ = 2.00f * mmPerInch;
@@ -59,9 +62,10 @@ public class RingDetector {
         hardwareMap = hMap;
         telemetry = t;
         initVuforia();
+        initTfod();
     }
 
-    public boolean detectStone(int timeout, Telemetry telemetry, LinearOpMode caller){
+    public boolean detectRing(int timeout, Telemetry telemetry, LinearOpMode caller){
         boolean found = false;
 
         boolean stop = false;
@@ -84,7 +88,8 @@ public class RingDetector {
                                 recognition.getRight(), recognition.getBottom());
                         telemetry.addData(String.format("  Width/height (%d)", i), "%.03f , %.03f, %d , %d",
                                 recognition.getWidth(), recognition.getHeight(), recognition.getImageWidth(), recognition.getImageHeight());
-                        if (recognition.getLabel().contentEquals(LABEL_RING)) {
+                        targetZone = recognition.getLabel();
+                        if (recognition.getLabel().contentEquals(LABEL_A)) {
                             found = true;
                             telemetry.addData("Found", found);
                             break;
@@ -161,11 +166,10 @@ public class RingDetector {
 
 
     private void initVuforia() {
-        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        parameters = new VuforiaLocalizer.Parameters(cameraMonitorViewId);
+        VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
 
         parameters.vuforiaLicenseKey = VUFORIA_KEY;
-        parameters.cameraDirection = VuforiaLocalizer.CameraDirection.BACK;
+        parameters.cameraName = hardwareMap.get(WebcamName.class, "wcam");
 
         //  Instantiate the Vuforia engine
         vuforia = ClassFactory.getInstance().createVuforia(parameters);
@@ -238,7 +242,7 @@ public class RingDetector {
                 Orientation rotation = Orientation.getOrientation(lastLocation, EXTRINSIC, XYZ, DEGREES);
                 telemetry.addData("Rot (deg)", "{Roll, Pitch, Heading} = %.0f, %.0f, %.0f", rotation.firstAngle, rotation.secondAngle, rotation.thirdAngle);
 
-                targetZone = translation.get(1) / mmPerInch;
+//                targetZone = translation.get(1) / mmPerInch;
             }
             else {
                 telemetry.addData("Visible Target", "none");
@@ -258,7 +262,7 @@ public class RingDetector {
         TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
         tfodParameters.minimumConfidence = 0.6;
         tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
-        tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABEL_FIRST_ELEMENT, LABEL_RING);
+        tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABEL_A, LABEL_B, LABEL_C);
     }
 
     protected void activateTfod(){
@@ -272,13 +276,13 @@ public class RingDetector {
         telemetry.addData("Info", "TF Activated");
     }
 
-    public void stopStoneDetection(){
+    public void stopDetection(){
         if (tfod != null) {
             tfod.shutdown();
         }
     }
 
-    public float getTargetZone() {
+    public String getTargetZone() {
         return targetZone;
     }
 }

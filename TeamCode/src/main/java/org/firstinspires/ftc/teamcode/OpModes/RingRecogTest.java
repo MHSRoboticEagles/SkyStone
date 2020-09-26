@@ -75,9 +75,8 @@ public class RingRecogTest extends LinearOpMode {
     public void runOpMode() {
         try {
             try {
-                robot.init(this, this.hardwareMap, telemetry);
                 sf = new RingDetector(this.hardwareMap, telemetry);
-                sf.initVueRec();
+//                robot.init(this, this.hardwareMap, telemetry);
             }
             catch (Exception ex){
                 telemetry.addData("Init", ex.getMessage());
@@ -92,10 +91,10 @@ public class RingRecogTest extends LinearOpMode {
             while (opModeIsActive()) {
 
 
-                ringDetected = sf.detectVue(30, this);
+                ringDetected = sf.detectRing(30, telemetry,this);
                 if(ringDetected) {
 
-                    telemetry.addData("Rec", "Ring Zone: %2f", sf.getTargetZone());
+                    telemetry.addData("Rec", "Ring Zone: %s", sf.getTargetZone());
                     telemetry.update();
                 }
             }
@@ -103,40 +102,46 @@ public class RingRecogTest extends LinearOpMode {
         catch (Exception ex){
             telemetry.addData("Issues with the OpMode", ex.getMessage());
             telemetry.update();
+            sleep(10000);
+        }
+        finally {
+            if (sf != null){
+                sf.stopDetection();
+            }
         }
     }
 
-    protected void initRec(){
-        if (vuforia == null){
-            telemetry.addData("Error", "Unable to start Vuforia");
-        }
-        else {
-            telemetry.addData("Info", "Vuforia initialized");
-
-            try {
-
-                if (ClassFactory.getInstance().canCreateTFObjectDetector()) {
-                    initTfod();
-                    telemetry.addData("Info", "TF initialized");
-                } else {
-                    telemetry.addData("Error", "This device is not compatible with TFOD");
-                }
-
-                /**
-                 * Activate TensorFlow Object Detection before we wait for the start command.
-                 * Do it here so that the Camera Stream window will have the TensorFlow annotations visible.
-                 **/
-                if (tfod != null) {
-                    tfod.activate();
-                }
-                telemetry.addData("Info", "TF Activated");
-            }
-            catch (Exception ex){
-                telemetry.addData("Error", "Unable to initialize Tensor Flow");
-            }
-        }
-        telemetry.update();
-    }
+//    protected void initRec(){
+//        if (vuforia == null){
+//            telemetry.addData("Error", "Unable to start Vuforia");
+//        }
+//        else {
+//            telemetry.addData("Info", "Vuforia initialized");
+//
+//            try {
+//
+//                if (ClassFactory.getInstance().canCreateTFObjectDetector()) {
+//                    initTfod();
+//                    telemetry.addData("Info", "TF initialized");
+//                } else {
+//                    telemetry.addData("Error", "This device is not compatible with TFOD");
+//                }
+//
+//                /**
+//                 * Activate TensorFlow Object Detection before we wait for the start command.
+//                 * Do it here so that the Camera Stream window will have the TensorFlow annotations visible.
+//                 **/
+//                if (tfod != null) {
+//                    tfod.activate();
+//                }
+//                telemetry.addData("Info", "TF Activated");
+//            }
+//            catch (Exception ex){
+//                telemetry.addData("Error", "Unable to initialize Tensor Flow");
+//            }
+//        }
+//        telemetry.update();
+//    }
 
     private void initVuforia() {
         /*
@@ -151,13 +156,13 @@ public class RingRecogTest extends LinearOpMode {
         vuforia = ClassFactory.getInstance().createVuforia(parameters);
     }
 
-    private void initTfod() {
-        int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
-                "tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
-        tfodParameters.minimumConfidence = 0.8;
-        tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
-        tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABEL_FIRST_ELEMENT, LABEL_SKYSTONE);
-    }
+//    private void initTfod() {
+//        int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
+//                "tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+//        TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
+//        tfodParameters.minimumConfidence = 0.8;
+//        tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
+//        tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABEL_FIRST_ELEMENT, LABEL_SKYSTONE);
+//    }
 
 }
